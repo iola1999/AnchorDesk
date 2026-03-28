@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import {
   GROUNDED_ANSWER_CONFIDENCE,
@@ -47,7 +47,7 @@ export default async function WorkspacePage({
         title: workspaces.title,
       })
       .from(workspaces)
-      .where(eq(workspaces.userId, userId))
+      .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)))
       .orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt)),
     db
       .select()

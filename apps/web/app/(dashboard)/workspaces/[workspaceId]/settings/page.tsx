@@ -1,4 +1,5 @@
 import { WorkspaceSettingsForm } from "@/components/workspaces/workspace-settings-form";
+import { WorkspaceLifecyclePanel } from "@/components/workspaces/workspace-lifecycle-panel";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { loadWorkspaceShellData } from "@/lib/api/workspace-shell-data";
 
@@ -30,11 +31,16 @@ export default async function WorkspaceSettingsPage({
         { label: "设置" },
       ]}
     >
-      <div className="mx-auto w-full max-w-[760px]">
+      <div className="mx-auto grid w-full max-w-[760px] gap-4">
         <WorkspaceSettingsForm
           workspaceId={workspace.id}
           initialTitle={workspace.title}
           initialPrompt={workspace.workspacePrompt}
+        />
+        <WorkspaceLifecyclePanel
+          workspaceId={workspace.id}
+          workspaceTitle={workspace.title}
+          archived={Boolean(workspace.archivedAt)}
         />
       </div>
     </WorkspaceShell>

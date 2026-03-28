@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -17,7 +17,7 @@ export async function loadWorkspaceShellData(workspaceId: string) {
         title: workspaces.title,
       })
       .from(workspaces)
-      .where(eq(workspaces.userId, userId))
+      .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)))
       .orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt)),
     db
       .select()

@@ -34,7 +34,7 @@
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
-- 账号页已补齐修改密码与退出登录的基础入口，但工作空间归档/删除仍未收口。
+- 账号页已补齐修改密码与退出登录的基础入口；工作空间也已补齐归档与删除。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息和 assistant 完成/失败事件，前端已补齐基础版工具时间线，但最终答案仍不是 token 级流式输出。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
@@ -48,6 +48,7 @@
 
 ## 2. 最近完成
 
+- `working tree` Add workspace archive/delete controls and hide archived workspaces from default lists
 - `working tree` Add account security page with password change and logout
 - `working tree` Align upload scope with OCR-disabled policy and reject image/scanned uploads early
 - `working tree` Remove workspace mode toggles and fix answer strategy to knowledge-first plus web search
@@ -78,9 +79,6 @@
 - 去法律化后的回归清理与文案收口
   - 继续检查其余页面和占位实现中的垂类默认文案
   - 回归补齐相关测试，防止后续再漂回法律垂类默认文案
-- 工作空间生命周期收口
-  - 补齐工作空间归档
-  - 补齐工作空间删除
 - OCR 商业 API provider 方案待定
   - 当前继续保持 `disabled`
   - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
@@ -98,10 +96,9 @@
 
 默认按以下顺序推进：
 
-1. 补工作空间归档与删除
-2. 替换工具占位实现并回到真实研究/写作链路
-3. Agent evidence dossier / token 级回答流 / sparse retrieval 深化
-4. OCR 商业 API provider 方案确认后再接入
+1. 替换工具占位实现并回到真实研究/写作链路
+2. Agent evidence dossier / token 级回答流 / sparse retrieval 深化
+3. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项
 

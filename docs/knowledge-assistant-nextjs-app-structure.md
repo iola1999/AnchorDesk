@@ -16,6 +16,8 @@
 
 ## 2. 主要页面
 
+- `/account`
+  - 账号与安全页
 - `/workspaces`
   - 空间选择页
 - `/settings`
@@ -33,6 +35,7 @@
 
 ## 3. 主要 API
 
+- `/api/account/password`
 - `/api/system-settings`
 - `/api/workspaces`
 - `/api/workspaces/[workspaceId]`
@@ -63,6 +66,7 @@ Server Components：
 
 Client Components：
 
+- AccountPasswordForm
 - Composer
 - ConversationTimeline
 - PDF Viewer

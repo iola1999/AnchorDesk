@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { conversations, getDb, workspaces } from "@knowledge-assistant/db";
@@ -36,7 +36,7 @@ export async function GET() {
   const items = await db
     .select()
     .from(workspaces)
-    .where(eq(workspaces.userId, userId))
+    .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)))
     .orderBy(desc(workspaces.createdAt));
 
   return Response.json({ workspaces: items });

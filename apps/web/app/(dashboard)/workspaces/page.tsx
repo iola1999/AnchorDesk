@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import { conversations, documents, getDb, workspaces } from "@knowledge-assistant/db";
 
@@ -22,7 +22,7 @@ export default async function WorkspacesPage() {
     ? await db
         .select()
         .from(workspaces)
-        .where(eq(workspaces.userId, userId))
+        .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)))
         .orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt))
     : [];
   const workspaceIds = workspaceList.map((workspace) => workspace.id);
