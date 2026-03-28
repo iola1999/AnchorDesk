@@ -1,10 +1,14 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_TOOL,
   DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT,
+  DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
   readCitationAnchorInputSchema,
@@ -29,6 +33,69 @@ import {
   searchWorkspaceKnowledge,
 } from "@knowledge-assistant/retrieval";
 
+import {
+  buildBraveWebSearchUrl,
+  buildStatuteSearchQueries,
+  inferStatuteEffectiveStatus,
+  normalizeBraveWebSearchResponse,
+  resolveWebSearchProvider,
+} from "./web-search";
+import {
+  buildReportOutlinePrompt,
+  buildReportSectionMarkdown,
+  buildReportSectionPrompt,
+  normalizeOutlineSections,
+} from "./report-generation";
+
+const DEFAULT_REPORT_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
+const DEFAULT_REPORT_OUTLINE_MAX_TOKENS = 900;
+const DEFAULT_REPORT_SECTION_MAX_TOKENS = 1_400;
+
+const REPORT_OUTLINE_SYSTEM_PROMPT = [
+  "You generate a concise report outline for a grounded workspace assistant.",
+  "Use the task and workspace evidence when they are available.",
+  "Keep the outline practical and easy to execute.",
+  "Do not invent citations, evidence, or section requirements that are not supported.",
+].join("\n");
+
+const REPORT_SECTION_SYSTEM_PROMPT = [
+  "You draft a single report section for a grounded workspace assistant.",
+  "Use only the provided evidence dossier.",
+  "If evidence is insufficient, say so plainly and list the missing information.",
+  "Never invent anchor IDs, quotes, or claims beyond the evidence dossier.",
+].join("\n");
+
+const reportOutlineModelSchema = z.object({
+  title: z.string().trim().min(1),
+  sections: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1),
+        section_key: z.string().trim().optional(),
+      }),
+    )
+    .min(3)
+    .max(6),
+});
+
+const reportSectionModelSchema = z.object({
+  markdown_body: z.string().trim().min(1),
+  citation_anchor_ids: z.array(z.string().uuid()).default([]),
+  missing_information: z.array(z.string().trim().min(1)).default([]),
+});
+
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient() {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+
+  return anthropicClient;
+}
+
 function asToolText(value: unknown) {
   return {
     content: [
@@ -50,6 +117,102 @@ function parseAllowedDomains() {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function buildToolFailure(code: string, message: string, retryable: boolean) {
+  return {
+    ok: false as const,
+    error: {
+      code,
+      message,
+      retryable,
+    },
+  };
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+async function performWebSearch(input: { query: string; topK: number }) {
+  const provider = resolveWebSearchProvider();
+  if (provider.type === "none") {
+    throw new Error("Web search provider is not configured.");
+  }
+
+  const requestUrl = buildBraveWebSearchUrl({
+    baseUrl: provider.url,
+    query: input.query,
+    topK: input.topK,
+    country: provider.country,
+    searchLang: provider.searchLang,
+    uiLang: provider.uiLang,
+  });
+  const response = await fetch(requestUrl, {
+    headers: {
+      accept: "application/json",
+      "x-subscription-token": provider.apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      body.trim() ||
+        `Web search provider responded with ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const payload = (await response.json()) as unknown;
+  return normalizeBraveWebSearchResponse(payload, input.topK);
+}
+
+async function resolveEvidenceAnchors(input: {
+  workspaceId: string;
+  evidenceAnchorIds: string[];
+  fallbackQuery: string;
+}) {
+  const db = getDb();
+  let anchorIds = uniqueStrings(input.evidenceAnchorIds);
+
+  if (anchorIds.length === 0 && input.fallbackQuery.trim()) {
+    const ranked = await searchWorkspaceKnowledge({
+      workspaceId: input.workspaceId,
+      query: input.fallbackQuery.trim(),
+      topK: Math.min(6, DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
+    });
+    anchorIds = ranked.map((item) => item.anchorId);
+  }
+
+  if (anchorIds.length === 0) {
+    return [];
+  }
+
+  const rows = await db
+    .select({
+      anchorId: citationAnchors.id,
+      documentPath: citationAnchors.documentPath,
+      pageNo: citationAnchors.pageNo,
+      anchorText: citationAnchors.anchorText,
+    })
+    .from(citationAnchors)
+    .where(
+      and(
+        eq(citationAnchors.workspaceId, input.workspaceId),
+        inArray(citationAnchors.id, anchorIds),
+      ),
+    );
+
+  const rowById = new Map(rows.map((row) => [row.anchorId, row] as const));
+
+  return anchorIds
+    .map((anchorId) => rowById.get(anchorId))
+    .filter((row): row is NonNullable<typeof row> => row !== undefined)
+    .map((row) => ({
+      anchor_id: row.anchorId,
+      label: `${row.documentPath} · 第${row.pageNo}页`,
+      quote_text: row.anchorText,
+    }));
 }
 
 export async function searchWorkspaceKnowledgeHandler(input: unknown) {
@@ -215,34 +378,59 @@ export async function readCitationAnchorHandler(input: unknown) {
 export async function searchStatutesHandler(input: unknown) {
   const args = searchStatutesInputSchema.parse(input);
 
-  return {
-    ok: true,
-    results: [
-      {
-        title: `待接入法条搜索：${args.query}`,
-        url: "https://flk.npc.gov.cn/",
-        publisher: "Official source pending integration",
-        effective_status: "unknown",
-        snippet: "Statute search provider is not configured yet.",
-      },
-    ],
-  };
+  try {
+    const searchQueries = buildStatuteSearchQueries({
+      query: args.query,
+      jurisdiction: args.jurisdiction,
+    });
+    const batches = await Promise.all(
+      searchQueries.map((query) => performWebSearch({ query, topK: args.top_k })),
+    );
+    const results = batches
+      .flat()
+      .filter(
+        (item, index, items) =>
+          items.findIndex((candidate) => candidate.url === item.url) === index,
+      )
+      .slice(0, args.top_k)
+      .map((item) => ({
+        title: item.title,
+        url: item.url,
+        publisher: item.domain,
+        effective_status: inferStatuteEffectiveStatus({
+          title: item.title,
+          snippet: item.snippet,
+        }),
+        snippet: item.snippet,
+      }));
+
+    return {
+      ok: true,
+      results,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Statute search failed";
+    return buildToolFailure("STATUTE_SEARCH_UNAVAILABLE", message, true);
+  }
 }
 
 export async function searchWebGeneralHandler(input: unknown) {
   const args = searchWebGeneralInputSchema.parse(input);
 
-  return {
-    ok: true,
-    results: [
-      {
-        title: `待接入通用网络搜索：${args.query}`,
-        url: "https://example.com/",
-        domain: "example.com",
-        snippet: "General web search provider is not configured yet.",
-      },
-    ],
-  };
+  try {
+    return {
+      ok: true,
+      results: await performWebSearch({
+        query: args.query,
+        topK: args.top_k,
+      }),
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "General web search failed";
+    return buildToolFailure("WEB_SEARCH_UNAVAILABLE", message, true);
+  }
 }
 
 export async function fetchSourceHandler(input: unknown) {
@@ -285,49 +473,162 @@ export async function fetchSourceHandler(input: unknown) {
 
 export async function createReportOutlineHandler(input: unknown) {
   const args = createReportOutlineInputSchema.parse(input);
-  const db = getDb();
 
-  const [report] = await db
-    .select({
-      id: reports.id,
-      title: reports.title,
-    })
-    .from(reports)
-    .where(eq(reports.workspaceId, args.workspace_id))
-    .orderBy(desc(reports.createdAt))
-    .limit(1);
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return buildToolFailure(
+      "REPORT_OUTLINE_NOT_CONFIGURED",
+      "Anthropic API key is not configured for report generation.",
+      false,
+    );
+  }
 
-  return {
-    ok: true,
-    outline: {
-      title: report?.title ?? args.title,
-      sections: [
-        { section_key: "background", title: "一、背景与范围" },
-        { section_key: "analysis", title: "二、核心分析" },
-        { section_key: "conclusion", title: "三、结论与建议" },
+  try {
+    const evidence = await resolveEvidenceAnchors({
+      workspaceId: args.workspace_id,
+      evidenceAnchorIds: args.evidence_anchor_ids,
+      fallbackQuery: [args.title, args.task].filter(Boolean).join(" "),
+    });
+    const message = await getAnthropicClient().messages.parse({
+      model: DEFAULT_REPORT_MODEL,
+      max_tokens: DEFAULT_REPORT_OUTLINE_MAX_TOKENS,
+      system: REPORT_OUTLINE_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: buildReportOutlinePrompt({
+            title: args.title,
+            task: args.task,
+            evidence,
+          }),
+        },
       ],
-    },
-  };
+      output_config: {
+        format: zodOutputFormat(reportOutlineModelSchema),
+      },
+    });
+    const parsedOutput = message.parsed_output;
+    if (!parsedOutput) {
+      return buildToolFailure(
+        "REPORT_OUTLINE_EMPTY",
+        "Report outline generation returned no structured output.",
+        true,
+      );
+    }
+
+    const sections = normalizeOutlineSections(parsedOutput.sections);
+    if (sections.length === 0) {
+      return buildToolFailure(
+        "REPORT_OUTLINE_EMPTY",
+        "Report outline generation did not return any valid sections.",
+        true,
+      );
+    }
+
+    return {
+      ok: true,
+      outline: {
+        title: parsedOutput.title.trim() || args.title,
+        sections,
+      },
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Report outline generation failed";
+    return buildToolFailure("REPORT_OUTLINE_UNAVAILABLE", message, true);
+  }
 }
 
 export async function writeReportSectionHandler(input: unknown) {
   const args = writeReportSectionInputSchema.parse(input);
   const db = getDb();
-  const [section] = await db
+  const [reportSection] = await db
     .select({
+      reportTitle: reports.title,
+      workspaceId: reports.workspaceId,
       title: reportSections.title,
     })
     .from(reportSections)
-    .where(eq(reportSections.id, args.section_id))
+    .innerJoin(reports, eq(reports.id, reportSections.reportId))
+    .where(and(eq(reportSections.id, args.section_id), eq(reports.id, args.report_id)))
     .limit(1);
 
-  return {
-    ok: true,
-    section: {
-      markdown: `## ${section?.title ?? "章节"}\n\n${args.instruction}\n`,
-      citations: [],
-    },
-  };
+  if (!reportSection) {
+    return buildToolFailure("REPORT_SECTION_NOT_FOUND", "Report section not found.", false);
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return buildToolFailure(
+      "REPORT_SECTION_NOT_CONFIGURED",
+      "Anthropic API key is not configured for report generation.",
+      false,
+    );
+  }
+
+  try {
+    const evidence = await resolveEvidenceAnchors({
+      workspaceId: reportSection.workspaceId,
+      evidenceAnchorIds: args.evidence_anchor_ids,
+      fallbackQuery: [reportSection.reportTitle, reportSection.title, args.instruction]
+        .filter(Boolean)
+        .join(" "),
+    });
+    const evidenceById = new Map(
+      evidence.map((item) => [item.anchor_id, item] as const),
+    );
+    const message = await getAnthropicClient().messages.parse({
+      model: DEFAULT_REPORT_MODEL,
+      max_tokens: DEFAULT_REPORT_SECTION_MAX_TOKENS,
+      system: REPORT_SECTION_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: buildReportSectionPrompt({
+            reportTitle: reportSection.reportTitle,
+            sectionTitle: reportSection.title,
+            instruction: args.instruction,
+            evidence,
+          }),
+        },
+      ],
+      output_config: {
+        format: zodOutputFormat(reportSectionModelSchema),
+      },
+    });
+    const parsedOutput = message.parsed_output;
+    if (!parsedOutput) {
+      return buildToolFailure(
+        "REPORT_SECTION_EMPTY",
+        "Report section generation returned no structured output.",
+        true,
+      );
+    }
+
+    const citations = uniqueStrings(parsedOutput.citation_anchor_ids)
+      .map((anchorId) => evidenceById.get(anchorId))
+      .filter((item): item is NonNullable<typeof item> => item !== undefined)
+      .map((item) => ({
+        anchor_id: item.anchor_id,
+        label: item.label,
+      }));
+    const markdown = buildReportSectionMarkdown({
+      title: reportSection.title,
+      body: parsedOutput.markdown_body,
+      citations,
+      missingInformation: parsedOutput.missing_information,
+    });
+
+    return {
+      ok: true,
+      section: {
+        markdown,
+        citations,
+      },
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Report section generation failed";
+    return buildToolFailure("REPORT_SECTION_UNAVAILABLE", message, true);
+  }
 }
 
 export function createAssistantMcpServer() {

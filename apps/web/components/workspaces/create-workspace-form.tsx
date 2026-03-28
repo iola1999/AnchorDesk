@@ -41,10 +41,6 @@ export function CreateWorkspaceForm() {
 
   return (
     <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5 p-6 md:p-7")}>
-      <div className="grid gap-2">
-        <p className={ui.eyebrow}>Create Space</p>
-        <h2>新建工作空间</h2>
-      </div>
       <label className={ui.label}>
         空间名称
         <input

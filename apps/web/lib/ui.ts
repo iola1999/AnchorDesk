@@ -24,7 +24,7 @@ export const ui = {
   textarea:
     "w-full rounded-2xl border border-app-border bg-app-surface-soft px-4 py-3 text-sm text-app-text outline-none transition placeholder:text-app-muted focus:border-app-border-strong focus:ring-4 focus:ring-app-accent/10",
   select:
-    "h-12 w-full rounded-2xl border border-app-border bg-app-surface-soft px-4 text-sm text-app-text outline-none transition focus:border-app-border-strong focus:ring-4 focus:ring-app-accent/10",
+    "h-12 w-full cursor-pointer rounded-2xl border border-app-border bg-app-surface-soft px-4 text-sm text-app-text outline-none transition focus:border-app-border-strong focus:ring-4 focus:ring-app-accent/10",
   codeChip:
     "inline-flex items-center rounded-full bg-app-surface-strong px-3 py-1 text-[13px] text-app-text",
 };
@@ -55,7 +55,7 @@ export function buttonStyles({
           : "border-transparent bg-transparent text-app-muted-strong hover:bg-black/5";
 
   return cn(
-    "inline-flex items-center justify-center rounded-full border font-medium transition focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex cursor-pointer items-center justify-center rounded-full border font-medium transition focus:outline-none focus:ring-4 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:opacity-60",
     sizeClass,
     variantClass,
     block && "w-full",

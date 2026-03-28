@@ -1,5 +1,6 @@
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { REPORT_STATUS } from "@knowledge-assistant/contracts";
+import { createReportOutlineHandler } from "@knowledge-assistant/agent-tools";
 
 import { getDb, reports, reportSections } from "@knowledge-assistant/db";
 
@@ -8,11 +9,17 @@ import { requireOwnedReport } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
 
-const defaultOutline = [
-  { sectionKey: "background", title: "一、背景与范围" },
-  { sectionKey: "analysis", title: "二、核心分析" },
-  { sectionKey: "conclusion", title: "三、结论与建议" },
-];
+function statusFromToolError(error: { code: string; retryable: boolean }) {
+  if (error.code.endsWith("_NOT_FOUND")) {
+    return 404;
+  }
+
+  if (error.code.endsWith("_NOT_CONFIGURED")) {
+    return 503;
+  }
+
+  return error.retryable ? 503 : 400;
+}
 
 export async function POST(
   request: Request,
@@ -36,6 +43,9 @@ export async function POST(
   };
 
   const nextTitle = String(body.title ?? "").trim() || report.title;
+  const task =
+    String(body.task ?? "").trim() ||
+    `围绕「${nextTitle}」整理工作空间中的核心事实、分析与建议。`;
   const db = getDb();
 
   await db
@@ -47,42 +57,75 @@ export async function POST(
     })
     .where(eq(reports.id, reportId));
 
-  const existingSections = await db
-    .select({ id: reportSections.id })
-    .from(reportSections)
-    .where(eq(reportSections.reportId, reportId))
-    .orderBy(asc(reportSections.orderIndex));
+  const result = await createReportOutlineHandler({
+    workspace_id: report.workspaceId,
+    title: nextTitle,
+    task,
+    evidence_anchor_ids: [],
+  });
 
-  if (existingSections.length === 0) {
-    await db.insert(reportSections).values(
-      defaultOutline.map((section, index) => ({
-        reportId,
-        sectionKey: section.sectionKey,
-        title: section.title,
-        orderIndex: index,
-        status: REPORT_STATUS.DRAFT,
-      })),
+  if ("error" in result) {
+    await db
+      .update(reports)
+      .set({
+        status: REPORT_STATUS.FAILED,
+        updatedAt: new Date(),
+      })
+      .where(eq(reports.id, reportId));
+
+    return Response.json(
+      {
+        error: result.error.message,
+        code: result.error.code,
+      },
+      { status: statusFromToolError(result.error) },
     );
   }
 
-  await db
-    .update(reports)
-    .set({
-      status: REPORT_STATUS.DRAFT,
-      updatedAt: new Date(),
-    })
-    .where(eq(reports.id, reportId));
+  const updatedAt = new Date();
+  await db.transaction(async (tx) => {
+    await tx.delete(reportSections).where(eq(reportSections.reportId, reportId));
+    await tx.insert(reportSections).values(
+      result.outline.sections.map(
+        (
+          section: { section_key: string; title: string },
+          index: number,
+        ) => ({
+          reportId,
+          sectionKey: section.section_key,
+          title: section.title,
+          orderIndex: index,
+          status: REPORT_STATUS.DRAFT,
+        }),
+      ),
+    );
+    await tx
+      .update(reports)
+      .set({
+        title: result.outline.title,
+        status: REPORT_STATUS.DRAFT,
+        updatedAt,
+      })
+      .where(eq(reports.id, reportId));
+  });
 
-  const sections = await db
-    .select()
-    .from(reportSections)
-    .where(eq(reportSections.reportId, reportId))
-    .orderBy(asc(reportSections.orderIndex));
+  const sections = result.outline.sections.map(
+    (
+      section: { section_key: string; title: string },
+      index: number,
+    ) => ({
+      reportId,
+      sectionKey: section.section_key,
+      title: section.title,
+      orderIndex: index,
+      status: REPORT_STATUS.DRAFT,
+    }),
+  );
 
   return Response.json({
     outline: {
-      title: nextTitle,
-      task: String(body.task ?? "").trim() || null,
+      title: result.outline.title,
+      task,
       sections,
     },
   });

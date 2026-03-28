@@ -1,12 +1,25 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { REPORT_STATUS } from "@knowledge-assistant/contracts";
+import { writeReportSectionHandler } from "@knowledge-assistant/agent-tools";
 
-import { citationAnchors, getDb, reports, reportSections } from "@knowledge-assistant/db";
+import { getDb, reports, reportSections } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requireOwnedReport } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
+
+function statusFromToolError(error: { code: string; retryable: boolean }) {
+  if (error.code.endsWith("_NOT_FOUND")) {
+    return 404;
+  }
+
+  if (error.code.endsWith("_NOT_CONFIGURED")) {
+    return 503;
+  }
+
+  return error.retryable ? 503 : 400;
+}
 
 export async function POST(
   request: Request,
@@ -38,7 +51,10 @@ export async function POST(
     .where(eq(reports.id, reportId));
 
   const [section] = await db
-    .select()
+    .select({
+      id: reportSections.id,
+      title: reportSections.title,
+    })
     .from(reportSections)
     .where(and(eq(reportSections.id, sectionId), eq(reportSections.reportId, reportId)))
     .limit(1);
@@ -56,48 +72,52 @@ export async function POST(
     ? body.evidenceAnchorIds.map((item) => String(item))
     : [];
 
-  const anchors =
-    evidenceAnchorIds.length > 0
-      ? await db
-          .select({
-            id: citationAnchors.id,
-            documentPath: citationAnchors.documentPath,
-            pageNo: citationAnchors.pageNo,
-            quoteText: citationAnchors.anchorText,
-          })
-          .from(citationAnchors)
-          .where(
-            and(
-              eq(citationAnchors.workspaceId, report.workspaceId),
-              inArray(citationAnchors.id, evidenceAnchorIds),
-            ),
-          )
-      : [];
-
   const instruction =
     String(body.instruction ?? "").trim() || `围绕「${section.title}」整理核心结论。`;
+  const result = await writeReportSectionHandler({
+    report_id: reportId,
+    section_id: sectionId,
+    instruction,
+    evidence_anchor_ids: evidenceAnchorIds,
+  });
 
-  const evidenceBlock =
-    anchors.length > 0
-      ? `\n\n### 依据资料\n${anchors
-          .map(
-            (anchor) =>
-              `- ${anchor.documentPath} · 第${anchor.pageNo}页\n\n> ${anchor.quoteText}`,
-          )
-          .join("\n\n")}`
-      : "\n\n### 依据资料\n- 当前章节尚未绑定明确引用，请补充后再完善。";
+  if ("error" in result) {
+    await db
+      .update(reportSections)
+      .set({
+        status: REPORT_STATUS.FAILED,
+        updatedAt: new Date(),
+      })
+      .where(eq(reportSections.id, sectionId));
 
-  const markdown = `## ${section.title}\n\n${instruction}${evidenceBlock}\n`;
+    await db
+      .update(reports)
+      .set({
+        status: REPORT_STATUS.FAILED,
+        updatedAt: new Date(),
+      })
+      .where(eq(reports.id, reportId));
+
+    return Response.json(
+      {
+        error: result.error.message,
+        code: result.error.code,
+      },
+      { status: statusFromToolError(result.error) },
+    );
+  }
 
   await db
     .update(reportSections)
     .set({
       status: REPORT_STATUS.READY,
-      contentMarkdown: markdown,
-      citationsJson: anchors.map((anchor) => ({
-        anchorId: anchor.id,
-        label: `${anchor.documentPath} · 第${anchor.pageNo}页`,
-      })),
+      contentMarkdown: result.section.markdown,
+      citationsJson: result.section.citations.map(
+        (citation: { anchor_id: string; label: string }) => ({
+          anchorId: citation.anchor_id,
+          label: citation.label,
+        }),
+      ),
       updatedAt: new Date(),
     })
     .where(eq(reportSections.id, sectionId));
@@ -122,8 +142,8 @@ export async function POST(
   return Response.json({
     section: {
       id: sectionId,
-      markdown,
-      citations: anchors,
+      markdown: result.section.markdown,
+      citations: result.section.citations,
     },
   });
 }

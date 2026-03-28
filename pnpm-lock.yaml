@@ -63,6 +63,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@knowledge-assistant/agent-tools':
+        specifier: workspace:*
+        version: link:../../packages/agent-tools
       '@knowledge-assistant/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -154,6 +157,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.2.85
         version: 0.2.85(zod@4.3.6)
+      '@anthropic-ai/sdk':
+        specifier: ^0.80.0
+        version: 0.80.0(zod@4.3.6)
       '@knowledge-assistant/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -166,6 +172,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
   packages/auth:
     dependencies:
