@@ -1,37 +1,54 @@
+import {
+  CONVERSATION_STATUS,
+  type ConversationStatus,
+  DOCUMENT_STATUS,
+  type DocumentStatus,
+  PARSE_STATUS,
+  type ParseStatus,
+  RUN_STATUS,
+  type RunStatus,
+} from "@knowledge-assistant/contracts";
+
 type WorkspaceOverviewDocument = {
-  status: string;
+  status: DocumentStatus;
   latestVersion: {
-    parseStatus: string;
+    parseStatus: ParseStatus;
   } | null;
   latestJob: {
-    status: string;
+    status: RunStatus;
   } | null;
 };
 
 type WorkspaceOverviewConversation = {
-  status: "active" | "archived";
+  status: ConversationStatus;
 };
 
 export function isWorkspaceDocumentProcessing(document: WorkspaceOverviewDocument) {
-  if (document.latestJob?.status === "queued" || document.latestJob?.status === "running") {
+  if (
+    document.latestJob?.status === RUN_STATUS.QUEUED ||
+    document.latestJob?.status === RUN_STATUS.RUNNING
+  ) {
     return true;
   }
 
   if (!document.latestVersion) {
-    return document.status === "uploading" || document.status === "processing";
+    return (
+      document.status === DOCUMENT_STATUS.UPLOADING ||
+      document.status === DOCUMENT_STATUS.PROCESSING
+    );
   }
 
   return (
-    document.latestVersion.parseStatus !== "ready" &&
-    document.latestVersion.parseStatus !== "failed"
+    document.latestVersion.parseStatus !== PARSE_STATUS.READY &&
+    document.latestVersion.parseStatus !== PARSE_STATUS.FAILED
   );
 }
 
 export function isWorkspaceDocumentFailed(document: WorkspaceOverviewDocument) {
   return (
-    document.status === "failed" ||
-    document.latestJob?.status === "failed" ||
-    document.latestVersion?.parseStatus === "failed"
+    document.status === DOCUMENT_STATUS.FAILED ||
+    document.latestJob?.status === RUN_STATUS.FAILED ||
+    document.latestVersion?.parseStatus === PARSE_STATUS.FAILED
   );
 }
 
@@ -48,7 +65,7 @@ export function summarizeWorkspaceOverview(input: {
   const failedDocuments = input.documents.filter(isWorkspaceDocumentFailed).length;
   const readyDocuments = input.documents.filter(isWorkspaceDocumentReady).length;
   const activeConversations = input.conversations.filter(
-    (conversation) => conversation.status === "active",
+    (conversation) => conversation.status === CONVERSATION_STATUS.ACTIVE,
   ).length;
   const archivedConversations = input.conversations.length - activeConversations;
 

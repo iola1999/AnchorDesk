@@ -1,6 +1,11 @@
 import { and, asc, eq } from "drizzle-orm";
 
-import type { ConversationStreamEvent } from "@knowledge-assistant/contracts";
+import {
+  CONVERSATION_STREAM_EVENT,
+  DEFAULT_CONVERSATION_STREAM_POLL_INTERVAL_MS,
+  MESSAGE_ROLE,
+  type ConversationStreamEvent,
+} from "@knowledge-assistant/contracts";
 import { getDb, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
@@ -56,7 +61,9 @@ export async function GET(
             structuredJson: messages.structuredJson,
           })
           .from(messages)
-          .where(and(eq(messages.conversationId, conversationId), eq(messages.role, "tool")))
+          .where(
+            and(eq(messages.conversationId, conversationId), eq(messages.role, MESSAGE_ROLE.TOOL)),
+          )
           .orderBy(asc(messages.createdAt));
 
         for (const message of toolMessages) {
@@ -74,7 +81,11 @@ export async function GET(
               (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
           });
 
-          controller.enqueue(encoder.encode(encodeSse("tool_message", payload)));
+          controller.enqueue(
+            encoder.encode(
+              encodeSse(CONVERSATION_STREAM_EVENT.TOOL_MESSAGE, payload),
+            ),
+          );
         }
 
         const [assistantMessage] = await db
@@ -118,7 +129,7 @@ export async function GET(
         }
 
         controller.enqueue(encoder.encode(": keepalive\n\n"));
-        await sleep(700);
+        await sleep(DEFAULT_CONVERSATION_STREAM_POLL_INTERVAL_MS);
       }
     },
   });

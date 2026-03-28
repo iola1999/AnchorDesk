@@ -1,4 +1,9 @@
 import { eq } from "drizzle-orm";
+import {
+  DEFAULT_PARSE_STATUS,
+  DOCUMENT_STATUS,
+  RUN_STATUS,
+} from "@knowledge-assistant/contracts";
 
 import { documentJobs, documentVersions, documents, getDb } from "@knowledge-assistant/db";
 import { enqueueIngestFlow } from "@knowledge-assistant/queue";
@@ -23,7 +28,7 @@ export async function POST(
     return Response.json({ error: "Job not found" }, { status: 404 });
   }
 
-  if (job.status !== "failed") {
+  if (job.status !== RUN_STATUS.FAILED) {
     return Response.json({ error: "Only failed jobs can be retried" }, { status: 400 });
   }
 
@@ -31,8 +36,8 @@ export async function POST(
   await db
     .update(documentJobs)
     .set({
-      stage: "queued",
-      status: "queued",
+      stage: DEFAULT_PARSE_STATUS,
+      status: RUN_STATUS.QUEUED,
       progress: 0,
       errorCode: null,
       errorMessage: null,
@@ -45,14 +50,14 @@ export async function POST(
   await db
     .update(documentVersions)
     .set({
-      parseStatus: "queued",
+      parseStatus: DEFAULT_PARSE_STATUS,
     })
     .where(eq(documentVersions.id, job.documentVersionId));
 
   await db
     .update(documents)
     .set({
-      status: "processing",
+      status: DOCUMENT_STATUS.PROCESSING,
       updatedAt: new Date(),
     })
     .where(eq(documents.id, job.documentId));

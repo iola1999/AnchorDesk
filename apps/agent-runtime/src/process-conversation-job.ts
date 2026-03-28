@@ -1,6 +1,14 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+  TIMELINE_EVENT,
+  TOOL_TIMELINE_STATE,
+  type ToolTimelineState,
+} from "@knowledge-assistant/contracts";
+import {
   citationAnchors,
   conversations,
   getDb,
@@ -17,7 +25,7 @@ const db = getDb();
 async function insertToolMessage(input: {
   conversationId: string;
   toolName: string;
-  state: "started" | "completed" | "failed";
+  state: ToolTimelineState;
   error?: string | null;
 }) {
   const timeline = buildToolTimelineMessage({
@@ -28,7 +36,7 @@ async function insertToolMessage(input: {
 
   await db.insert(messages).values({
     conversationId: input.conversationId,
-    role: "tool",
+    role: MESSAGE_ROLE.TOOL,
     status: timeline.status,
     contentMarkdown: timeline.contentMarkdown,
     structuredJson: timeline.structuredJson,
@@ -114,7 +122,11 @@ export async function processConversationResponseJob(
     )
     .limit(1);
 
-  if (!conversation || !assistantMessage || assistantMessage.status !== "streaming") {
+  if (
+    !conversation ||
+    !assistantMessage ||
+    assistantMessage.status !== MESSAGE_STATUS.STREAMING
+  ) {
     return;
   }
 
@@ -133,21 +145,21 @@ export async function processConversationResponseJob(
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
-            state: "started",
+            state: TOOL_TIMELINE_STATE.STARTED,
           });
         },
         onToolFinished: async ({ toolName }) => {
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
-            state: "completed",
+            state: TOOL_TIMELINE_STATE.COMPLETED,
           });
         },
         onToolFailed: async ({ toolName, error }) => {
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
-            state: "failed",
+            state: TOOL_TIMELINE_STATE.FAILED,
             error,
           });
         },
@@ -166,11 +178,12 @@ export async function processConversationResponseJob(
     await db
       .update(messages)
       .set({
-        status: "completed",
+        status: MESSAGE_STATUS.COMPLETED,
         contentMarkdown: agentResponse.text,
         structuredJson: {
           mode: conversation.mode,
-          confidence: agentResponse.structured?.confidence ?? "low",
+          confidence:
+            agentResponse.structured?.confidence ?? DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
           unsupported_reason: agentResponse.structured?.unsupported_reason ?? null,
           missing_information: agentResponse.structured?.missing_information ?? [],
         },
@@ -187,11 +200,11 @@ export async function processConversationResponseJob(
 
     await db.insert(messages).values({
       conversationId: payload.conversationId,
-      role: "tool",
-      status: "failed",
+      role: MESSAGE_ROLE.TOOL,
+      status: MESSAGE_STATUS.FAILED,
       contentMarkdown: `运行失败：${message}`,
       structuredJson: {
-        timeline_event: "run_failed",
+        timeline_event: TIMELINE_EVENT.RUN_FAILED,
         error: message,
       },
     });
@@ -199,7 +212,7 @@ export async function processConversationResponseJob(
     await db
       .update(messages)
       .set({
-        status: "failed",
+        status: MESSAGE_STATUS.FAILED,
         contentMarkdown: `Agent 处理失败：${message}`,
         structuredJson: {
           mode: conversation.mode,
@@ -209,4 +222,3 @@ export async function processConversationResponseJob(
       .where(eq(messages.id, payload.assistantMessageId));
   }
 }
-

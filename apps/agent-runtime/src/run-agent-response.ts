@@ -4,7 +4,19 @@ import path from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 import { createAssistantMcpServer } from "@knowledge-assistant/agent-tools";
-import type { GroundedEvidence } from "@knowledge-assistant/contracts";
+import {
+  ASSISTANT_MCP_SERVER_NAME,
+  ASSISTANT_TOOL,
+  DEFAULT_AGENT_MAX_TURNS,
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  KB_ONLY_ALLOWED_TOOL_NAMES,
+  KB_PLUS_WEB_ALLOWED_TOOL_NAMES,
+  normalizeAssistantToolName,
+  normalizeWorkspaceMode,
+  type GroundedEvidence,
+  type WorkspaceMode,
+  WORKSPACE_MODE,
+} from "@knowledge-assistant/contracts";
 
 import { renderGroundedAnswer } from "./final-answerer";
 
@@ -12,26 +24,15 @@ const agentWorkdirRoot = process.env.AGENT_WORKDIR_ROOT
   ? path.resolve(process.env.AGENT_WORKDIR_ROOT)
   : path.resolve(process.cwd(), ".agent-sessions");
 
-export function getAllowedTools(mode: string) {
-  if (mode === "kb_only") {
-    return [
-      "mcp__assistant__search_workspace_knowledge",
-      "mcp__assistant__read_citation_anchor",
-    ];
+export function getAllowedTools(mode: WorkspaceMode) {
+  if (mode === WORKSPACE_MODE.KB_ONLY) {
+    return [...KB_ONLY_ALLOWED_TOOL_NAMES];
   }
 
-  return [
-    "mcp__assistant__search_workspace_knowledge",
-    "mcp__assistant__read_citation_anchor",
-    "mcp__assistant__search_statutes",
-    "mcp__assistant__search_web_general",
-    "mcp__assistant__fetch_source",
-    "mcp__assistant__create_report_outline",
-    "mcp__assistant__write_report_section",
-  ];
+  return [...KB_PLUS_WEB_ALLOWED_TOOL_NAMES];
 }
 
-function buildAgentSystemPrompt(input: { workspaceId: string; mode: string }) {
+function buildAgentSystemPrompt(input: { workspaceId: string; mode: WorkspaceMode }) {
   return [
     "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
@@ -68,10 +69,9 @@ function collectWorkspaceEvidence(
   payload: Record<string, unknown>,
   citationMap: Map<string, GroundedEvidence>,
 ) {
-  if (
-    toolName.endsWith("search_workspace_knowledge") ||
-    toolName === "search_workspace_knowledge"
-  ) {
+  const normalizedToolName = normalizeAssistantToolName(toolName);
+
+  if (normalizedToolName === ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE) {
     const results = Array.isArray(payload.results) ? payload.results : [];
     for (const result of results) {
       if (!result || typeof result !== "object") {
@@ -107,7 +107,7 @@ function collectWorkspaceEvidence(
     }
   }
 
-  if (toolName.endsWith("read_citation_anchor") || toolName === "read_citation_anchor") {
+  if (normalizedToolName === ASSISTANT_TOOL.READ_CITATION_ANCHOR) {
     const anchor =
       payload.anchor && typeof payload.anchor === "object"
         ? (payload.anchor as Record<string, unknown>)
@@ -170,7 +170,7 @@ export async function runAgentResponse(
   const prompt = input.prompt.trim();
   const workspaceId = input.workspaceId.trim();
   const conversationId = input.conversationId.trim();
-  const mode = input.mode.trim() || "kb_only";
+  const mode = normalizeWorkspaceMode(input.mode.trim());
   const requestedWorkdir = input.agentWorkdir?.trim() || undefined;
   const workdir =
     requestedWorkdir || path.join(agentWorkdirRoot, conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
@@ -186,7 +186,7 @@ export async function runAgentResponse(
       workdir,
       citations: [],
       structured: {
-        confidence: "low" as const,
+        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
         unsupported_reason: "Agent runtime is configured, but ANTHROPIC_API_KEY is not set yet.",
         missing_information: [],
       },
@@ -203,12 +203,12 @@ export async function runAgentResponse(
     options: {
       tools: [],
       mcpServers: {
-        assistant: assistantServer,
+        [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
       },
       allowedTools: getAllowedTools(mode),
       cwd: workdir,
       resume: input.agentSessionId ?? undefined,
-      maxTurns: 6,
+      maxTurns: DEFAULT_AGENT_MAX_TURNS,
       systemPrompt: {
         type: "preset",
         preset: "claude_code",
@@ -313,4 +313,3 @@ export async function runAgentResponse(
     },
   };
 }
-

@@ -1,4 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  ASSISTANT_COMPAT_TOOL_PREFIX,
+  ASSISTANT_MCP_TOOL,
+  ASSISTANT_TOOL,
+  MESSAGE_STATUS,
+  TIMELINE_EVENT,
+  TOOL_TIMELINE_STATE,
+} from "@knowledge-assistant/contracts";
 
 import { buildToolTimelineMessage } from "./timeline";
 
@@ -6,50 +14,50 @@ describe("buildToolTimelineMessage", () => {
   it("builds started messages for tool timeline", () => {
     expect(
       buildToolTimelineMessage({
-        toolName: "mcp__assistant__search_workspace_knowledge",
-        state: "started",
+        toolName: ASSISTANT_MCP_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
+        state: TOOL_TIMELINE_STATE.STARTED,
       }),
     ).toEqual({
-      contentMarkdown: "开始调用工具：search_workspace_knowledge",
+      contentMarkdown: `开始调用工具：${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
       structuredJson: {
-        timeline_event: "tool_started",
-        tool_name: "search_workspace_knowledge",
+        timeline_event: TIMELINE_EVENT.TOOL_STARTED,
+        tool_name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
       },
-      status: "streaming",
+      status: MESSAGE_STATUS.STREAMING,
     });
   });
 
   it("builds failed messages with error details", () => {
     expect(
       buildToolTimelineMessage({
-        toolName: "search_web_general",
-        state: "failed",
+        toolName: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
+        state: TOOL_TIMELINE_STATE.FAILED,
         error: "provider unavailable",
       }),
     ).toEqual({
-      contentMarkdown: "工具执行失败：search_web_general · provider unavailable",
+      contentMarkdown: `工具执行失败：${ASSISTANT_TOOL.SEARCH_WEB_GENERAL} · provider unavailable`,
       structuredJson: {
-        timeline_event: "tool_failed",
-        tool_name: "search_web_general",
+        timeline_event: TIMELINE_EVENT.TOOL_FAILED,
+        tool_name: ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         error: "provider unavailable",
       },
-      status: "failed",
+      status: MESSAGE_STATUS.FAILED,
     });
   });
 
   it("builds completed messages for finished tools", () => {
     expect(
       buildToolTimelineMessage({
-        toolName: "assistant__read_citation_anchor",
-        state: "completed",
+        toolName: `${ASSISTANT_COMPAT_TOOL_PREFIX}${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
+        state: TOOL_TIMELINE_STATE.COMPLETED,
       }),
     ).toEqual({
-      contentMarkdown: "工具执行完成：read_citation_anchor",
+      contentMarkdown: `工具执行完成：${ASSISTANT_TOOL.READ_CITATION_ANCHOR}`,
       structuredJson: {
-        timeline_event: "tool_finished",
-        tool_name: "read_citation_anchor",
+        timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+        tool_name: ASSISTANT_TOOL.READ_CITATION_ANCHOR,
       },
-      status: "completed",
+      status: MESSAGE_STATUS.COMPLETED,
     });
   });
 });

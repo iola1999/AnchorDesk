@@ -1,4 +1,8 @@
-type GroundedAnswerConfidence = "high" | "medium" | "low";
+import {
+  GROUNDED_ANSWER_CONFIDENCE,
+  isGroundedAnswerConfidence,
+  type GroundedAnswerConfidence,
+} from "@knowledge-assistant/contracts";
 
 export type GroundedAnswerStatus = {
   confidence: GroundedAnswerConfidence | null;
@@ -14,10 +18,7 @@ export function readGroundedAnswerStatus(
   structuredJson: Record<string, unknown> | null | undefined,
 ): GroundedAnswerStatus {
   const confidenceValue = structuredJson?.confidence;
-  const confidence =
-    confidenceValue === "high" || confidenceValue === "medium" || confidenceValue === "low"
-      ? confidenceValue
-      : null;
+  const confidence = isGroundedAnswerConfidence(confidenceValue) ? confidenceValue : null;
   const unsupportedReasonValue = structuredJson?.unsupported_reason;
   const unsupportedReason =
     typeof unsupportedReasonValue === "string" && unsupportedReasonValue.trim()
@@ -44,18 +45,17 @@ export function describeGroundedAnswerConfidence(status: GroundedAnswerStatus) {
     return "依据不足";
   }
 
-  if (status.confidence === "high") {
+  if (status.confidence === GROUNDED_ANSWER_CONFIDENCE.HIGH) {
     return "高置信";
   }
 
-  if (status.confidence === "medium") {
+  if (status.confidence === GROUNDED_ANSWER_CONFIDENCE.MEDIUM) {
     return "中置信";
   }
 
-  if (status.confidence === "low") {
+  if (status.confidence === GROUNDED_ANSWER_CONFIDENCE.LOW) {
     return "低置信";
   }
 
   return null;
 }
-

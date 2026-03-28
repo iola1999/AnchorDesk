@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  GROUNDED_ANSWER_CONFIDENCE,
+} from "@knowledge-assistant/contracts";
 
 import { normalizeGroundedAnswer } from "./grounded-answer";
 
@@ -19,7 +23,7 @@ describe("normalizeGroundedAnswer", () => {
       evidence,
       parsed: {
         answer_markdown: "依据发布手册，上线前需要先完成回归测试。",
-        confidence: "high",
+        confidence: GROUNDED_ANSWER_CONFIDENCE.HIGH,
         unsupported_reason: null,
         citations: [
           {
@@ -52,7 +56,7 @@ describe("normalizeGroundedAnswer", () => {
       evidence: [],
       parsed: {
         answer_markdown: "目前资料不足，无法直接确认上线检查项。",
-        confidence: "medium",
+        confidence: GROUNDED_ANSWER_CONFIDENCE.MEDIUM,
         unsupported_reason: null,
         citations: [
           {
@@ -69,7 +73,7 @@ describe("normalizeGroundedAnswer", () => {
     expect(result.unsupported_reason).toBe(
       "No supporting evidence was retrieved from the workspace or external tools.",
     );
-    expect(result.confidence).toBe("low");
+    expect(result.confidence).toBe(DEFAULT_GROUNDED_ANSWER_CONFIDENCE);
     expect(result.missing_information).toEqual(["需要补充更完整的发布资料"]);
   });
 });

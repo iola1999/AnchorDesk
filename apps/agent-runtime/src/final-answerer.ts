@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
+  MESSAGE_ROLE,
   groundedAnswerSchema,
   type GroundedAnswer,
   type GroundedEvidence,
@@ -59,7 +60,7 @@ export async function renderGroundedAnswer(input: {
       system: FINAL_ANSWER_SYSTEM_PROMPT,
       messages: [
         {
-          role: "user",
+          role: MESSAGE_ROLE.USER,
           content: buildGroundedAnswerPrompt(input),
         },
       ],

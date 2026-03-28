@@ -1,4 +1,12 @@
 import { describe, expect, test } from "vitest";
+import {
+  ASSISTANT_TOOL,
+  CONVERSATION_STREAM_EVENT,
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+  TIMELINE_EVENT,
+} from "@knowledge-assistant/contracts";
 
 import {
   buildAssistantTerminalStreamEvent,
@@ -11,24 +19,24 @@ describe("buildToolMessageStreamEvent", () => {
     expect(
       buildToolMessageStreamEvent({
         id: "tool-message-1",
-        status: "completed",
-        contentMarkdown: "工具执行完成：search_workspace_knowledge",
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: `工具执行完成：${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
         createdAt: new Date("2026-03-28T09:30:00.000Z"),
         structuredJson: {
-          timeline_event: "tool_finished",
-          tool_name: "search_workspace_knowledge",
+          timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+          tool_name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         },
       }),
     ).toEqual({
-      type: "tool_message",
+      type: CONVERSATION_STREAM_EVENT.TOOL_MESSAGE,
       message_id: "tool-message-1",
-      role: "tool",
-      status: "completed",
-      content_markdown: "工具执行完成：search_workspace_knowledge",
+      role: MESSAGE_ROLE.TOOL,
+      status: MESSAGE_STATUS.COMPLETED,
+      content_markdown: `工具执行完成：${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
       created_at: "2026-03-28T09:30:00.000Z",
       structured: {
-        timeline_event: "tool_finished",
-        tool_name: "search_workspace_knowledge",
+        timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+        tool_name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
       },
     });
   });
@@ -51,7 +59,7 @@ describe("readAssistantRunError", () => {
       readAssistantRunError({
         contentMarkdown: "Agent 处理失败：fallback",
         structuredJson: {
-          confidence: "low",
+          confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
         },
       }),
     ).toBe("Agent 处理失败：fallback");
@@ -65,13 +73,13 @@ describe("buildAssistantTerminalStreamEvent", () => {
         conversationId: "conversation-1",
         assistantMessage: {
           id: "assistant-1",
-          status: "completed",
+          status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "final answer",
           structuredJson: null,
         },
       }),
     ).toEqual({
-      type: "answer_done",
+      type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
       conversation_id: "conversation-1",
       message_id: "assistant-1",
     });
@@ -83,7 +91,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
         conversationId: "conversation-1",
         assistantMessage: {
           id: "assistant-1",
-          status: "failed",
+          status: MESSAGE_STATUS.FAILED,
           contentMarkdown: "Agent 处理失败：fallback",
           structuredJson: {
             agent_error: "grounded answer render failed",
@@ -91,7 +99,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
         },
       }),
     ).toEqual({
-      type: "run_failed",
+      type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: "conversation-1",
       message_id: "assistant-1",
       error: "grounded answer render failed",
@@ -105,7 +113,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
         assistantMessage: null,
       }),
     ).toEqual({
-      type: "run_failed",
+      type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: "conversation-1",
       message_id: null,
       error: "Assistant message not found.",

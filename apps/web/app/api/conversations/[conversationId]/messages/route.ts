@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   conversations,
@@ -71,8 +72,8 @@ export async function POST(
     .insert(messages)
     .values({
       conversationId,
-      role: "user",
-      status: "completed",
+      role: MESSAGE_ROLE.USER,
+      status: MESSAGE_STATUS.COMPLETED,
       contentMarkdown: content,
     })
     .returning();
@@ -98,8 +99,8 @@ export async function POST(
     .insert(messages)
     .values({
       conversationId,
-      role: "assistant",
-      status: "streaming",
+      role: MESSAGE_ROLE.ASSISTANT,
+      status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "助手正在分析问题并检索依据...",
       structuredJson: {
         mode: conversation.mode,
@@ -131,7 +132,7 @@ export async function POST(
     await db
       .update(messages)
       .set({
-        status: "failed",
+        status: MESSAGE_STATUS.FAILED,
         contentMarkdown: `Agent 处理失败：${message}`,
         structuredJson: {
           mode: conversation.mode,

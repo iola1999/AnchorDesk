@@ -1,8 +1,14 @@
+import {
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  type GroundedAnswerConfidence,
+  type WorkspaceMode,
+} from "@knowledge-assistant/contracts";
+
 export async function requestAgentResponse(input: {
   prompt: string;
   workspaceId: string;
   conversationId: string;
-  mode: "kb_only" | "kb_plus_web";
+  mode: WorkspaceMode;
   agentSessionId?: string | null;
   agentWorkdir?: string | null;
 }) {
@@ -17,7 +23,7 @@ export async function requestAgentResponse(input: {
         quote_text: string;
       }>,
       structured: {
-        confidence: "low" as const,
+        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
         unsupported_reason:
           "Agent runtime is not configured. Message saved, but no automated answer was generated.",
         missing_information: [] as string[],
@@ -51,7 +57,7 @@ export async function requestAgentResponse(input: {
       quote_text: string;
     }>;
     structured?: {
-      confidence: "high" | "medium" | "low";
+      confidence: GroundedAnswerConfidence;
       unsupported_reason: string | null;
       missing_information: string[];
     };

@@ -3,13 +3,19 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import type { ConversationStreamEvent } from "@knowledge-assistant/contracts";
+import {
+  CONVERSATION_STREAM_EVENT,
+  MESSAGE_STATUS,
+  TIMELINE_EVENT,
+  type ConversationStreamEvent,
+  type MessageStatus,
+} from "@knowledge-assistant/contracts";
 
 import { cn, ui } from "@/lib/ui";
 
 type TimelineMessage = {
   id: string;
-  status: "streaming" | "completed" | "failed";
+  status: MessageStatus;
   contentMarkdown: string;
   createdAt: string;
   structuredJson?: Record<string, unknown> | null;
@@ -26,11 +32,14 @@ function formatTime(value: string) {
 function getTimelineTone(message: TimelineMessage) {
   const event = String(message.structuredJson?.timeline_event ?? "");
 
-  if (message.status === "failed" || event === "tool_failed") {
+  if (message.status === MESSAGE_STATUS.FAILED || event === TIMELINE_EVENT.TOOL_FAILED) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
-  if (message.status === "streaming" || event === "tool_started") {
+  if (
+    message.status === MESSAGE_STATUS.STREAMING ||
+    event === TIMELINE_EVENT.TOOL_STARTED
+  ) {
     return "border-amber-200 bg-amber-50 text-amber-800";
   }
 
@@ -45,14 +54,14 @@ export function ConversationTimeline({
 }: {
   conversationId: string;
   assistantMessageId: string | null;
-  assistantStatus: "streaming" | "completed" | "failed" | null;
+  assistantStatus: MessageStatus | null;
   initialMessages: TimelineMessage[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [timelineMessages, setTimelineMessages] = useState(initialMessages);
   const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
-    assistantStatus === "streaming" ? "助手正在分析问题并调用工具..." : null,
+    assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并调用工具..." : null,
   );
   const seenMessageIdsRef = useRef(new Set(initialMessages.map((message) => message.id)));
 
@@ -62,7 +71,7 @@ export function ConversationTimeline({
   }, [initialMessages]);
 
   useEffect(() => {
-    if (!assistantMessageId || assistantStatus !== "streaming") {
+    if (!assistantMessageId || assistantStatus !== MESSAGE_STATUS.STREAMING) {
       return;
     }
 
@@ -72,7 +81,7 @@ export function ConversationTimeline({
 
     const handleToolMessage = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ConversationStreamEvent;
-      if (payload.type !== "tool_message") {
+      if (payload.type !== CONVERSATION_STREAM_EVENT.TOOL_MESSAGE) {
         return;
       }
 
@@ -104,7 +113,9 @@ export function ConversationTimeline({
     const handleRunFailed = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ConversationStreamEvent;
       setRuntimeStatus(
-        payload.type === "run_failed" ? `运行失败：${payload.error}` : "运行失败。",
+        payload.type === CONVERSATION_STREAM_EVENT.RUN_FAILED
+          ? `运行失败：${payload.error}`
+          : "运行失败。",
       );
       source.close();
       startTransition(() => {
@@ -112,9 +123,18 @@ export function ConversationTimeline({
       });
     };
 
-    source.addEventListener("tool_message", handleToolMessage as EventListener);
-    source.addEventListener("answer_done", handleAnswerDone as EventListener);
-    source.addEventListener("run_failed", handleRunFailed as EventListener);
+    source.addEventListener(
+      CONVERSATION_STREAM_EVENT.TOOL_MESSAGE,
+      handleToolMessage as EventListener,
+    );
+    source.addEventListener(
+      CONVERSATION_STREAM_EVENT.ANSWER_DONE,
+      handleAnswerDone as EventListener,
+    );
+    source.addEventListener(
+      CONVERSATION_STREAM_EVENT.RUN_FAILED,
+      handleRunFailed as EventListener,
+    );
     source.onerror = () => {
       source.close();
       setRuntimeStatus("连接已断开，正在刷新对话...");
@@ -160,9 +180,9 @@ export function ConversationTimeline({
                     getTimelineTone(message),
                   )}
                 >
-                  {message.status === "streaming"
+                  {message.status === MESSAGE_STATUS.STREAMING
                     ? "进行中"
-                    : message.status === "failed"
+                    : message.status === MESSAGE_STATUS.FAILED
                       ? "失败"
                       : "完成"}
                 </span>
@@ -178,4 +198,3 @@ export function ConversationTimeline({
     </section>
   );
 }
-

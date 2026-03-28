@@ -127,6 +127,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@knowledge-assistant/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@knowledge-assistant/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -178,6 +181,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@knowledge-assistant/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
@@ -191,12 +197,18 @@ importers:
 
   packages/queue:
     dependencies:
+      '@knowledge-assistant/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       bullmq:
         specifier: ^5.71.1
         version: 5.71.1
 
   packages/retrieval:
     dependencies:
+      '@knowledge-assistant/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@qdrant/js-client-rest':
         specifier: ^1.15.1
         version: 1.17.0(typescript@5.9.3)

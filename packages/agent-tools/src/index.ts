@@ -2,6 +2,10 @@ import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import {
+  ASSISTANT_MCP_SERVER_NAME,
+  ASSISTANT_TOOL,
+  DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT,
+  DEFAULT_WORKSPACE_MODE,
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
   readCitationAnchorInputSchema,
@@ -70,7 +74,7 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
       .values({
         workspaceId: args.workspace_id,
         query: args.query,
-        mode: "kb_only",
+        mode: DEFAULT_WORKSPACE_MODE,
         rawQueriesJson: {
           filters: args.filters ?? null,
           provider: describeRetrievalProvider(),
@@ -267,7 +271,7 @@ export async function fetchSourceHandler(input: unknown) {
     .split(/(?<=。)|(?<=\.)/)
     .map((item) => item.trim())
     .filter(Boolean)
-    .slice(0, 50);
+    .slice(0, DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT);
 
   return {
     ok: true,
@@ -330,47 +334,47 @@ export async function writeReportSectionHandler(input: unknown) {
 
 export function createAssistantMcpServer() {
   return createSdkMcpServer({
-    name: "assistant",
+    name: ASSISTANT_MCP_SERVER_NAME,
     version: "0.1.0",
     tools: [
       tool(
-        "search_workspace_knowledge",
+        ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
         "Search documents inside a workspace knowledge base",
         searchWorkspaceKnowledgeInputSchema.shape,
         async (args) => asToolText(await searchWorkspaceKnowledgeHandler(args)),
       ),
       tool(
-        "read_citation_anchor",
+        ASSISTANT_TOOL.READ_CITATION_ANCHOR,
         "Read a citation anchor and nearby context",
         readCitationAnchorInputSchema.shape,
         async (args) => asToolText(await readCitationAnchorHandler(args)),
       ),
       tool(
-        "search_statutes",
+        ASSISTANT_TOOL.SEARCH_STATUTES,
         "Search statutes and official legal texts when the task requires legal references",
         searchStatutesInputSchema.shape,
         async (args) => asToolText(await searchStatutesHandler(args)),
       ),
       tool(
-        "search_web_general",
+        ASSISTANT_TOOL.SEARCH_WEB_GENERAL,
         "Search the public web for general context",
         searchWebGeneralInputSchema.shape,
         async (args) => asToolText(await searchWebGeneralHandler(args)),
       ),
       tool(
-        "fetch_source",
+        ASSISTANT_TOOL.FETCH_SOURCE,
         "Fetch text content from an allowed URL",
         fetchSourceInputSchema.shape,
         async (args) => asToolText(await fetchSourceHandler(args)),
       ),
       tool(
-        "create_report_outline",
+        ASSISTANT_TOOL.CREATE_REPORT_OUTLINE,
         "Create a report outline from workspace evidence",
         createReportOutlineInputSchema.shape,
         async (args) => asToolText(await createReportOutlineHandler(args)),
       ),
       tool(
-        "write_report_section",
+        ASSISTANT_TOOL.WRITE_REPORT_SECTION,
         "Write a report section from evidence anchors",
         writeReportSectionInputSchema.shape,
         async (args) => asToolText(await writeReportSectionHandler(args)),

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assistant/contracts";
 
 import { buttonStyles, ui } from "@/lib/ui";
 
@@ -15,7 +16,7 @@ export function ConversationActions({
   conversationId: string;
   workspaceId: string;
   title: string;
-  status: "active" | "archived";
+  status: ConversationStatus;
   isActive: boolean;
 }) {
   const router = useRouter();
@@ -60,9 +61,14 @@ export function ConversationActions({
   }
 
   async function handleArchiveToggle() {
-    const nextStatus = status === "active" ? "archived" : "active";
+    const nextStatus =
+      status === CONVERSATION_STATUS.ACTIVE
+        ? CONVERSATION_STATUS.ARCHIVED
+        : CONVERSATION_STATUS.ACTIVE;
     const nextHref =
-      status === "active" && isActive ? `/workspaces/${workspaceId}` : undefined;
+      status === CONVERSATION_STATUS.ACTIVE && isActive
+        ? `/workspaces/${workspaceId}`
+        : undefined;
 
     await updateConversation({ status: nextStatus }, nextHref);
   }
@@ -83,7 +89,7 @@ export function ConversationActions({
         onClick={handleArchiveToggle}
         type="button"
       >
-        {status === "active" ? "归档" : "恢复"}
+        {status === CONVERSATION_STATUS.ACTIVE ? "归档" : "恢复"}
       </button>
       {error ? <span className={ui.error}>{error}</span> : null}
     </div>

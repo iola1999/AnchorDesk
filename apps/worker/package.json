@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@knowledge-assistant/contracts": "workspace:*",
     "@knowledge-assistant/db": "workspace:*",
     "@knowledge-assistant/queue": "workspace:*",
     "@knowledge-assistant/retrieval": "workspace:*",

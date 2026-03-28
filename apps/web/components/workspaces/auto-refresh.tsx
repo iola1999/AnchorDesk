@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
+import { DEFAULT_AUTO_REFRESH_INTERVAL_MS } from "@knowledge-assistant/contracts";
 
 export function WorkspaceAutoRefresh({
   enabled,
-  intervalMs = 5000,
+  intervalMs = DEFAULT_AUTO_REFRESH_INTERVAL_MS,
 }: {
   enabled: boolean;
   intervalMs?: number;

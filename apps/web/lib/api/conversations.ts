@@ -1,9 +1,14 @@
 import { z } from "zod";
+import {
+  CONVERSATION_STATUS,
+  CONVERSATION_STATUS_VALUES,
+  type ConversationStatus,
+} from "@knowledge-assistant/contracts";
 
 export const conversationPatchSchema = z
   .object({
     title: z.string().optional(),
-    status: z.enum(["active", "archived"]).optional(),
+    status: z.enum(CONVERSATION_STATUS_VALUES).optional(),
   })
   .refine((value) => value.title !== undefined || value.status !== undefined, {
     message: "At least one field must be provided",
@@ -12,7 +17,7 @@ export const conversationPatchSchema = z
 export type WorkspaceConversationListItem = {
   id: string;
   title: string;
-  status: "active" | "archived";
+  status: ConversationStatus;
   updatedAt: Date;
 };
 
@@ -47,8 +52,8 @@ export function groupWorkspaceConversations(
   conversations: WorkspaceConversationListItem[],
 ) {
   return {
-    active: conversations.filter((item) => item.status === "active"),
-    archived: conversations.filter((item) => item.status === "archived"),
+    active: conversations.filter((item) => item.status === CONVERSATION_STATUS.ACTIVE),
+    archived: conversations.filter((item) => item.status === CONVERSATION_STATUS.ARCHIVED),
   };
 }
 
@@ -56,8 +61,8 @@ export function groupWorkspaceConversationsWithMeta<T extends WorkspaceConversat
   conversations: T[],
 ) {
   return {
-    active: conversations.filter((item) => item.status === "active"),
-    archived: conversations.filter((item) => item.status === "archived"),
+    active: conversations.filter((item) => item.status === CONVERSATION_STATUS.ACTIVE),
+    archived: conversations.filter((item) => item.status === CONVERSATION_STATUS.ARCHIVED),
   };
 }
 

@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { REPORT_STATUS } from "@knowledge-assistant/contracts";
 
 import { getDb, reports } from "@knowledge-assistant/db";
 
@@ -62,7 +63,7 @@ export async function POST(
       workspaceId,
       conversationId: body.conversationId ? String(body.conversationId) : null,
       title,
-      status: "draft",
+      status: REPORT_STATUS.DRAFT,
     })
     .returning();
 

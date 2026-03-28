@@ -1,4 +1,5 @@
 import { FlowProducer, Queue, type JobsOptions } from "bullmq";
+import { DEFAULT_QUEUE_JOB_RETENTION_LIMIT } from "@knowledge-assistant/contracts";
 
 export const QUEUE_NAMES = {
   respond: "conversation.respond",
@@ -51,8 +52,8 @@ export async function enqueueIngestFlow(
     data: payload,
     opts: {
       jobId: `${payload.documentVersionId}:index`,
-      removeOnComplete: 100,
-      removeOnFail: 100,
+      removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+      removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
       ...options,
     },
     children: [
@@ -62,8 +63,8 @@ export async function enqueueIngestFlow(
         data: payload,
         opts: {
           jobId: `${payload.documentVersionId}:embed`,
-          removeOnComplete: 100,
-          removeOnFail: 100,
+          removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+          removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
         },
         children: [
           {
@@ -72,8 +73,8 @@ export async function enqueueIngestFlow(
             data: payload,
             opts: {
               jobId: `${payload.documentVersionId}:chunk`,
-              removeOnComplete: 100,
-              removeOnFail: 100,
+              removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+              removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
             },
             children: [
               {
@@ -82,8 +83,8 @@ export async function enqueueIngestFlow(
                 data: payload,
                 opts: {
                   jobId: `${payload.documentVersionId}:parse`,
-                  removeOnComplete: 100,
-                  removeOnFail: 100,
+                  removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+                  removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
                 },
               },
             ],
@@ -102,8 +103,8 @@ export async function enqueueConversationResponse(
 
   return queue.add(QUEUE_NAMES.respond, payload, {
     jobId: `${payload.assistantMessageId}:respond`,
-    removeOnComplete: 100,
-    removeOnFail: 100,
+    removeOnComplete: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
+    removeOnFail: DEFAULT_QUEUE_JOB_RETENTION_LIMIT,
     ...options,
   });
 }

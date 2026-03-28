@@ -1,21 +1,19 @@
 import { z } from "zod";
+import { DOCUMENT_TYPE, DOCUMENT_TYPE_VALUES, type DocumentType } from "@knowledge-assistant/contracts";
 
 export const documentTypeOptions = [
-  { value: "reference", label: "参考资料" },
-  { value: "guide", label: "指南手册" },
-  { value: "policy", label: "制度政策" },
-  { value: "spec", label: "规格说明" },
-  { value: "report", label: "报告" },
-  { value: "note", label: "笔记" },
-  { value: "email", label: "邮件" },
-  { value: "meeting_note", label: "会议纪要" },
-  { value: "other", label: "其他" },
+  { value: DOCUMENT_TYPE.REFERENCE, label: "参考资料" },
+  { value: DOCUMENT_TYPE.GUIDE, label: "指南手册" },
+  { value: DOCUMENT_TYPE.POLICY, label: "制度政策" },
+  { value: DOCUMENT_TYPE.SPEC, label: "规格说明" },
+  { value: DOCUMENT_TYPE.REPORT, label: "报告" },
+  { value: DOCUMENT_TYPE.NOTE, label: "笔记" },
+  { value: DOCUMENT_TYPE.EMAIL, label: "邮件" },
+  { value: DOCUMENT_TYPE.MEETING_NOTE, label: "会议纪要" },
+  { value: DOCUMENT_TYPE.OTHER, label: "其他" },
 ] as const;
 
-export const documentTypeValues = documentTypeOptions.map((item) => item.value) as [
-  (typeof documentTypeOptions)[number]["value"],
-  ...(typeof documentTypeOptions)[number]["value"][],
-];
+export const documentTypeValues = DOCUMENT_TYPE_VALUES;
 
 export const documentMetadataPatchSchema = z
   .object({
@@ -36,7 +34,7 @@ export const documentMetadataPatchSchema = z
   );
 
 export type DocumentMetadataPatch = z.infer<typeof documentMetadataPatchSchema>;
-export type DocumentTypeValue = (typeof documentTypeValues)[number];
+export type DocumentTypeValue = DocumentType;
 
 type CurrentDocumentMetadata = {
   title: string;

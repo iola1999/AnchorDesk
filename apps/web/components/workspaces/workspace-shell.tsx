@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assistant/contracts";
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { workspaceBranding } from "@/lib/branding";
 import { cn, ui } from "@/lib/ui";
+import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 
 type WorkspaceListItem = {
   id: string;
@@ -13,7 +15,7 @@ type WorkspaceListItem = {
 type ConversationListItem = {
   id: string;
   title: string;
-  status: "active" | "archived";
+  status: ConversationStatus;
   updatedAt: Date;
 };
 
@@ -50,8 +52,12 @@ export function WorkspaceShell({
   topActions,
   children,
 }: WorkspaceShellProps) {
-  const activeConversations = conversations.filter((item) => item.status === "active");
-  const archivedConversations = conversations.filter((item) => item.status === "archived");
+  const activeConversations = conversations.filter(
+    (item) => item.status === CONVERSATION_STATUS.ACTIVE,
+  );
+  const archivedConversations = conversations.filter(
+    (item) => item.status === CONVERSATION_STATUS.ARCHIVED,
+  );
   const canAccessSystemSettings = isSuperAdminUsername(currentUser.username);
   const displayName = currentUser.name ?? currentUser.username;
   const avatarLabel = displayName.slice(0, 1).toUpperCase();
@@ -87,16 +93,6 @@ export function WorkspaceShell({
             </span>
             新建问题
           </Link>
-        </div>
-
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-app-muted">
-            <span>当前空间</span>
-          </div>
-          <div className="rounded-[18px] border border-app-border bg-white/60 p-3 shadow-soft">
-            <strong className="block text-sm leading-6">{workspace.title}</strong>
-            <span className={ui.muted}>顶部导航可切换其他空间</span>
-          </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 border-t border-app-border pt-3">
@@ -195,36 +191,29 @@ export function WorkspaceShell({
       <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3 px-6 py-5 md:px-8">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-app-border px-0.5 pb-3">
           <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-app-muted" aria-label="Breadcrumb">
-            {breadcrumbs.map((item, index) => (
-              <span key={`${item.label}-${index}`}>
-                {item.href ? <Link href={item.href}>{item.label}</Link> : <span>{item.label}</span>}
-                {index < breadcrumbs.length - 1 ? <span> / </span> : null}
-              </span>
-            ))}
+            {breadcrumbs.map((item, index) => {
+              const isWorkspaceCrumb = item.label === workspace.title;
+
+              return (
+                <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
+                  {isWorkspaceCrumb ? (
+                    <WorkspaceBreadcrumbSwitcher
+                      workspace={workspace}
+                      workspaces={workspaces}
+                      activeView={activeView}
+                    />
+                  ) : item.href ? (
+                    <Link href={item.href}>{item.label}</Link>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
+                  {index < breadcrumbs.length - 1 ? <span> / </span> : null}
+                </span>
+              );
+            })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <details className="relative">
-              <summary className="grid min-w-[168px] cursor-pointer list-none gap-0.5 rounded-2xl border border-app-border bg-white/90 px-4 py-2.5 text-left shadow-soft">
-                <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                  当前空间
-                </span>
-                <strong className="text-sm">{workspace.title}</strong>
-              </summary>
-              <div className="absolute right-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-2 rounded-2xl border border-app-border bg-white/95 p-2 shadow-card">
-                {workspaces.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/workspaces/${item.id}`}
-                    className="flex min-h-10 items-center rounded-xl px-3 text-sm hover:bg-app-surface-soft"
-                  >
-                    {item.title}
-                  </Link>
-                ))}
-              </div>
-            </details>
-            {topActions}
-          </div>
+          {topActions ? <div className="flex flex-wrap items-center gap-2">{topActions}</div> : null}
         </header>
 
         <div className="min-w-0">{children}</div>

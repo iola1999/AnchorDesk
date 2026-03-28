@@ -1,4 +1,5 @@
 import { asc, eq, inArray } from "drizzle-orm";
+import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
 
 import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
 
@@ -86,9 +87,9 @@ export async function PATCH(
           : conversation.title,
       status: parsed.data.status ?? conversation.status,
       archivedAt:
-        parsed.data.status === "archived"
+        parsed.data.status === CONVERSATION_STATUS.ARCHIVED
           ? new Date()
-          : parsed.data.status === "active"
+          : parsed.data.status === CONVERSATION_STATUS.ACTIVE
             ? null
             : undefined,
       updatedAt: new Date(),

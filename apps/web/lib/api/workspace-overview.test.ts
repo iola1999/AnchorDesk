@@ -1,4 +1,10 @@
 import { describe, expect, test } from "vitest";
+import {
+  CONVERSATION_STATUS,
+  DOCUMENT_STATUS,
+  PARSE_STATUS,
+  RUN_STATUS,
+} from "@knowledge-assistant/contracts";
 
 import {
   isWorkspaceDocumentFailed,
@@ -11,12 +17,12 @@ describe("workspace overview document state", () => {
   test("treats queued or running jobs as processing", () => {
     expect(
       isWorkspaceDocumentProcessing({
-        status: "ready",
+        status: DOCUMENT_STATUS.READY,
         latestVersion: {
-          parseStatus: "ready",
+          parseStatus: PARSE_STATUS.READY,
         },
         latestJob: {
-          status: "running",
+          status: RUN_STATUS.RUNNING,
         },
       }),
     ).toBe(true);
@@ -24,9 +30,9 @@ describe("workspace overview document state", () => {
 
   test("treats failed job or parse status as failed instead of ready", () => {
     const document = {
-      status: "ready",
+      status: DOCUMENT_STATUS.READY,
       latestVersion: {
-        parseStatus: "failed",
+        parseStatus: PARSE_STATUS.FAILED,
       },
       latestJob: null,
     };
@@ -37,9 +43,9 @@ describe("workspace overview document state", () => {
 
   test("treats ready version with no active job as ready", () => {
     const document = {
-      status: "ready",
+      status: DOCUMENT_STATUS.READY,
       latestVersion: {
-        parseStatus: "ready",
+        parseStatus: PARSE_STATUS.READY,
       },
       latestJob: null,
     };
@@ -56,34 +62,34 @@ describe("summarizeWorkspaceOverview", () => {
       summarizeWorkspaceOverview({
         documents: [
           {
-            status: "ready",
+            status: DOCUMENT_STATUS.READY,
             latestVersion: {
-              parseStatus: "ready",
+              parseStatus: PARSE_STATUS.READY,
             },
             latestJob: null,
           },
           {
-            status: "processing",
+            status: DOCUMENT_STATUS.PROCESSING,
             latestVersion: {
-              parseStatus: "embedding",
+              parseStatus: PARSE_STATUS.EMBEDDING,
             },
             latestJob: {
-              status: "running",
+              status: RUN_STATUS.RUNNING,
             },
           },
           {
-            status: "failed",
+            status: DOCUMENT_STATUS.FAILED,
             latestVersion: {
-              parseStatus: "failed",
+              parseStatus: PARSE_STATUS.FAILED,
             },
             latestJob: {
-              status: "failed",
+              status: RUN_STATUS.FAILED,
             },
           },
         ],
         conversations: [
-          { status: "active" },
-          { status: "archived" },
+          { status: CONVERSATION_STATUS.ACTIVE },
+          { status: CONVERSATION_STATUS.ARCHIVED },
         ],
         reportsCount: 4,
       }),

@@ -1,6 +1,7 @@
 import express from "express";
 import { Worker } from "bullmq";
 
+import { normalizeWorkspaceMode } from "@knowledge-assistant/contracts";
 import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
 
 import { processConversationResponseJob } from "./process-conversation-job";
@@ -17,7 +18,7 @@ app.get("/health", (_req, res) => {
 
 app.post("/respond", async (req, res) => {
   const prompt = String(req.body?.prompt ?? "").trim();
-  const mode = String(req.body?.mode ?? "kb_only");
+  const mode = normalizeWorkspaceMode(String(req.body?.mode ?? ""));
   const workspaceId = String(req.body?.workspaceId ?? "").trim();
   const conversationId = String(req.body?.conversationId ?? "").trim();
   const agentSessionId = String(req.body?.agentSessionId ?? "").trim() || undefined;

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { RUN_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   canRetryDocumentJob,
@@ -7,8 +8,8 @@ import {
 
 describe("document job helpers", () => {
   test("marks failed jobs as retryable", () => {
-    expect(canRetryDocumentJob({ status: "failed" })).toBe(true);
-    expect(canRetryDocumentJob({ status: "running" })).toBe(false);
+    expect(canRetryDocumentJob({ status: RUN_STATUS.FAILED })).toBe(true);
+    expect(canRetryDocumentJob({ status: RUN_STATUS.RUNNING })).toBe(false);
   });
 
   test("describes failure with stage, code, and message", () => {

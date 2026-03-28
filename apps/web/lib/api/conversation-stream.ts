@@ -1,8 +1,14 @@
-import type { ConversationStreamEvent } from "@knowledge-assistant/contracts";
+import {
+  CONVERSATION_STREAM_EVENT,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+  type ConversationStreamEvent,
+  type MessageStatus,
+} from "@knowledge-assistant/contracts";
 
 type ToolMessageRow = {
   id: string;
-  status: "streaming" | "completed" | "failed";
+  status: MessageStatus;
   contentMarkdown: string;
   createdAt: Date;
   structuredJson?: Record<string, unknown> | null;
@@ -10,20 +16,29 @@ type ToolMessageRow = {
 
 type AssistantMessageRow = {
   id: string;
-  status: "streaming" | "completed" | "failed";
+  status: MessageStatus;
   contentMarkdown: string;
   structuredJson?: Record<string, unknown> | null;
 };
 
-type ToolMessageEvent = Extract<ConversationStreamEvent, { type: "tool_message" }>;
-type AnswerDoneEvent = Extract<ConversationStreamEvent, { type: "answer_done" }>;
-type RunFailedEvent = Extract<ConversationStreamEvent, { type: "run_failed" }>;
+type ToolMessageEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.TOOL_MESSAGE }
+>;
+type AnswerDoneEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DONE }
+>;
+type RunFailedEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.RUN_FAILED }
+>;
 
 export function buildToolMessageStreamEvent(message: ToolMessageRow): ToolMessageEvent {
   return {
-    type: "tool_message",
+    type: CONVERSATION_STREAM_EVENT.TOOL_MESSAGE,
     message_id: message.id,
-    role: "tool",
+    role: MESSAGE_ROLE.TOOL,
     status: message.status,
     content_markdown: message.contentMarkdown,
     created_at: message.createdAt.toISOString(),
@@ -48,24 +63,24 @@ export function buildAssistantTerminalStreamEvent(input: {
 }): AnswerDoneEvent | RunFailedEvent | null {
   if (!input.assistantMessage) {
     return {
-      type: "run_failed",
+      type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: input.conversationId,
       message_id: null,
       error: "Assistant message not found.",
     };
   }
 
-  if (input.assistantMessage.status === "completed") {
+  if (input.assistantMessage.status === MESSAGE_STATUS.COMPLETED) {
     return {
-      type: "answer_done",
+      type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
       conversation_id: input.conversationId,
       message_id: input.assistantMessage.id,
     };
   }
 
-  if (input.assistantMessage.status === "failed") {
+  if (input.assistantMessage.status === MESSAGE_STATUS.FAILED) {
     return {
-      type: "run_failed",
+      type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: input.conversationId,
       message_id: input.assistantMessage.id,
       error: readAssistantRunError(input.assistantMessage),

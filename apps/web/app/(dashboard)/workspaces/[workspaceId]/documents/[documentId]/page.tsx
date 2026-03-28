@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { PARSE_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   citationAnchors,
@@ -205,7 +206,7 @@ export default async function DocumentPage({
           <span className={ui.muted}>
             {viewerPages.length > 0
               ? `${viewerPages.length} 页`
-              : latestVersion?.parseStatus === "ready"
+              : latestVersion?.parseStatus === PARSE_STATUS.READY
                 ? "暂无解析内容"
                 : "等待解析完成"}
           </span>

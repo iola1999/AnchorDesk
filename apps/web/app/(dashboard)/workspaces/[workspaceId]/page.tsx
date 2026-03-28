@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import {
+  GROUNDED_ANSWER_CONFIDENCE,
+  MESSAGE_ROLE,
+} from "@knowledge-assistant/contracts";
 
 import {
   conversations,
@@ -81,12 +85,12 @@ export default async function WorkspacePage({
         .where(eq(messages.conversationId, activeConversation.id))
         .orderBy(asc(messages.createdAt))
     : [];
-  const chatThread = thread.filter((message) => message.role !== "tool");
-  const toolTimelineMessages = thread.filter((message) => message.role === "tool");
+  const chatThread = thread.filter((message) => message.role !== MESSAGE_ROLE.TOOL);
+  const toolTimelineMessages = thread.filter((message) => message.role === MESSAGE_ROLE.TOOL);
   const activeAssistantMessage =
     [...chatThread]
       .reverse()
-      .find((message) => message.role === "assistant") ?? null;
+      .find((message) => message.role === MESSAGE_ROLE.ASSISTANT) ?? null;
 
   const citations =
     chatThread.length > 0
@@ -147,7 +151,7 @@ export default async function WorkspacePage({
               conversationId={activeConversation.id}
               assistantMessageId={activeAssistantMessage?.id ?? null}
               assistantStatus={
-                activeAssistantMessage?.role === "assistant"
+                activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
                   ? activeAssistantMessage.status
                   : null
               }
@@ -165,7 +169,7 @@ export default async function WorkspacePage({
               {chatThread.length > 0 ? (
                 chatThread.map((message) => {
                   const groundedStatus =
-                    message.role === "assistant"
+                    message.role === MESSAGE_ROLE.ASSISTANT
                       ? readGroundedAnswerStatus(
                           (message.structuredJson ?? null) as Record<string, unknown> | null,
                         )
@@ -179,16 +183,16 @@ export default async function WorkspacePage({
                       key={message.id}
                       className={cn(
                         "grid max-w-[720px] gap-2 rounded-[20px] border border-app-border px-4 py-4",
-                        message.role === "user"
+                        message.role === MESSAGE_ROLE.USER
                           ? "ml-auto bg-app-surface-strong/80"
                           : "bg-white/92",
                       )}
                     >
                       <div className="flex items-center justify-between gap-3 text-[13px]">
                         <strong>
-                          {message.role === "assistant"
+                          {message.role === MESSAGE_ROLE.ASSISTANT
                             ? "AI 助手"
-                            : message.role === "user"
+                            : message.role === MESSAGE_ROLE.USER
                               ? "你"
                               : message.role}
                         </strong>
@@ -201,9 +205,10 @@ export default async function WorkspacePage({
                               "inline-flex items-center rounded-full border px-3 py-1 text-[12px]",
                               groundedStatus?.unsupportedReason
                                 ? "border-amber-300 bg-amber-50 text-amber-800"
-                                : groundedStatus?.confidence === "high"
+                                : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.HIGH
                                   ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                                  : groundedStatus?.confidence === "medium"
+                                  : groundedStatus?.confidence ===
+                                      GROUNDED_ANSWER_CONFIDENCE.MEDIUM
                                     ? "border-sky-300 bg-sky-50 text-sky-800"
                                     : "border-stone-300 bg-stone-50 text-stone-700",
                             )}
@@ -276,9 +281,6 @@ export default async function WorkspacePage({
             <div className="grid justify-items-center gap-3 text-center">
               <p className={ui.eyebrow}>New Question</p>
               <h1>{workspace.title}</h1>
-              <p className={cn(ui.muted, "max-w-[58ch]")}>
-                先把要解决的问题直接写出来。资料库维护、上传和空间名称调整，都统一收到左侧“当前空间设置”里。
-              </p>
             </div>
 
             <div className="new-question-stage-composer">

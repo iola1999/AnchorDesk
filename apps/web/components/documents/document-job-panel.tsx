@@ -1,3 +1,5 @@
+import { RUN_STATUS } from "@knowledge-assistant/contracts";
+
 import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
 import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
 import { ManualRefreshButton } from "@/components/workspaces/manual-refresh-button";
@@ -41,7 +43,7 @@ export function DocumentJobPanel({
         {job.finishedAt ? (
           <p className={ui.muted}>结束时间：{job.finishedAt.toLocaleString("zh-CN")}</p>
         ) : null}
-        {job.status === "failed" ? (
+        {job.status === RUN_STATUS.FAILED ? (
           <p className={ui.error}>
             {describeDocumentJobFailure({
               stage: job.stage,

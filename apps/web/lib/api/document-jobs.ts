@@ -1,5 +1,7 @@
+import { RUN_STATUS } from "@knowledge-assistant/contracts";
+
 export function canRetryDocumentJob(input: { status: string }) {
-  return input.status === "failed";
+  return input.status === RUN_STATUS.FAILED;
 }
 
 export function describeDocumentJobFailure(input: {

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  CONVERSATION_STATUS_VALUES,
+  type ConversationStatus,
   DEFAULT_CONVERSATION_STATUS,
   DEFAULT_DOCUMENT_STATUS,
   DEFAULT_DOCUMENT_TYPE,
@@ -10,14 +10,14 @@ import {
   DEFAULT_RETRIEVAL_RUN_TOP_K,
   DEFAULT_RUN_STATUS,
   DEFAULT_WORKSPACE_MODE,
-  DOCUMENT_STATUS_VALUES,
-  DOCUMENT_TYPE_VALUES,
-  MESSAGE_ROLE_VALUES,
-  MESSAGE_STATUS_VALUES,
-  PARSE_STATUS_VALUES,
-  REPORT_STATUS_VALUES,
-  RUN_STATUS_VALUES,
-  WORKSPACE_MODE_VALUES,
+  type DocumentStatus,
+  type DocumentType,
+  type MessageRole,
+  type MessageStatus,
+  type ParseStatus,
+  type ReportStatus,
+  type RunStatus,
+  type WorkspaceMode,
 } from "@knowledge-assistant/contracts";
 import {
   bigint,
@@ -25,7 +25,6 @@ import {
   index,
   integer,
   jsonb,
-  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -39,27 +38,6 @@ import {
  * The schema intentionally prefers explicit fields over aggressive abstraction
  * so the ingestion, retrieval, and citation flows remain easy to evolve.
  */
-
-export const workspaceModeEnum = pgEnum("workspace_mode", WORKSPACE_MODE_VALUES);
-
-export const documentStatusEnum = pgEnum("document_status", DOCUMENT_STATUS_VALUES);
-
-export const documentTypeEnum = pgEnum("document_type", DOCUMENT_TYPE_VALUES);
-
-export const parseStatusEnum = pgEnum("parse_status", PARSE_STATUS_VALUES);
-
-export const conversationStatusEnum = pgEnum(
-  "conversation_status",
-  CONVERSATION_STATUS_VALUES,
-);
-
-export const messageRoleEnum = pgEnum("message_role", MESSAGE_ROLE_VALUES);
-
-export const messageStatusEnum = pgEnum("message_status", MESSAGE_STATUS_VALUES);
-
-export const reportStatusEnum = pgEnum("report_status", REPORT_STATUS_VALUES);
-
-export const runStatusEnum = pgEnum("run_status", RUN_STATUS_VALUES);
 
 export const users = pgTable(
   "users",
@@ -113,7 +91,10 @@ export const workspaces = pgTable(
     title: varchar("title", { length: 200 }).notNull(),
     workspacePrompt: text("workspace_prompt"),
     industry: varchar("industry", { length: 80 }),
-    defaultMode: workspaceModeEnum("default_mode").notNull().default(DEFAULT_WORKSPACE_MODE),
+    defaultMode: varchar("default_mode", { length: 32 })
+      .$type<WorkspaceMode>()
+      .notNull()
+      .default(DEFAULT_WORKSPACE_MODE),
     allowWebSearch: boolean("allow_web_search").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -137,9 +118,15 @@ export const documents = pgTable(
     logicalPath: text("logical_path").notNull(),
     directoryPath: text("directory_path").notNull(),
     mimeType: varchar("mime_type", { length: 120 }).notNull(),
-    docType: documentTypeEnum("doc_type").notNull().default(DEFAULT_DOCUMENT_TYPE),
+    docType: varchar("doc_type", { length: 32 })
+      .$type<DocumentType>()
+      .notNull()
+      .default(DEFAULT_DOCUMENT_TYPE),
     tagsJson: jsonb("tags_json").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-    status: documentStatusEnum("status").notNull().default(DEFAULT_DOCUMENT_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<DocumentStatus>()
+      .notNull()
+      .default(DEFAULT_DOCUMENT_STATUS),
     latestVersionId: uuid("latest_version_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -178,7 +165,10 @@ export const documentVersions = pgTable(
     clientMd5: varchar("client_md5", { length: 32 }),
     fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
     pageCount: integer("page_count"),
-    parseStatus: parseStatusEnum("parse_status").notNull().default(DEFAULT_PARSE_STATUS),
+    parseStatus: varchar("parse_status", { length: 32 })
+      .$type<ParseStatus>()
+      .notNull()
+      .default(DEFAULT_PARSE_STATUS),
     parseScoreBp: integer("parse_score_bp"),
     ocrRequired: boolean("ocr_required").notNull().default(false),
     parseArtifactId: uuid("parse_artifact_id").references(() => parseArtifacts.id, {
@@ -201,8 +191,14 @@ export const documentJobs = pgTable(
       .notNull()
       .references(() => documentVersions.id, { onDelete: "cascade" }),
     queueJobId: text("queue_job_id").notNull(),
-    stage: parseStatusEnum("stage").notNull().default(DEFAULT_PARSE_STATUS),
-    status: runStatusEnum("status").notNull().default(DEFAULT_RUN_STATUS),
+    stage: varchar("stage", { length: 32 })
+      .$type<ParseStatus>()
+      .notNull()
+      .default(DEFAULT_PARSE_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<RunStatus>()
+      .notNull()
+      .default(DEFAULT_RUN_STATUS),
     progress: integer("progress").notNull().default(0),
     errorCode: varchar("error_code", { length: 80 }),
     errorMessage: text("error_message"),
@@ -327,8 +323,14 @@ export const conversations = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     title: varchar("title", { length: 200 }).notNull(),
-    status: conversationStatusEnum("status").notNull().default(DEFAULT_CONVERSATION_STATUS),
-    mode: workspaceModeEnum("mode").notNull().default(DEFAULT_WORKSPACE_MODE),
+    status: varchar("status", { length: 32 })
+      .$type<ConversationStatus>()
+      .notNull()
+      .default(DEFAULT_CONVERSATION_STATUS),
+    mode: varchar("mode", { length: 32 })
+      .$type<WorkspaceMode>()
+      .notNull()
+      .default(DEFAULT_WORKSPACE_MODE),
     agentSessionId: text("agent_session_id"),
     agentWorkdir: text("agent_workdir"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -345,8 +347,11 @@ export const messages = pgTable(
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
-    role: messageRoleEnum("role").notNull(),
-    status: messageStatusEnum("status").notNull().default(DEFAULT_MESSAGE_STATUS),
+    role: varchar("role", { length: 32 }).$type<MessageRole>().notNull(),
+    status: varchar("status", { length: 32 })
+      .$type<MessageStatus>()
+      .notNull()
+      .default(DEFAULT_MESSAGE_STATUS),
     contentMarkdown: text("content_markdown").notNull(),
     structuredJson: jsonb("structured_json").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -394,7 +399,10 @@ export const reports = pgTable(
       onDelete: "set null",
     }),
     title: varchar("title", { length: 200 }).notNull(),
-    status: reportStatusEnum("status").notNull().default(DEFAULT_REPORT_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<ReportStatus>()
+      .notNull()
+      .default(DEFAULT_REPORT_STATUS),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -411,7 +419,10 @@ export const reportSections = pgTable(
     sectionKey: varchar("section_key", { length: 80 }).notNull(),
     title: varchar("title", { length: 200 }).notNull(),
     orderIndex: integer("order_index").notNull(),
-    status: reportStatusEnum("status").notNull().default(DEFAULT_REPORT_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<ReportStatus>()
+      .notNull()
+      .default(DEFAULT_REPORT_STATUS),
     contentMarkdown: text("content_markdown").notNull().default(""),
     citationsJson: jsonb("citations_json").$type<
       Array<{ anchorId: string; label: string }>
@@ -436,7 +447,7 @@ export const retrievalRuns = pgTable(
     }),
     messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
     query: text("query").notNull(),
-    mode: workspaceModeEnum("mode").notNull(),
+    mode: varchar("mode", { length: 32 }).$type<WorkspaceMode>().notNull(),
     rawQueriesJson: jsonb("raw_queries_json").$type<Record<string, unknown>>(),
     topK: integer("top_k").notNull().default(DEFAULT_RETRIEVAL_RUN_TOP_K),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -479,7 +490,10 @@ export const toolRuns = pgTable(
     }),
     messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
     toolName: varchar("tool_name", { length: 120 }).notNull(),
-    status: runStatusEnum("status").notNull().default(DEFAULT_RUN_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<RunStatus>()
+      .notNull()
+      .default(DEFAULT_RUN_STATUS),
     inputJson: jsonb("input_json").$type<Record<string, unknown>>(),
     outputJson: jsonb("output_json").$type<Record<string, unknown>>(),
     latencyMs: integer("latency_ms"),
@@ -506,7 +520,10 @@ export const modelRuns = pgTable(
     provider: varchar("provider", { length: 40 }).notNull(),
     model: varchar("model", { length: 120 }).notNull(),
     operation: varchar("operation", { length: 80 }).notNull(),
-    status: runStatusEnum("status").notNull().default(DEFAULT_RUN_STATUS),
+    status: varchar("status", { length: 32 })
+      .$type<RunStatus>()
+      .notNull()
+      .default(DEFAULT_RUN_STATUS),
     inputTokens: integer("input_tokens"),
     outputTokens: integer("output_tokens"),
     latencyMs: integer("latency_ms"),

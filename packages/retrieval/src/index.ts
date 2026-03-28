@@ -1,5 +1,13 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import {
+  DEFAULT_HASH_VECTOR_SIZE,
+  DEFAULT_QDRANT_COLLECTION_NAME,
+  DEFAULT_QUERY_CANDIDATE_LIMIT,
+  DEFAULT_QUERY_CANDIDATE_MULTIPLIER,
+  EMBEDDING_PROVIDER,
+  RERANK_PROVIDER,
+} from "@knowledge-assistant/contracts";
+import {
   buildDirectoryPrefixes,
   buildHashedEmbedding,
   chunkTextSnippet,
@@ -16,10 +24,6 @@ import {
   resolveEmbeddingProvider,
   resolveRerankProvider,
 } from "./providers";
-
-const DEFAULT_COLLECTION_NAME = "knowledge_chunks";
-const DEFAULT_HASH_VECTOR_SIZE = 256;
-const DEFAULT_QUERY_CANDIDATE_LIMIT = 36;
 
 type PayloadSchema =
   | "keyword"
@@ -159,7 +163,7 @@ export function buildRetrievalTagValues(input: {
 }
 
 function getCollectionName() {
-  return process.env.QDRANT_COLLECTION ?? DEFAULT_COLLECTION_NAME;
+  return process.env.QDRANT_COLLECTION ?? DEFAULT_QDRANT_COLLECTION_NAME;
 }
 
 function getQdrantClient() {
@@ -175,7 +179,7 @@ function getQdrantClient() {
 
 async function fetchRemoteEmbeddings(texts: string[]) {
   const provider = resolveEmbeddingProvider();
-  if (provider.type === "local_hash") {
+  if (provider.type === EMBEDDING_PROVIDER.LOCAL_HASH) {
     throw new Error("Remote embedding provider is not configured");
   }
 
@@ -188,7 +192,9 @@ async function fetchRemoteEmbeddings(texts: string[]) {
     body: JSON.stringify({
       input: texts,
       ...(provider.model ? { model: provider.model } : {}),
-      ...(provider.type === "dashscope_compatible" ? { encoding_format: "float" } : {}),
+      ...(provider.type === EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE
+        ? { encoding_format: "float" }
+        : {}),
       ...(provider.dimensions ? { dimensions: provider.dimensions } : {}),
     }),
   });
@@ -219,11 +225,11 @@ async function resolveVectorSize() {
       }
 
       const provider = resolveEmbeddingProvider();
-      if (provider.type !== "local_hash" && provider.dimensions) {
+      if (provider.type !== EMBEDDING_PROVIDER.LOCAL_HASH && provider.dimensions) {
         return provider.dimensions;
       }
 
-      if (provider.type !== "local_hash") {
+      if (provider.type !== EMBEDDING_PROVIDER.LOCAL_HASH) {
         const [probe] = await fetchRemoteEmbeddings(["dimension probe"]);
         if (!probe?.length) {
           throw new Error("Failed to infer embedding vector size");
@@ -306,7 +312,7 @@ export async function embedTexts(texts: string[]) {
   }
 
   const provider = resolveEmbeddingProvider();
-  if (provider.type === "local_hash") {
+  if (provider.type === EMBEDDING_PROVIDER.LOCAL_HASH) {
     const dimensions = await resolveVectorSize();
     return texts.map((text) => buildHashedEmbedding(text, dimensions));
   }
@@ -471,7 +477,7 @@ async function rerankCandidates(
   }
 
   const provider = resolveRerankProvider();
-  if (provider.type === "local_heuristic") {
+  if (provider.type === RERANK_PROVIDER.LOCAL_HEURISTIC) {
     return sortCandidatesByScore(
       candidates.map(({ keywordScore: _keywordScore, ...item }) => item),
     );
@@ -551,7 +557,7 @@ export async function searchWorkspaceKnowledge(
 
   const [queryVector] = await embedTexts([params.query]);
   const candidateLimit = Math.max(
-    params.topK * 6,
+    params.topK * DEFAULT_QUERY_CANDIDATE_MULTIPLIER,
     DEFAULT_QUERY_CANDIDATE_LIMIT,
   );
 

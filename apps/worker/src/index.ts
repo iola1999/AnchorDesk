@@ -4,6 +4,13 @@ import { QueueEvents, Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 
 import {
+  DOCUMENT_STATUS,
+  PARSE_STATUS,
+  RUN_STATUS,
+  type ParseStatus,
+  type RunStatus,
+} from "@knowledge-assistant/contracts";
+import {
   citationAnchors,
   documentBlocks,
   documentChunks,
@@ -52,9 +59,9 @@ const parserServiceUrl = process.env.PARSER_SERVICE_URL ?? "http://localhost:800
 
 async function updateJob(
   documentVersionId: string,
-  stage: string,
+  stage: ParseStatus,
   progress: number,
-  status: "queued" | "running" | "completed" | "failed" = "running",
+  status: RunStatus = RUN_STATUS.RUNNING,
 ) {
   await db
     .update(documentJobs)
@@ -62,8 +69,11 @@ async function updateJob(
       stage: stage as never,
       status: status as never,
       progress,
-      startedAt: status === "running" ? new Date() : undefined,
-      finishedAt: status === "completed" || status === "failed" ? new Date() : undefined,
+      startedAt: status === RUN_STATUS.RUNNING ? new Date() : undefined,
+      finishedAt:
+        status === RUN_STATUS.COMPLETED || status === RUN_STATUS.FAILED
+          ? new Date()
+          : undefined,
       updatedAt: new Date(),
     })
     .where(eq(documentJobs.documentVersionId, documentVersionId));
@@ -77,7 +87,7 @@ async function updateJob(
 }
 
 async function completeJob(documentVersionId: string) {
-  await updateJob(documentVersionId, "ready", 100, "completed");
+  await updateJob(documentVersionId, PARSE_STATUS.READY, 100, RUN_STATUS.COMPLETED);
 }
 
 async function fetchVersion(documentVersionId: string) {
@@ -133,7 +143,7 @@ async function ensureVersionFingerprint(documentVersionId: string) {
 }
 
 async function parseDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, "parsing_layout", 20);
+  await updateJob(documentVersionId, PARSE_STATUS.PARSING_LAYOUT, 20);
   const version = await ensureVersionFingerprint(documentVersionId);
 
   const cached = await db
@@ -208,7 +218,7 @@ async function parseDocument(documentVersionId: string) {
 }
 
 async function chunkDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, "chunking", 45);
+  await updateJob(documentVersionId, PARSE_STATUS.CHUNKING, 45);
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
@@ -371,7 +381,7 @@ function getEmbeddingArtifactKey(documentVersionId: string) {
 }
 
 async function embedDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, "embedding", 75);
+  await updateJob(documentVersionId, PARSE_STATUS.EMBEDDING, 75);
   const chunks = await fetchChunksForIndex(documentVersionId);
   const vectors = await embedTexts(chunks.map((chunk) => chunk.text));
 
@@ -386,7 +396,7 @@ async function embedDocument(documentVersionId: string) {
 }
 
 async function indexDocument(documentVersionId: string) {
-  await updateJob(documentVersionId, "indexing", 90);
+  await updateJob(documentVersionId, PARSE_STATUS.INDEXING, 90);
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
@@ -415,14 +425,14 @@ async function indexDocument(documentVersionId: string) {
   await db
     .update(documentVersions)
     .set({
-      parseStatus: "ready",
+      parseStatus: PARSE_STATUS.READY,
     })
     .where(eq(documentVersions.id, documentVersionId));
 
   await db
     .update(documents)
     .set({
-      status: "ready",
+      status: DOCUMENT_STATUS.READY,
       updatedAt: new Date(),
     })
     .where(eq(documents.id, version.documentId));
@@ -479,8 +489,8 @@ async function main() {
       await db
         .update(documentJobs)
         .set({
-          stage: "failed",
-          status: "failed",
+          stage: PARSE_STATUS.FAILED,
+          status: RUN_STATUS.FAILED,
           errorMessage: error.message,
           finishedAt: new Date(),
           updatedAt: new Date(),
@@ -490,7 +500,7 @@ async function main() {
       await db
         .update(documentVersions)
         .set({
-          parseStatus: "failed",
+          parseStatus: PARSE_STATUS.FAILED,
         })
         .where(eq(documentVersions.id, job.data.documentVersionId));
 
@@ -498,7 +508,7 @@ async function main() {
         await db
           .update(documents)
           .set({
-            status: "failed",
+            status: DOCUMENT_STATUS.FAILED,
             updatedAt: new Date(),
           })
           .where(eq(documents.id, version.documentId));

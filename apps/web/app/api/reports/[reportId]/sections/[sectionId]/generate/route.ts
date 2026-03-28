@@ -1,4 +1,5 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
+import { REPORT_STATUS } from "@knowledge-assistant/contracts";
 
 import { citationAnchors, getDb, reports, reportSections } from "@knowledge-assistant/db";
 
@@ -31,7 +32,7 @@ export async function POST(
   await db
     .update(reports)
     .set({
-      status: "generating",
+      status: REPORT_STATUS.GENERATING,
       updatedAt: new Date(),
     })
     .where(eq(reports.id, reportId));
@@ -91,7 +92,7 @@ export async function POST(
   await db
     .update(reportSections)
     .set({
-      status: "ready",
+      status: REPORT_STATUS.READY,
       contentMarkdown: markdown,
       citationsJson: anchors.map((anchor) => ({
         anchorId: anchor.id,
@@ -104,13 +105,16 @@ export async function POST(
   const pendingSections = await db
     .select({ id: reportSections.id })
     .from(reportSections)
-    .where(and(eq(reportSections.reportId, reportId), ne(reportSections.status, "ready")))
+    .where(
+      and(eq(reportSections.reportId, reportId), ne(reportSections.status, REPORT_STATUS.READY)),
+    )
     .limit(1);
 
   await db
     .update(reports)
     .set({
-      status: pendingSections.length === 0 ? "ready" : "generating",
+      status:
+        pendingSections.length === 0 ? REPORT_STATUS.READY : REPORT_STATUS.GENERATING,
       updatedAt: new Date(),
     })
     .where(eq(reports.id, reportId));

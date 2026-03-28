@@ -1,5 +1,10 @@
-import type { GroundedAnswer, GroundedEvidence } from "@knowledge-assistant/contracts";
-import { groundedAnswerSchema } from "@knowledge-assistant/contracts";
+import {
+  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+  GROUNDED_ANSWER_CONFIDENCE,
+  groundedAnswerSchema,
+  type GroundedAnswer,
+  type GroundedEvidence,
+} from "@knowledge-assistant/contracts";
 
 const DEFAULT_UNSUPPORTED_REASON =
   "No supporting evidence was retrieved from the workspace or external tools.";
@@ -68,7 +73,9 @@ export function normalizeGroundedAnswer(input: {
   return {
     answer_markdown: answerMarkdown || DEFAULT_UNSUPPORTED_ANSWER,
     confidence:
-      citations.length > 0 ? (parsedData?.confidence ?? "medium") : "low",
+      citations.length > 0
+        ? (parsedData?.confidence ?? GROUNDED_ANSWER_CONFIDENCE.MEDIUM)
+        : DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
     unsupported_reason: unsupportedReason,
     citations,
     missing_information: uniqueStrings(parsedData?.missing_information ?? []),

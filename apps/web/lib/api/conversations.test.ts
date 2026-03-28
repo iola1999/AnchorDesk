@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   chooseWorkspaceConversation,
@@ -20,13 +21,13 @@ describe("conversation helpers", () => {
         {
           id: "active-2",
           title: "第二个会话",
-          status: "active",
+          status: CONVERSATION_STATUS.ACTIVE,
           updatedAt: new Date("2026-03-28T10:00:00Z"),
         },
         {
           id: "archived-1",
           title: "已归档会话",
-          status: "archived",
+          status: CONVERSATION_STATUS.ARCHIVED,
           updatedAt: new Date("2026-03-28T11:00:00Z"),
         },
       ],
@@ -41,19 +42,19 @@ describe("conversation helpers", () => {
       {
         id: "active-older",
         title: "较早",
-        status: "active",
+        status: CONVERSATION_STATUS.ACTIVE,
         updatedAt: new Date("2026-03-28T09:00:00Z"),
       },
       {
         id: "archived-newer",
         title: "已归档",
-        status: "archived",
+        status: CONVERSATION_STATUS.ARCHIVED,
         updatedAt: new Date("2026-03-28T12:00:00Z"),
       },
       {
         id: "active-newer",
         title: "较新",
-        status: "active",
+        status: CONVERSATION_STATUS.ACTIVE,
         updatedAt: new Date("2026-03-28T11:00:00Z"),
       },
     ]);
@@ -67,7 +68,7 @@ describe("conversation helpers", () => {
         {
           id: "active-older",
           title: "较早",
-          status: "active",
+          status: CONVERSATION_STATUS.ACTIVE,
           updatedAt: new Date("2026-03-28T09:00:00Z"),
         },
       ],
@@ -82,19 +83,19 @@ describe("conversation helpers", () => {
       {
         id: "active-1",
         title: "活跃一",
-        status: "active",
+        status: CONVERSATION_STATUS.ACTIVE,
         updatedAt: new Date("2026-03-28T11:00:00Z"),
       },
       {
         id: "archived-1",
         title: "归档一",
-        status: "archived",
+        status: CONVERSATION_STATUS.ARCHIVED,
         updatedAt: new Date("2026-03-28T12:00:00Z"),
       },
       {
         id: "active-2",
         title: "活跃二",
-        status: "active",
+        status: CONVERSATION_STATUS.ACTIVE,
         updatedAt: new Date("2026-03-28T10:00:00Z"),
       },
     ]);

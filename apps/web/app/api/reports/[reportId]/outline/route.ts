@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import { REPORT_STATUS } from "@knowledge-assistant/contracts";
 
 import { getDb, reports, reportSections } from "@knowledge-assistant/db";
 
@@ -41,7 +42,7 @@ export async function POST(
     .update(reports)
     .set({
       title: nextTitle,
-      status: "generating",
+      status: REPORT_STATUS.GENERATING,
       updatedAt: new Date(),
     })
     .where(eq(reports.id, reportId));
@@ -59,7 +60,7 @@ export async function POST(
         sectionKey: section.sectionKey,
         title: section.title,
         orderIndex: index,
-        status: "draft" as const,
+        status: REPORT_STATUS.DRAFT,
       })),
     );
   }
@@ -67,7 +68,7 @@ export async function POST(
   await db
     .update(reports)
     .set({
-      status: "draft",
+      status: REPORT_STATUS.DRAFT,
       updatedAt: new Date(),
     })
     .where(eq(reports.id, reportId));

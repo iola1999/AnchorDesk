@@ -1,21 +1,27 @@
-const DEFAULT_EMBEDDING_BATCH_SIZE = 16;
-const DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE = 10;
+import {
+  DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE,
+  DEFAULT_EMBEDDING_BATCH_SIZE,
+  EMBEDDING_PROVIDER,
+  EMBEDDING_PROVIDER_ALIAS,
+  RERANK_PROVIDER,
+  RERANK_PROVIDER_ALIAS,
+} from "@knowledge-assistant/contracts";
 
 type EnvMap = Record<string, string | undefined>;
 
 export type EmbeddingProviderConfig =
   | {
-      type: "local_hash";
+      type: typeof EMBEDDING_PROVIDER.LOCAL_HASH;
     }
   | {
-      type: "openai_compatible";
+      type: typeof EMBEDDING_PROVIDER.OPENAI_COMPATIBLE;
       url: string;
       apiKey?: string;
       model?: string;
       dimensions?: number;
     }
   | {
-      type: "dashscope_compatible";
+      type: typeof EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE;
       url: string;
       apiKey: string;
       model: string;
@@ -24,10 +30,10 @@ export type EmbeddingProviderConfig =
 
 export type RerankProviderConfig =
   | {
-      type: "local_heuristic";
+      type: typeof RERANK_PROVIDER.LOCAL_HEURISTIC;
     }
   | {
-      type: "dashscope";
+      type: typeof RERANK_PROVIDER.DASHSCOPE;
       url: string;
       apiKey: string;
       model: string;
@@ -72,18 +78,21 @@ function parsePositiveInt(value: string | undefined) {
 export function resolveEmbeddingProvider(env: EnvMap = process.env): EmbeddingProviderConfig {
   const explicit = normalizeProviderName(env.EMBEDDING_PROVIDER);
 
-  if (explicit === "local_hash") {
-    return { type: "local_hash" };
+  if (explicit === EMBEDDING_PROVIDER.LOCAL_HASH) {
+    return { type: EMBEDDING_PROVIDER.LOCAL_HASH };
   }
 
-  if (explicit === "dashscope_compatible" || explicit === "dashscope") {
+  if (
+    explicit === EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE ||
+    explicit === EMBEDDING_PROVIDER_ALIAS.DASHSCOPE
+  ) {
     const apiKey = env.DASHSCOPE_EMBEDDING_API_KEY ?? env.DASHSCOPE_API_KEY;
     if (!apiKey) {
-      return { type: "local_hash" };
+      return { type: EMBEDDING_PROVIDER.LOCAL_HASH };
     }
 
     return {
-      type: "dashscope_compatible",
+      type: EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE,
       url:
         env.DASHSCOPE_EMBEDDING_API_URL ??
         "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings",
@@ -95,13 +104,13 @@ export function resolveEmbeddingProvider(env: EnvMap = process.env): EmbeddingPr
     };
   }
 
-  if (explicit === "openai_compatible") {
+  if (explicit === EMBEDDING_PROVIDER.OPENAI_COMPATIBLE) {
     if (!env.EMBEDDING_API_URL) {
-      return { type: "local_hash" };
+      return { type: EMBEDDING_PROVIDER.LOCAL_HASH };
     }
 
     return {
-      type: "openai_compatible",
+      type: EMBEDDING_PROVIDER.OPENAI_COMPATIBLE,
       url: env.EMBEDDING_API_URL,
       apiKey: env.EMBEDDING_API_KEY,
       model: env.EMBEDDING_MODEL,
@@ -111,7 +120,7 @@ export function resolveEmbeddingProvider(env: EnvMap = process.env): EmbeddingPr
 
   if (env.EMBEDDING_API_URL) {
     return {
-      type: "openai_compatible",
+      type: EMBEDDING_PROVIDER.OPENAI_COMPATIBLE,
       url: env.EMBEDDING_API_URL,
       apiKey: env.EMBEDDING_API_KEY,
       model: env.EMBEDDING_MODEL,
@@ -122,7 +131,7 @@ export function resolveEmbeddingProvider(env: EnvMap = process.env): EmbeddingPr
   const dashscopeApiKey = env.DASHSCOPE_EMBEDDING_API_KEY ?? env.DASHSCOPE_API_KEY;
   if (dashscopeApiKey) {
     return {
-      type: "dashscope_compatible",
+      type: EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE,
       url:
         env.DASHSCOPE_EMBEDDING_API_URL ??
         "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings",
@@ -134,7 +143,7 @@ export function resolveEmbeddingProvider(env: EnvMap = process.env): EmbeddingPr
     };
   }
 
-  return { type: "local_hash" };
+  return { type: EMBEDDING_PROVIDER.LOCAL_HASH };
 }
 
 export function getEmbeddingBatchSize(
@@ -142,7 +151,7 @@ export function getEmbeddingBatchSize(
   env: EnvMap = process.env,
 ) {
   const configured = parsePositiveInt(env.EMBEDDING_BATCH_SIZE) ?? DEFAULT_EMBEDDING_BATCH_SIZE;
-  if (provider.type === "dashscope_compatible") {
+  if (provider.type === EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE) {
     return Math.min(configured, DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE);
   }
   return configured;
@@ -151,18 +160,18 @@ export function getEmbeddingBatchSize(
 export function resolveRerankProvider(env: EnvMap = process.env): RerankProviderConfig {
   const explicit = normalizeProviderName(env.RERANK_PROVIDER);
 
-  if (explicit === "local_heuristic" || explicit === "local") {
-    return { type: "local_heuristic" };
+  if (explicit === RERANK_PROVIDER.LOCAL_HEURISTIC || explicit === RERANK_PROVIDER_ALIAS.LOCAL) {
+    return { type: RERANK_PROVIDER.LOCAL_HEURISTIC };
   }
 
   const dashscopeApiKey = env.DASHSCOPE_RERANK_API_KEY ?? env.DASHSCOPE_API_KEY;
-  if (explicit === "dashscope") {
+  if (explicit === RERANK_PROVIDER.DASHSCOPE) {
     if (!dashscopeApiKey) {
-      return { type: "local_heuristic" };
+      return { type: RERANK_PROVIDER.LOCAL_HEURISTIC };
     }
 
     return {
-      type: "dashscope",
+      type: RERANK_PROVIDER.DASHSCOPE,
       url:
         env.DASHSCOPE_RERANK_API_URL ??
         "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank",
@@ -174,7 +183,7 @@ export function resolveRerankProvider(env: EnvMap = process.env): RerankProvider
 
   if (dashscopeApiKey) {
     return {
-      type: "dashscope",
+      type: RERANK_PROVIDER.DASHSCOPE,
       url:
         env.DASHSCOPE_RERANK_API_URL ??
         "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank",
@@ -184,7 +193,7 @@ export function resolveRerankProvider(env: EnvMap = process.env): RerankProvider
     };
   }
 
-  return { type: "local_heuristic" };
+  return { type: RERANK_PROVIDER.LOCAL_HEURISTIC };
 }
 
 export function parseDashScopeRerankResponse(

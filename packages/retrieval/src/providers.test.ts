@@ -1,4 +1,9 @@
 import { describe, expect, test } from "vitest";
+import {
+  DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE,
+  EMBEDDING_PROVIDER,
+  RERANK_PROVIDER,
+} from "@knowledge-assistant/contracts";
 
 import {
   describeRetrievalProvider,
@@ -15,7 +20,7 @@ describe("retrieval providers", () => {
     });
 
     expect(provider).toMatchObject({
-      type: "dashscope_compatible",
+      type: EMBEDDING_PROVIDER.DASHSCOPE_COMPATIBLE,
       model: "text-embedding-v4",
       url: "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings",
     });
@@ -27,14 +32,16 @@ describe("retrieval providers", () => {
       EMBEDDING_BATCH_SIZE: "32",
     });
 
-    expect(getEmbeddingBatchSize(provider, { EMBEDDING_BATCH_SIZE: "32" })).toBe(10);
+    expect(getEmbeddingBatchSize(provider, { EMBEDDING_BATCH_SIZE: "32" })).toBe(
+      DEFAULT_DASHSCOPE_EMBEDDING_BATCH_SIZE,
+    );
   });
 
   test("falls back to local heuristic rerank when dashscope is not configured", () => {
     const provider = resolveRerankProvider({});
 
     expect(provider).toEqual({
-      type: "local_heuristic",
+      type: RERANK_PROVIDER.LOCAL_HEURISTIC,
     });
   });
 
@@ -66,8 +73,6 @@ describe("retrieval providers", () => {
       DASHSCOPE_API_KEY: "sk-test",
     });
 
-    expect(provider).toBe(
-      "qdrant_dense_dashscope_compatible_dashscope",
-    );
+    expect(provider).toBe("qdrant_dense_dashscope_compatible_dashscope");
   });
 });

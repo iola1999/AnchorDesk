@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+import {
+  DEFAULT_SEARCH_STATUTES_TOP_K,
+  DEFAULT_SEARCH_WEB_GENERAL_TOP_K,
+  DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
+  DEFAULT_STATUTES_JURISDICTION,
+  MAX_SEARCH_STATUTES_TOP_K,
+  MAX_SEARCH_WEB_GENERAL_TOP_K,
+  MAX_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
+} from "./constants";
+
 const bboxSchema = z.object({
   x1: z.number(),
   y1: z.number(),
@@ -28,7 +38,12 @@ export const searchWorkspaceKnowledgeInputSchema = z.object({
   workspace_id: z.string().uuid(),
   query: z.string().min(1),
   filters: knowledgeFiltersSchema.optional(),
-  top_k: z.number().int().min(1).max(20).default(8),
+  top_k: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K)
+    .default(DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
 });
 
 export const searchWorkspaceKnowledgeSuccessSchema = z.object({
@@ -78,8 +93,10 @@ export const readCitationAnchorOutputSchema = z.union([
 
 export const searchStatutesInputSchema = z.object({
   query: z.string().min(1),
-  jurisdiction: z.string().min(2).max(16).default("CN"),
-  top_k: z.number().int().min(1).max(10).default(5),
+  jurisdiction: z.string().min(2).max(16).default(DEFAULT_STATUTES_JURISDICTION),
+  top_k: z.number().int().min(1).max(MAX_SEARCH_STATUTES_TOP_K).default(
+    DEFAULT_SEARCH_STATUTES_TOP_K,
+  ),
 });
 
 export const searchStatutesSuccessSchema = z.object({
@@ -102,7 +119,9 @@ export const searchStatutesOutputSchema = z.union([
 
 export const searchWebGeneralInputSchema = z.object({
   query: z.string().min(1),
-  top_k: z.number().int().min(1).max(10).default(5),
+  top_k: z.number().int().min(1).max(MAX_SEARCH_WEB_GENERAL_TOP_K).default(
+    DEFAULT_SEARCH_WEB_GENERAL_TOP_K,
+  ),
 });
 
 export const searchWebGeneralSuccessSchema = z.object({
