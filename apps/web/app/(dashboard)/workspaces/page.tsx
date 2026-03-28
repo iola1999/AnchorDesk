@@ -72,10 +72,7 @@ export default async function WorkspacesPage() {
                     {promptSummary ? `统一提示词：${promptSummary}` : "未设置统一提示词。"}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-app-muted">
-                  <span>资料库 + 联网查询</span>
-                  <span>回答会优先引用空间资料</span>
-                </div>
+                <div className="text-sm text-app-muted">进入后继续当前空间的资料、会话和报告。</div>
               </Link>
             );
           })
