@@ -12,5 +12,20 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     passWithNoTests: false,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary"],
+      include: [
+        "apps/web/lib/**/*.ts",
+        "apps/worker/src/**/*.ts",
+        "packages/**/src/**/*.ts",
+      ],
+      exclude: [
+        "**/*.test.ts",
+        "**/node_modules/**",
+        "packages/db/src/**",
+        "packages/contracts/src/index.ts",
+      ],
+    },
   },
 });

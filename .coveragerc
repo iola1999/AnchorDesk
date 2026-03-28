@@ -1,0 +1,9 @@
+[run]
+source =
+  services/parser
+omit =
+  services/parser/test_*.py
+
+[report]
+show_missing = true
+skip_empty = true

@@ -8,11 +8,15 @@
     "dev:worker": "pnpm --filter @law-doc/worker dev",
     "dev:agent": "pnpm --filter @law-doc/agent-runtime dev",
     "build:web": "pnpm --filter @law-doc/web build",
+    "setup:python": "sh -c 'PYTHON_BIN=$(command -v python3.12 || command -v python3.13 || command -v python3); \"$PYTHON_BIN\" -m venv .venv && ./.venv/bin/python -m pip install --upgrade pip && ./.venv/bin/python -m pip install -r services/parser/requirements.txt'",
     "test": "pnpm test:ts && pnpm test:python",
     "test:ts": "vitest run",
-    "test:python": "python3 -m unittest discover -s services/parser -p 'test_*.py'",
+    "test:python": "sh -c 'PYTHON=.venv/bin/python; if [ ! -x \"$PYTHON\" ]; then PYTHON=python3; fi; \"$PYTHON\" -m unittest discover -s services/parser -p \"test_*.py\"'",
     "test:watch": "vitest",
-    "check:python": "python3 -m py_compile services/parser/main.py services/parser/parser_utils.py services/parser/test_parser_utils.py",
+    "coverage:ts": "vitest run --coverage",
+    "coverage:python": "sh -c 'PYTHON=.venv/bin/python; if [ ! -x \"$PYTHON\" ]; then PYTHON=python3; fi; \"$PYTHON\" -m coverage run -m unittest discover -s services/parser -p \"test_*.py\" && \"$PYTHON\" -m coverage report'",
+    "coverage": "pnpm coverage:ts && pnpm coverage:python",
+    "check:python": "sh -c 'PYTHON=.venv/bin/python; if [ ! -x \"$PYTHON\" ]; then PYTHON=python3; fi; \"$PYTHON\" -m py_compile services/parser/main.py services/parser/parser_utils.py services/parser/test_parser_utils.py services/parser/test_main.py'",
     "typecheck": "pnpm -r --if-present typecheck",
     "verify": "pnpm test && pnpm typecheck && pnpm check:python && pnpm build:web",
     "db:generate": "pnpm --filter @law-doc/db drizzle-kit generate",
@@ -21,8 +25,9 @@
   "devDependencies": {
     "@types/node": "^24.9.1",
     "@types/pg": "^8.20.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.7"
+    "vitest": "^4.1.2"
   }
 }

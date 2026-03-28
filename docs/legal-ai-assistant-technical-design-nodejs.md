@@ -993,9 +993,13 @@ Agent 不应被写死成“先出报告”。
 根目录统一执行：
 
 ```bash
+pnpm setup:python
 pnpm test
 pnpm test:ts
 pnpm test:python
+pnpm coverage
+pnpm coverage:ts
+pnpm coverage:python
 pnpm typecheck
 pnpm check:python
 pnpm build:web
@@ -1004,7 +1008,9 @@ pnpm verify
 
 说明：
 
+- `pnpm setup:python`：本地创建 `.venv` 并安装 parser 依赖，优先使用 `python3.12`。
 - `pnpm test`：运行 TypeScript 与 Python 单测。
+- `pnpm coverage`：运行 TypeScript 与 Python 覆盖率统计。
 - `pnpm typecheck`：运行 monorepo 全量 TypeScript 类型检查。
 - `pnpm check:python`：校验 parser Python 文件可编译导入。
 - `pnpm build:web`：构建 Next.js Web 应用。

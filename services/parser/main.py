@@ -9,11 +9,17 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pypdf import PdfReader
 from docx import Document
+from docx.oxml.table import CT_Tbl
+from docx.oxml.text.paragraph import CT_P
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 
 from parser_utils import (
+    build_blocks_from_items,
     build_blocks_from_paragraphs,
     compute_parse_score_bp,
     infer_file_kind,
+    is_heading_style,
     split_paragraphs,
 )
 
@@ -93,11 +99,59 @@ def parse_text_document(data: bytes):
     }
 
 
+def iter_docx_blocks(document):
+    for child in document.element.body.iterchildren():
+        if isinstance(child, CT_P):
+            yield Paragraph(child, document)
+        elif isinstance(child, CT_Tbl):
+            yield Table(child, document)
+
+
+def extract_table_text(table: Table) -> str:
+    rows = []
+    for row in table.rows:
+        cells = [cell.text.strip() for cell in row.cells]
+        if any(cells):
+            rows.append(" | ".join(cells))
+    return "\n".join(rows).strip()
+
+
 def parse_docx_document(data: bytes):
     document = Document(io.BytesIO(data))
-    paragraphs = [item.text.strip() for item in document.paragraphs if item.text.strip()]
-    text = "\n\n".join(paragraphs)
-    blocks, _ = build_blocks_from_paragraphs(paragraphs, page_no=1)
+    block_items = []
+
+    for item in iter_docx_blocks(document):
+        if isinstance(item, Paragraph):
+            text = item.text.strip()
+            if not text:
+                continue
+            block_items.append(
+                {
+                    "text": text,
+                    "force_heading": is_heading_style(getattr(item.style, "name", None)),
+                    "heading_level": (
+                        int(getattr(item.style, "name", "Heading 1").split()[-1])
+                        if is_heading_style(getattr(item.style, "name", None))
+                        and getattr(item.style, "name", "").split()[-1].isdigit()
+                        else None
+                    ),
+                }
+            )
+        elif isinstance(item, Table):
+            text = extract_table_text(item)
+            if not text:
+                continue
+            block_items.append(
+                {
+                    "text": text,
+                    "force_heading": False,
+                    "heading_level": None,
+                    "block_type": "table",
+                }
+            )
+
+    text = "\n\n".join(entry["text"] for entry in block_items)
+    blocks, _ = build_blocks_from_items(block_items, page_no=1)
 
     return {
         "page_count": 1,
