@@ -5,20 +5,20 @@ import { normalizeGroundedAnswer } from "./grounded-answer";
 const evidence = [
   {
     anchor_id: "550e8400-e29b-41d4-a716-446655440000",
-    document_path: "合同库/主合同.pdf",
+    document_path: "资料库/项目A/发布手册.pdf",
     page_no: 12,
-    label: "合同库/主合同.pdf · 第12页 · 第8条",
-    quote_text: "发生不可抗力时，受影响一方应及时通知对方。",
+    label: "资料库/项目A/发布手册.pdf · 第12页 · 第8节",
+    quote_text: "发布前需完成回归测试并通知相关成员。",
   },
 ];
 
 describe("normalizeGroundedAnswer", () => {
   it("keeps only citations that exist in validated evidence", () => {
     const result = normalizeGroundedAnswer({
-      draftText: "依据合同约定，不可抗力发生后需要及时通知。",
+      draftText: "依据发布手册，上线前需要先完成回归测试。",
       evidence,
       parsed: {
-        answer_markdown: "依据合同约定，不可抗力发生后需要及时通知。",
+        answer_markdown: "依据发布手册，上线前需要先完成回归测试。",
         confidence: "high",
         unsupported_reason: null,
         citations: [
@@ -40,18 +40,18 @@ describe("normalizeGroundedAnswer", () => {
     expect(result.citations).toEqual([
       {
         anchor_id: "550e8400-e29b-41d4-a716-446655440000",
-        label: "合同库/主合同.pdf · 第12页 · 第8条",
-        quote_text: "发生不可抗力时，受影响一方应及时通知对方。",
+        label: "资料库/项目A/发布手册.pdf · 第12页 · 第8节",
+        quote_text: "发布前需完成回归测试并通知相关成员。",
       },
     ]);
   });
 
   it("marks the answer unsupported when no validated citation survives", () => {
     const result = normalizeGroundedAnswer({
-      draftText: "目前资料不足，无法直接确认违约责任。",
+      draftText: "目前资料不足，无法直接确认上线检查项。",
       evidence: [],
       parsed: {
-        answer_markdown: "目前资料不足，无法直接确认违约责任。",
+        answer_markdown: "目前资料不足，无法直接确认上线检查项。",
         confidence: "medium",
         unsupported_reason: null,
         citations: [
@@ -61,7 +61,7 @@ describe("normalizeGroundedAnswer", () => {
             quote_text: "不应保留",
           },
         ],
-        missing_information: ["需要更多证据材料"],
+        missing_information: ["需要补充更完整的发布资料"],
       },
     });
 
@@ -70,6 +70,6 @@ describe("normalizeGroundedAnswer", () => {
       "No supporting evidence was retrieved from the workspace or external tools.",
     );
     expect(result.confidence).toBe("low");
-    expect(result.missing_information).toEqual(["需要更多证据材料"]);
+    expect(result.missing_information).toEqual(["需要补充更完整的发布资料"]);
   });
 });

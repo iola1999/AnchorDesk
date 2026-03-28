@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { hashPassword } from "@law-doc/auth";
-import { getDb, users } from "@law-doc/db";
+import { hashPassword } from "@knowledge-assistant/auth";
+import { getDb, users } from "@knowledge-assistant/db";
 
 export const runtime = "nodejs";
 

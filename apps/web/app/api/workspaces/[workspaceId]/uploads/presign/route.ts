@@ -1,4 +1,4 @@
-import { createPresignedUploadUrl } from "@law-doc/storage";
+import { createPresignedUploadUrl } from "@knowledge-assistant/storage";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

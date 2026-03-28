@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 
-import { getDb, users, workspaces } from "@law-doc/db";
+import { getDb, users, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
@@ -93,7 +93,7 @@ export default async function WorkspacesPage() {
           </div>
           <div className="space-y-2">
             <strong>新建工作空间</strong>
-            <p className={ui.muted}>为新的案件、客户或专题建立独立资料库与会话历史。</p>
+            <p className={ui.muted}>为新的项目、团队主题或客户目录建立独立资料库与会话历史。</p>
           </div>
         </Link>
       </div>

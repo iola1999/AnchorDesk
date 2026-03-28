@@ -32,8 +32,8 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "qdrant_collection",
     envName: "QDRANT_COLLECTION",
-    defaultValue: "legal_chunks",
-    description: "Qdrant collection name for legal chunks.",
+    defaultValue: "knowledge_chunks",
+    description: "Qdrant collection name for indexed knowledge chunks.",
   },
   {
     settingKey: "qdrant_api_key",
@@ -57,7 +57,7 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "s3_bucket",
     envName: "S3_BUCKET",
-    defaultValue: "law-doc",
+    defaultValue: "knowledge-assistant",
     description: "Primary object storage bucket.",
   },
   {
@@ -82,8 +82,9 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "fetch_allowed_domains",
     envName: "FETCH_ALLOWED_DOMAINS",
-    defaultValue: "flk.npc.gov.cn,court.gov.cn,rmfyalk.court.gov.cn",
-    description: "Comma-separated domain allowlist for fetch tools.",
+    defaultValue: "",
+    description:
+      "Optional comma-separated domain allowlist for fetch tools. Leave empty to allow any domain.",
   },
   {
     settingKey: "anthropic_api_key",

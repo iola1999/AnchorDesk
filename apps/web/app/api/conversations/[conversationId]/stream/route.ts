@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 
-import { getDb, messages } from "@law-doc/db";
+import { getDb, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requireOwnedConversation } from "@/lib/guards/resources";

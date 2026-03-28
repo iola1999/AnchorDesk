@@ -1,6 +1,6 @@
 import { asc, eq, inArray } from "drizzle-orm";
 
-import { conversations, getDb, messageCitations, messages } from "@law-doc/db";
+import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import {

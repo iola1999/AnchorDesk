@@ -1,5 +1,5 @@
-import type { GroundedAnswer, GroundedEvidence } from "@law-doc/contracts";
-import { groundedAnswerSchema } from "@law-doc/contracts";
+import type { GroundedAnswer, GroundedEvidence } from "@knowledge-assistant/contracts";
+import { groundedAnswerSchema } from "@knowledge-assistant/contracts";
 
 const DEFAULT_UNSUPPORTED_REASON =
   "No supporting evidence was retrieved from the workspace or external tools.";

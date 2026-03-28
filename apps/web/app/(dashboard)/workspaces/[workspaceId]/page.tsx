@@ -8,7 +8,7 @@ import {
   messageCitations,
   messages,
   workspaces,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { Composer } from "@/components/chat/composer";
@@ -209,7 +209,7 @@ export default async function WorkspacePage({
                 rows={8}
                 title="输入 / 粘贴你的问题"
                 description="提交第一轮问题后，系统会自动创建会话，并把后续回答沉淀到左侧历史里。"
-                placeholder="例如：请基于本空间资料，对供应合同中的违约责任和终止条款做风险审查，并列出仍需补充的事实。"
+                placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息。"
                 submitLabel="开始对话"
               />
             </div>

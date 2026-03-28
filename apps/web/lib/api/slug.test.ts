@@ -4,7 +4,7 @@ import { slugify } from "./slug";
 
 describe("slugify", () => {
   test("keeps chinese characters and normalizes punctuation", () => {
-    expect(slugify("  客户A / 主合同（2024版）  ")).toBe("客户a-主合同-2024版");
+    expect(slugify("  项目A / 发布手册（2024版）  ")).toBe("项目a-发布手册-2024版");
   });
 
   test("trims duplicate separators and limits length", () => {

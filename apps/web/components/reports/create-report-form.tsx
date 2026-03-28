@@ -58,7 +58,7 @@ export function CreateReportForm({
           className={ui.input}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="例如：供应商合同审查意见"
+          placeholder="例如：项目资料整理摘要"
         />
       </label>
       <button className={buttonStyles()} disabled={isPending} type="submit">

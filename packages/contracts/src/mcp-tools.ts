@@ -78,7 +78,7 @@ export const readCitationAnchorOutputSchema = z.union([
 
 export const searchStatutesInputSchema = z.object({
   query: z.string().min(1),
-  jurisdiction: z.enum(["CN"]).default("CN"),
+  jurisdiction: z.string().min(2).max(16).default("CN"),
   top_k: z.number().int().min(1).max(10).default(5),
 });
 

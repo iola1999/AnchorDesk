@@ -1,5 +1,5 @@
 {
-  "name": "@law-doc/agent-tools",
+  "name": "@knowledge-assistant/agent-tools",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.85",
-    "@law-doc/contracts": "workspace:*",
-    "@law-doc/db": "workspace:*",
-    "@law-doc/retrieval": "workspace:*",
+    "@knowledge-assistant/contracts": "workspace:*",
+    "@knowledge-assistant/db": "workspace:*",
+    "@knowledge-assistant/retrieval": "workspace:*",
     "drizzle-orm": "^0.45.2"
   }
 }

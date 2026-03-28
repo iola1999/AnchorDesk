@@ -1,5 +1,5 @@
 {
-  "name": "@law-doc/storage",
+  "name": "@knowledge-assistant/storage",
   "version": "0.1.0",
   "private": true,
   "type": "module",

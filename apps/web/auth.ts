@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { eq } from "drizzle-orm";
 
-import { verifyPassword } from "@law-doc/auth";
-import { getDb, users } from "@law-doc/db";
+import { verifyPassword } from "@knowledge-assistant/auth";
+import { getDb, users } from "@knowledge-assistant/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {

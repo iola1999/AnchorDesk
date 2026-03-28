@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { documentJobs, documentVersions, documents, getDb } from "@law-doc/db";
-import { enqueueIngestFlow } from "@law-doc/queue";
+import { documentJobs, documentVersions, documents, getDb } from "@knowledge-assistant/db";
+import { enqueueIngestFlow } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
 import { requireOwnedDocumentJob } from "@/lib/guards/resources";

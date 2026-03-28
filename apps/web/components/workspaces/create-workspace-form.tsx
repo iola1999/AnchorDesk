@@ -49,7 +49,7 @@ export function CreateWorkspaceForm() {
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例如：供应商主合同审查"
+          placeholder="例如：产品发布资料库"
         />
       </label>
       <label className={ui.label}>
@@ -68,7 +68,7 @@ export function CreateWorkspaceForm() {
           rows={5}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="说明当前空间希望处理的资料主题、常见问题和输出目标。"
+          placeholder="说明当前空间沉淀的资料主题、常见问题和预期输出。"
         />
       </label>
       {error ? <p className={ui.error}>{error}</p> : null}

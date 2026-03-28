@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 
-import { citationAnchors, getDb, reports, reportSections } from "@law-doc/db";
+import { citationAnchors, getDb, reports, reportSections } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requireOwnedReport } from "@/lib/guards/resources";

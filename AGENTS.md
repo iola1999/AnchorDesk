@@ -6,21 +6,21 @@
 
 开始任何任务前，先按这个顺序阅读需求与设计：
 
-1. [docs/legal-ai-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-technical-design-nodejs.md)
+1. [docs/knowledge-assistant-technical-design-nodejs.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-technical-design-nodejs.md)
    用它作为当前实现的主设计文档和架构/约束文档。
 2. [docs/implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md)
    用它作为当前阶段进度、活跃待办和下一步执行顺序文档。
 3. [docs/development-setup.md](/Users/fan/project/tmp/law-doc/docs/development-setup.md)
    当任务涉及本地启动、Docker 依赖、开发环境配置或系统参数时必读。
-4. [docs/legal-ai-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-prd.md)
+4. [docs/knowledge-assistant-prd.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-prd.md)
    用它确认 P0/P1 范围、业务目标、用户场景和验收口径。
-5. [docs/legal-ai-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-erd.md)
+5. [docs/knowledge-assistant-erd.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-erd.md)
    当任务涉及 schema、索引、检索、引用链路时必读。
-6. [docs/legal-ai-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-mcp-tools.md)
+6. [docs/knowledge-assistant-mcp-tools.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-mcp-tools.md)
    当任务涉及 agent tool、返回结构、错误模型时必读。
-7. [docs/legal-ai-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-nextjs-app-structure.md)
+7. [docs/knowledge-assistant-nextjs-app-structure.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-nextjs-app-structure.md)
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
-8. [docs/legal-ai-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/legal-ai-assistant-architecture.md)
+8. [docs/knowledge-assistant-architecture.md](/Users/fan/project/tmp/law-doc/docs/knowledge-assistant-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
 
 原则：
@@ -74,7 +74,7 @@
 
 - 纯逻辑优先抽成独立函数，不要把关键规则埋在 route handler、worker 回调、React 事件处理器里。
 - 新能力优先以“可测试模块 + 薄接线层”组织。
-- 不为通过测试而写虚假实现；法律场景要宁可明确失败，也不要伪造成功结果。
+- 不为通过测试而写虚假实现；证据不足时宁可明确失败，也不要伪造成功结果。
 - 对上传、检索、回答、引用、导出这五条主链路的改动，必须伴随测试或补充测试计划。
 
 ## 4. 测试怎么写
@@ -95,7 +95,7 @@
 - 如果文件里既有纯逻辑又有外部依赖，先拆模块再测。
 - 测试命名要直接表达业务规则，例如：
   - “按目录构建树并保证目录在文件前”
-  - “条款切块时保留 heading_path”
+  - “按章节切块时保留 heading_path”
   - “未检索到依据时返回空结果而不是伪造引用”
 
 ### 4.2 Python parser
@@ -187,7 +187,7 @@ pnpm verify
 如果改动影响开发流程、CI、测试命令或下一阶段优先级，必须同步更新：
 
 - `AGENTS.md`
-- `docs/legal-ai-assistant-technical-design-nodejs.md`
+- `docs/knowledge-assistant-technical-design-nodejs.md`
 - `docs/implementation-tracker.md`
 
 ## 7. 当前重点

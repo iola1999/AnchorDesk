@@ -9,7 +9,7 @@ import {
   documents,
   getDb,
   workspaces,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { DocumentTreePanel } from "@/components/workspaces/document-tree-panel";

@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 
-import { conversations, getDb, workspaces } from "@law-doc/db";
+import { conversations, getDb, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { slugify } from "@/lib/api/slug";

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { getDb, workspaces } from "@law-doc/db";
+import { getDb, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 

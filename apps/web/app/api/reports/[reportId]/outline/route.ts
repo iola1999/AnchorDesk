@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 
-import { getDb, reports, reportSections } from "@law-doc/db";
+import { getDb, reports, reportSections } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requireOwnedReport } from "@/lib/guards/resources";

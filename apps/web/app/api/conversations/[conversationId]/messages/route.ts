@@ -6,7 +6,7 @@ import {
   getDb,
   messageCitations,
   messages,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requestAgentResponse } from "@/lib/api/agent-runtime";

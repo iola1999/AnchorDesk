@@ -31,7 +31,7 @@
 环境变量最小化后，必须保留在进程外的启动根配置只有：
 
 ```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/knowledge_assistant
 AUTH_SECRET=dev-auth-secret
 ```
 
@@ -143,7 +143,7 @@ order by created_at desc;
 如果 PostgreSQL 是通过 Docker Compose 启动的，可以直接进入数据库：
 
 ```bash
-docker compose exec postgres psql -U postgres -d law_doc
+docker compose exec postgres psql -U postgres -d knowledge_assistant
 ```
 
 查看当前系统参数：

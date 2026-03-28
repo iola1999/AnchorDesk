@@ -35,10 +35,10 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.80.0
         version: 0.80.0(zod@4.3.6)
-      '@law-doc/agent-tools':
+      '@knowledge-assistant/agent-tools':
         specifier: workspace:*
         version: link:../../packages/agent-tools
-      '@law-doc/contracts':
+      '@knowledge-assistant/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       express:
@@ -51,19 +51,19 @@ importers:
 
   apps/web:
     dependencies:
-      '@law-doc/auth':
+      '@knowledge-assistant/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@law-doc/db':
+      '@knowledge-assistant/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@law-doc/queue':
+      '@knowledge-assistant/queue':
         specifier: workspace:*
         version: link:../../packages/queue
-      '@law-doc/retrieval':
+      '@knowledge-assistant/retrieval':
         specifier: workspace:*
         version: link:../../packages/retrieval
-      '@law-doc/storage':
+      '@knowledge-assistant/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       docx:
@@ -112,16 +112,16 @@ importers:
 
   apps/worker:
     dependencies:
-      '@law-doc/db':
+      '@knowledge-assistant/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@law-doc/queue':
+      '@knowledge-assistant/queue':
         specifier: workspace:*
         version: link:../../packages/queue
-      '@law-doc/retrieval':
+      '@knowledge-assistant/retrieval':
         specifier: workspace:*
         version: link:../../packages/retrieval
-      '@law-doc/storage':
+      '@knowledge-assistant/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       bullmq:
@@ -136,13 +136,13 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.2.85
         version: 0.2.85(zod@4.3.6)
-      '@law-doc/contracts':
+      '@knowledge-assistant/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@law-doc/db':
+      '@knowledge-assistant/db':
         specifier: workspace:*
         version: link:../db
-      '@law-doc/retrieval':
+      '@knowledge-assistant/retrieval':
         specifier: workspace:*
         version: link:../retrieval
       drizzle-orm:

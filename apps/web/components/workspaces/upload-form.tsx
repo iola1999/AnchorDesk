@@ -7,7 +7,7 @@ import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function UploadForm({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
-  const [directoryPath, setDirectoryPath] = useState("资料库");
+  const [directoryPath, setDirectoryPath] = useState("资料库/默认目录");
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -93,7 +93,7 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
           className={ui.input}
           value={directoryPath}
           onChange={(e) => setDirectoryPath(e.target.value)}
-          placeholder="例如：资料库/合同/供应商"
+          placeholder="例如：资料库/产品/发布说明"
         />
       </label>
       <label className={ui.label}>

@@ -35,12 +35,12 @@ describe("parseEnvText", () => {
     expect(
       parseEnvText(`
 # comment
-DATABASE_URL="postgres://postgres:postgres@localhost:5432/law_doc"
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/knowledge_assistant"
 export REDIS_URL='redis://localhost:6379'
 EMPTY=
 `),
     ).toEqual({
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/law_doc",
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
       REDIS_URL: "redis://localhost:6379",
       EMPTY: "",
     });
@@ -51,9 +51,9 @@ describe("normalizeEnvExampleContent", () => {
   it("ensures the copied example ends with a single newline", () => {
     expect(
       normalizeEnvExampleContent(
-        "DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=replace-me\n",
+        "DATABASE_URL=postgres://postgres:postgres@localhost:5432/knowledge_assistant\nAUTH_SECRET=replace-me\n",
       ),
-    ).toBe("DATABASE_URL=postgres://postgres:postgres@localhost:5432/law_doc\nAUTH_SECRET=replace-me\n");
+    ).toBe("DATABASE_URL=postgres://postgres:postgres@localhost:5432/knowledge_assistant\nAUTH_SECRET=replace-me\n");
   });
 });
 
@@ -61,7 +61,7 @@ describe("listMissingRequiredEnvNames", () => {
   it("reports missing startup env values", () => {
     expect(
       listMissingRequiredEnvNames({
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/law_doc",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
       }),
     ).toEqual(["AUTH_SECRET"]);
   });
@@ -79,7 +79,7 @@ describe("connection target parsing", () => {
 
   it("resolves infrastructure and runtime endpoints from environment variables", () => {
     const env = {
-      DATABASE_URL: "postgres://postgres:postgres@localhost/law_doc",
+      DATABASE_URL: "postgres://postgres:postgres@localhost/knowledge_assistant",
       REDIS_URL: "redis://127.0.0.1",
       QDRANT_URL: "http://localhost:6333",
       S3_ENDPOINT: "http://localhost:9000",
@@ -93,7 +93,7 @@ describe("connection target parsing", () => {
         id: "postgres",
         name: "PostgreSQL",
         envName: "DATABASE_URL",
-        url: "postgres://postgres:postgres@localhost/law_doc",
+        url: "postgres://postgres:postgres@localhost/knowledge_assistant",
         protocol: "postgres:",
         host: "localhost",
         port: 5432,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
-import { getDb, reports, reportSections, workspaces } from "@law-doc/db";
+import { getDb, reports, reportSections, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { GenerateSectionButton } from "@/components/reports/generate-section-button";

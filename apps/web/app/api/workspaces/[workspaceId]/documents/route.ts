@@ -7,8 +7,8 @@ import {
   documentJobs,
   documentVersions,
   getDb,
-} from "@law-doc/db";
-import { enqueueIngestFlow } from "@law-doc/queue";
+} from "@knowledge-assistant/db";
+import { enqueueIngestFlow } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

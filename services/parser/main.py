@@ -34,7 +34,7 @@ class ParseRequest(BaseModel):
     logical_path: str | None = None
 
 
-app = FastAPI(title="law-doc-parser")
+app = FastAPI(title="knowledge-assistant-parser")
 
 
 def get_required_env(name: str) -> str:

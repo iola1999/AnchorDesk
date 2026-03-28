@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 export const documentTypeOptions = [
-  { value: "contract", label: "合同" },
-  { value: "pleading", label: "起诉状" },
-  { value: "evidence", label: "证据" },
-  { value: "statute", label: "法律法规" },
-  { value: "case_law", label: "案例" },
-  { value: "memo", label: "备忘录" },
+  { value: "reference", label: "参考资料" },
+  { value: "guide", label: "指南手册" },
+  { value: "policy", label: "制度政策" },
+  { value: "spec", label: "规格说明" },
+  { value: "report", label: "报告" },
+  { value: "note", label: "笔记" },
   { value: "email", label: "邮件" },
   { value: "meeting_note", label: "会议纪要" },
   { value: "other", label: "其他" },

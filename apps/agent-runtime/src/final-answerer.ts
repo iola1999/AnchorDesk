@@ -4,7 +4,7 @@ import {
   groundedAnswerSchema,
   type GroundedAnswer,
   type GroundedEvidence,
-} from "@law-doc/contracts";
+} from "@knowledge-assistant/contracts";
 
 import {
   buildGroundedAnswerPrompt,
@@ -20,7 +20,7 @@ const DEFAULT_MAX_TOKENS = Number(
 );
 
 const FINAL_ANSWER_SYSTEM_PROMPT = [
-  "You render the final answer for a legal AI assistant.",
+  "You render the final answer for a grounded workspace assistant.",
   "Use only the validated evidence supplied by the application.",
   "Never invent anchor IDs, directory paths, quotes, or citations.",
   "If the evidence is insufficient, set unsupported_reason to a concrete explanation.",

@@ -75,7 +75,7 @@ export function getManagedServices(env) {
       name: "Agent runtime",
       cwd: repoRoot,
       command: pnpm,
-      args: ["--filter", "@law-doc/agent-runtime", "dev"],
+      args: ["--filter", "@knowledge-assistant/agent-runtime", "dev"],
       envOverrides: {
         PORT: String(endpoints.agent.port),
       },
@@ -88,7 +88,7 @@ export function getManagedServices(env) {
       name: "Worker",
       cwd: repoRoot,
       command: pnpm,
-      args: ["--filter", "@law-doc/worker", "dev"],
+      args: ["--filter", "@knowledge-assistant/worker", "dev"],
     },
     {
       id: "web",
@@ -327,7 +327,7 @@ export function formatError(error) {
 export async function ensureDevDatabase(env) {
   await runCommand({
     command: resolvePnpmBinary(),
-    args: ["--filter", "@law-doc/db", "exec", "node", "scripts/ensure-dev-db.mjs"],
+    args: ["--filter", "@knowledge-assistant/db", "exec", "node", "scripts/ensure-dev-db.mjs"],
     cwd: repoRoot,
     env,
   });
@@ -341,7 +341,7 @@ export async function ensureSystemSettings(env, options = {}) {
       command: resolvePnpmBinary(),
       args: [
         "--filter",
-        "@law-doc/db",
+        "@knowledge-assistant/db",
         "exec",
         "node",
         "scripts/ensure-system-settings.mjs",
@@ -370,7 +370,7 @@ export async function loadResolvedSystemEnvironment(env) {
       command: resolvePnpmBinary(),
       args: [
         "--filter",
-        "@law-doc/db",
+        "@knowledge-assistant/db",
         "exec",
         "node",
         "scripts/print-system-env.mjs",
@@ -397,7 +397,7 @@ export async function ensureDevBucket(env) {
     command: resolvePnpmBinary(),
     args: [
       "--filter",
-      "@law-doc/storage",
+      "@knowledge-assistant/storage",
       "exec",
       "node",
       "scripts/ensure-dev-bucket.mjs",

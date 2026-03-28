@@ -1,5 +1,5 @@
 {
-  "name": "@law-doc/worker",
+  "name": "@knowledge-assistant/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,10 +9,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@law-doc/db": "workspace:*",
-    "@law-doc/queue": "workspace:*",
-    "@law-doc/retrieval": "workspace:*",
-    "@law-doc/storage": "workspace:*",
+    "@knowledge-assistant/db": "workspace:*",
+    "@knowledge-assistant/queue": "workspace:*",
+    "@knowledge-assistant/retrieval": "workspace:*",
+    "@knowledge-assistant/storage": "workspace:*",
     "bullmq": "^5.71.1",
     "drizzle-orm": "^0.45.2"
   }

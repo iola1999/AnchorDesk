@@ -1,5 +1,5 @@
 {
-  "name": "@law-doc/web",
+  "name": "@knowledge-assistant/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,11 +10,11 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@law-doc/auth": "workspace:*",
-    "@law-doc/db": "workspace:*",
-    "@law-doc/queue": "workspace:*",
-    "@law-doc/retrieval": "workspace:*",
-    "@law-doc/storage": "workspace:*",
+    "@knowledge-assistant/auth": "workspace:*",
+    "@knowledge-assistant/db": "workspace:*",
+    "@knowledge-assistant/queue": "workspace:*",
+    "@knowledge-assistant/retrieval": "workspace:*",
+    "@knowledge-assistant/storage": "workspace:*",
     "docx": "^9.6.1",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.1",

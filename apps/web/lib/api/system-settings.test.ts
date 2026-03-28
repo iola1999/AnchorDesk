@@ -16,7 +16,7 @@ describe("buildSystemSettingSections", () => {
       },
       {
         settingKey: "s3_bucket",
-        valueText: "law-doc",
+        valueText: "knowledge-assistant",
         isSecret: false,
         description: "Primary object storage bucket.",
       },

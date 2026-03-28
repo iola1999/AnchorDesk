@@ -17,7 +17,7 @@ import {
   resolveRerankProvider,
 } from "./providers";
 
-const DEFAULT_COLLECTION_NAME = "legal_chunks";
+const DEFAULT_COLLECTION_NAME = "knowledge_chunks";
 const DEFAULT_HASH_VECTOR_SIZE = 256;
 const DEFAULT_QUERY_CANDIDATE_LIMIT = 36;
 

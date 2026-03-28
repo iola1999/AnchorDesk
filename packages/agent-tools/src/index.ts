@@ -9,7 +9,7 @@ import {
   searchWebGeneralInputSchema,
   searchWorkspaceKnowledgeInputSchema,
   writeReportSectionInputSchema,
-} from "@law-doc/contracts";
+} from "@knowledge-assistant/contracts";
 import {
   citationAnchors,
   documentChunks,
@@ -19,12 +19,12 @@ import {
   retrievalRuns,
   reports,
   reportSections,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 import {
   describeRetrievalProvider,
   scoreToBasisPoints,
   searchWorkspaceKnowledge,
-} from "@law-doc/retrieval";
+} from "@knowledge-assistant/retrieval";
 
 function asToolText(value: unknown) {
   return {
@@ -38,9 +38,11 @@ function asToolText(value: unknown) {
 }
 
 function parseAllowedDomains() {
-  const raw =
-    process.env.FETCH_ALLOWED_DOMAINS ??
-    "flk.npc.gov.cn,court.gov.cn,rmfyalk.court.gov.cn";
+  const raw = (process.env.FETCH_ALLOWED_DOMAINS ?? "").trim();
+  if (!raw) {
+    return null;
+  }
+
   return raw
     .split(",")
     .map((item) => item.trim())
@@ -246,7 +248,7 @@ export async function fetchSourceHandler(input: unknown) {
   const url = new URL(args.url);
   const allowed = parseAllowedDomains();
 
-  if (!allowed.includes(url.hostname)) {
+  if (allowed && !allowed.includes(url.hostname)) {
     return {
       ok: false,
       error: {
@@ -326,9 +328,9 @@ export async function writeReportSectionHandler(input: unknown) {
   };
 }
 
-export function createLegalMcpServer() {
+export function createAssistantMcpServer() {
   return createSdkMcpServer({
-    name: "legal",
+    name: "assistant",
     version: "0.1.0",
     tools: [
       tool(
@@ -345,13 +347,13 @@ export function createLegalMcpServer() {
       ),
       tool(
         "search_statutes",
-        "Search statutes and official legal texts",
+        "Search statutes and official legal texts when the task requires legal references",
         searchStatutesInputSchema.shape,
         async (args) => asToolText(await searchStatutesHandler(args)),
       ),
       tool(
         "search_web_general",
-        "Search the public web for general legal context",
+        "Search the public web for general context",
         searchWebGeneralInputSchema.shape,
         async (args) => asToolText(await searchWebGeneralHandler(args)),
       ),

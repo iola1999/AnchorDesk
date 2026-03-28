@@ -7,12 +7,12 @@ import {
   documentVersions,
   getDb,
   messageCitations,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 import {
   deleteDocumentVersionPoints,
   upsertDocumentChunks,
-} from "@law-doc/retrieval";
-import { deleteObject, getJson } from "@law-doc/storage";
+} from "@knowledge-assistant/retrieval";
+import { deleteObject, getJson } from "@knowledge-assistant/storage";
 
 import {
   buildAnchorLabel,

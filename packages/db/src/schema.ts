@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Draft schema for the workspace-centered legal AI assistant.
+ * Draft schema for a workspace-centered grounded assistant.
  * The schema intentionally prefers explicit fields over aggressive abstraction
  * so the ingestion, retrieval, and citation flows remain easy to evolve.
  */
@@ -34,12 +34,12 @@ export const documentStatusEnum = pgEnum("document_status", [
 ]);
 
 export const documentTypeEnum = pgEnum("document_type", [
-  "contract",
-  "pleading",
-  "evidence",
-  "statute",
-  "case_law",
-  "memo",
+  "reference",
+  "guide",
+  "policy",
+  "spec",
+  "report",
+  "note",
   "email",
   "meeting_note",
   "other",

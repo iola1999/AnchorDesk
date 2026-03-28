@@ -4,8 +4,8 @@ import path from "node:path";
 import express from "express";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
-import { createLegalMcpServer } from "@law-doc/agent-tools";
-import type { GroundedEvidence } from "@law-doc/contracts";
+import { createAssistantMcpServer } from "@knowledge-assistant/agent-tools";
+import type { GroundedEvidence } from "@knowledge-assistant/contracts";
 
 import { renderGroundedAnswer } from "./final-answerer";
 
@@ -20,31 +20,32 @@ const agentWorkdirRoot = process.env.AGENT_WORKDIR_ROOT
 function getAllowedTools(mode: string) {
   if (mode === "kb_only") {
     return [
-      "mcp__legal__search_workspace_knowledge",
-      "mcp__legal__read_citation_anchor",
+      "mcp__assistant__search_workspace_knowledge",
+      "mcp__assistant__read_citation_anchor",
     ];
   }
 
   return [
-    "mcp__legal__search_workspace_knowledge",
-    "mcp__legal__read_citation_anchor",
-    "mcp__legal__search_statutes",
-    "mcp__legal__search_web_general",
-    "mcp__legal__fetch_source",
-    "mcp__legal__create_report_outline",
-    "mcp__legal__write_report_section",
+    "mcp__assistant__search_workspace_knowledge",
+    "mcp__assistant__read_citation_anchor",
+    "mcp__assistant__search_statutes",
+    "mcp__assistant__search_web_general",
+    "mcp__assistant__fetch_source",
+    "mcp__assistant__create_report_outline",
+    "mcp__assistant__write_report_section",
   ];
 }
 
 function buildAgentSystemPrompt(input: { workspaceId: string; mode: string }) {
   return [
-    "You are a legal knowledge assistant operating inside a single workspace.",
+    "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
     `Current mode: ${input.mode}.`,
     "When you use search_workspace_knowledge or create_report_outline, always pass the exact workspace_id shown above.",
     "Do not invent facts, sources, anchor IDs, or directory paths.",
     "If the workspace knowledge base does not support the answer, say so plainly.",
-    "Prefer workspace knowledge first. Use web/statute tools only when mode allows it and local evidence is insufficient.",
+    "Prefer workspace knowledge first. Use web tools only when mode allows it and local evidence is insufficient.",
+    "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
   ].join("\n");
 }
@@ -104,7 +105,7 @@ app.post("/respond", async (req, res) => {
   }
 
   try {
-    const legalServer = createLegalMcpServer();
+    const assistantServer = createAssistantMcpServer();
     let finalResult = "";
     let sessionId = agentSessionId ?? null;
     const citationMap = new Map<string, GroundedEvidence>();
@@ -114,7 +115,7 @@ app.post("/respond", async (req, res) => {
       options: {
         tools: [],
         mcpServers: {
-          legal: legalServer,
+          assistant: assistantServer,
         },
         allowedTools: getAllowedTools(mode),
         cwd: workdir,

@@ -9,7 +9,7 @@ import {
   getDb,
   reports,
   workspaces,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 
 export async function requireOwnedConversation(
   conversationId: string,

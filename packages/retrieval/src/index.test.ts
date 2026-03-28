@@ -6,19 +6,19 @@ describe("retrieval index helpers", () => {
   test("includes document tags and doc type in retrieval tag values", () => {
     expect(
       buildRetrievalTagValues({
-        docType: "contract",
-        tags: ["违约责任", "不可抗力"],
-        sectionLabel: "第8条",
-        headingPath: ["采购主合同", "违约责任"],
-        keywords: ["免责"],
+        docType: "guide",
+        tags: ["上线检查", "发布流程"],
+        sectionLabel: "第8节",
+        headingPath: ["发布手册", "上线检查"],
+        keywords: ["回归测试"],
       }),
     ).toEqual([
-      "contract",
-      "违约责任",
-      "不可抗力",
-      "第8条",
-      "采购主合同",
-      "免责",
+      "guide",
+      "上线检查",
+      "发布流程",
+      "第8节",
+      "发布手册",
+      "回归测试",
     ]);
   });
 });

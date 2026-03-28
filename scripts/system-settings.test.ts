@@ -26,7 +26,7 @@ describe("buildSystemSettingSeedRows", () => {
     });
     expect(rows.find((row) => row.settingKey === "qdrant_collection")).toMatchObject({
       settingKey: "qdrant_collection",
-      valueText: "legal_chunks",
+      valueText: "knowledge_chunks",
     });
     expect(rows.some((row) => row.settingKey === "auth_trust_host")).toBe(false);
   });
@@ -81,7 +81,7 @@ describe("system settings env resolution", () => {
     expect(
       buildRuntimeEnvironment(
         {
-          DATABASE_URL: "postgres://postgres:postgres@localhost:5432/law_doc",
+          DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
         },
         [
           {
@@ -91,7 +91,7 @@ describe("system settings env resolution", () => {
         ],
       ),
     ).toMatchObject({
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/law_doc",
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
       APP_URL: "http://127.0.0.1:3000",
       REDIS_URL: "redis://localhost:6379",
     });

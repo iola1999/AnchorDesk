@@ -91,7 +91,7 @@ export function DocumentMetadataForm({
           className={ui.input}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="例如：采购主合同-修订稿"
+          placeholder="例如：产品手册-v2"
         />
       </label>
       <label className={ui.label}>
@@ -100,7 +100,7 @@ export function DocumentMetadataForm({
           className={ui.input}
           value={directoryPath}
           onChange={(event) => setDirectoryPath(event.target.value)}
-          placeholder="例如：资料库/客户A/主合同"
+          placeholder="例如：资料库/项目A/产品文档"
         />
       </label>
       <label className={ui.label}>

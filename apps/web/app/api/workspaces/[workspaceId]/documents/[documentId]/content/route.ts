@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
-import { documents, documentVersions, getDb } from "@law-doc/db";
-import { getObjectBytes } from "@law-doc/storage";
+import { documents, documentVersions, getDb } from "@knowledge-assistant/db";
+import { getObjectBytes } from "@knowledge-assistant/storage";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

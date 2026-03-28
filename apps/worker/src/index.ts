@@ -13,14 +13,14 @@ import {
   documents,
   getDb,
   parseArtifacts,
-} from "@law-doc/db";
-import { QUEUE_NAMES, getRedisConnection } from "@law-doc/queue";
+} from "@knowledge-assistant/db";
+import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
 import {
   deleteDocumentVersionPoints,
   embedTexts,
   upsertDocumentChunks,
-} from "@law-doc/retrieval";
-import { getJson, getObjectBytes, putJson } from "@law-doc/storage";
+} from "@knowledge-assistant/retrieval";
+import { getJson, getObjectBytes, putJson } from "@knowledge-assistant/storage";
 import { buildChunkSeeds } from "./chunking";
 
 type ParseArtifact = {

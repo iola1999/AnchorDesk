@@ -10,7 +10,7 @@ import {
   documentVersions,
   getDb,
   workspaces,
-} from "@law-doc/db";
+} from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { DeleteDocumentButton } from "@/components/documents/delete-document-button";

@@ -1,7 +1,7 @@
 import { asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
-import { getDb, systemSettings } from "@law-doc/db";
+import { getDb, systemSettings } from "@knowledge-assistant/db";
 
 import { SystemSettingsForm } from "@/components/settings/system-settings-form";
 import { buildSystemSettingSections } from "@/lib/api/system-settings";

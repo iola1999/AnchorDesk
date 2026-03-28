@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import { getDb, reports } from "@law-doc/db";
+import { getDb, reports } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";

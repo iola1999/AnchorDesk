@@ -8,8 +8,8 @@ import {
 
 describe("conversation helpers", () => {
   test("normalizes conversation titles and falls back when empty", () => {
-    expect(normalizeConversationTitle("  合同审查讨论  ", "默认会话")).toBe(
-      "合同审查讨论",
+    expect(normalizeConversationTitle("  发布方案讨论  ", "默认会话")).toBe(
+      "发布方案讨论",
     );
     expect(normalizeConversationTitle("   ", "默认会话")).toBe("默认会话");
   });

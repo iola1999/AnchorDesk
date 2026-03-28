@@ -1,5 +1,5 @@
 {
-  "name": "@law-doc/db",
+  "name": "@knowledge-assistant/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
