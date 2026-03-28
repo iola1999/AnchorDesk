@@ -13,17 +13,22 @@ import {
 } from "@law-doc/db";
 
 import { auth } from "@/auth";
+import { DeleteDocumentButton } from "@/components/documents/delete-document-button";
+import { DocumentJobPanel } from "@/components/documents/document-job-panel";
+import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
+import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
+import { documentTypeOptions } from "@/lib/api/document-metadata";
 
 export default async function DocumentPage({
   params,
   searchParams,
 }: {
   params: Promise<{ workspaceId: string; documentId: string }>;
-  searchParams: Promise<{ anchorId?: string }>;
+  searchParams: Promise<{ anchorId?: string; page?: string }>;
 }) {
   const { workspaceId, documentId } = await params;
-  const { anchorId } = await searchParams;
+  const { anchorId, page } = await searchParams;
   const session = await auth();
   const userId = session?.user?.id ?? "";
   const db = getDb();
@@ -138,20 +143,52 @@ export default async function DocumentPage({
     anchors: pageAnchors,
     highlightedAnchorId: anchorId,
   });
+  const requestedPage = Number.parseInt(page ?? "", 10);
+  const docTypeLabel =
+    documentTypeOptions.find((item) => item.value === doc[0].docType)?.label ?? doc[0].docType;
+  const tags = doc[0].tagsJson ?? [];
+  const canRenderPdf = doc[0].mimeType.includes("pdf") && Boolean(latestVersion);
 
   return (
     <div className="stack">
       <div className="card">
-        <h1>{doc[0].title}</h1>
-        <p className="muted">{doc[0].logicalPath}</p>
-        <p>状态：{doc[0].status}</p>
-        {latestVersion ? (
-          <p className="muted">
-            当前版本：v{latestVersion.version} · {latestVersion.parseStatus}
-            {latestJob ? ` · ${latestJob.stage} · ${latestJob.progress}%` : ""}
-          </p>
-        ) : null}
+        <div className="toolbar">
+          <div>
+            <h1>{doc[0].title}</h1>
+            <p className="muted">{doc[0].logicalPath}</p>
+            <p>
+              状态：{doc[0].status} · 类型：{docTypeLabel}
+            </p>
+            {tags.length > 0 ? <p className="muted">标签：{tags.join("、")}</p> : null}
+            {latestVersion ? (
+              <p className="muted">
+                当前版本：v{latestVersion.version} · {latestVersion.parseStatus}
+                {latestJob ? ` · ${latestJob.stage} · ${latestJob.progress}%` : ""}
+              </p>
+            ) : null}
+          </div>
+          <DeleteDocumentButton workspaceId={workspaceId} documentId={documentId} />
+        </div>
       </div>
+      <DocumentMetadataForm
+        workspaceId={workspaceId}
+        document={{
+          id: documentId,
+          title: doc[0].title,
+          directoryPath: doc[0].directoryPath,
+          docType: doc[0].docType,
+          tags,
+        }}
+      />
+      <DocumentJobPanel job={latestJob} />
+      {canRenderPdf ? (
+        <PdfViewer
+          fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
+          title={doc[0].title}
+          initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
+          highlightedText={anchor?.anchorText ?? ""}
+        />
+      ) : null}
       {anchor ? (
         <div className="card">
           <h3>当前引用定位</h3>

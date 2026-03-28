@@ -120,6 +120,9 @@
 根目录统一执行：
 
 ```bash
+pnpm dev
+pnpm dev:status
+pnpm dev:down
 pnpm setup:python
 pnpm test
 pnpm test:ts
@@ -135,6 +138,12 @@ pnpm verify
 
 说明：
 
+- `pnpm dev`
+  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、PostgreSQL / Redis / Qdrant / S3(或 MinIO)，并在依赖可达后自动补建表与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
+- `pnpm dev:status`
+  查看本地基础设施连通性与受管开发进程状态。
+- `pnpm dev:down`
+  停止 `pnpm dev` 拉起的本地开发进程。
 - `pnpm setup:python`
   使用 `.venv` 安装 parser 依赖，优先选择 `python3.12`。
 - `pnpm test`

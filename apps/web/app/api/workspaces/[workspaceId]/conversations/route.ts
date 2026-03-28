@@ -59,7 +59,7 @@ export async function GET(
     .select()
     .from(conversations)
     .where(eq(conversations.workspaceId, workspaceId))
-    .orderBy(desc(conversations.createdAt));
+    .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt));
 
   return Response.json({ conversations: result });
 }

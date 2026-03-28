@@ -84,7 +84,7 @@ apps/web/
 用途：
 
 - 主工作台页面
-- 左侧对话，右侧文档阅读或报告编辑
+- 左侧对话，右侧文档阅读或报告结果查看
 
 组件建议：
 
@@ -106,7 +106,7 @@ apps/web/
 
 用途：
 
-- 报告编辑
+- 报告结果查看
 - 分节生成
 - 导出
 
@@ -127,10 +127,18 @@ apps/web/
   - 返回 S3 presigned URL
 - `POST /api/workspaces/:workspaceId/documents`
   - 创建文档和 ingest job
+- `PATCH /api/workspaces/:workspaceId/documents/:documentId`
+  - 更新文档名称、目录、类型、标签
+- `DELETE /api/workspaces/:workspaceId/documents/:documentId`
+  - 删除文档、版本和索引
+- `GET /api/workspaces/:workspaceId/documents/:documentId/content`
+  - 返回 PDF / 原始文件内容给阅读器
 - `GET /api/workspaces/:workspaceId/tree`
   - 返回目录树
 - `GET /api/document-jobs/:jobId`
   - 查询异步任务进度
+- `POST /api/document-jobs/:jobId/retry`
+  - 重新提交失败任务
 
 ### 4.3 对话类
 
@@ -138,6 +146,8 @@ apps/web/
   - 创建对话
 - `GET /api/conversations/:conversationId`
   - 获取对话基础信息
+- `PATCH /api/conversations/:conversationId`
+  - 重命名、归档或恢复会话
 - `POST /api/conversations/:conversationId/messages`
   - 发送一条用户消息
 - `GET /api/conversations/:conversationId/stream`
@@ -184,7 +194,6 @@ apps/web/
 - Chat composer
 - SSE 对话流
 - PDF viewer
-- Tiptap editor
 - 目录树交互
 - 上传进度组件
 

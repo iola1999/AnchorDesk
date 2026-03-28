@@ -1,11 +1,14 @@
 import Link from "next/link";
 
 import { buildDocumentTree } from "@/lib/api/tree";
+import { documentTypeOptions } from "@/lib/api/document-metadata";
 
 type DocumentTreeItem = {
   id: string;
   title: string;
   logicalPath: string;
+  docType: string;
+  tags: string[];
 };
 
 type TreeNode = ReturnType<typeof buildDocumentTree>[number];
@@ -31,6 +34,11 @@ function renderTreeNode(
           {document.title}
         </Link>
         <div className="muted tree-path">{document.logicalPath}</div>
+        <div className="muted tree-meta">
+          {documentTypeOptions.find((item) => item.value === document.docType)?.label ??
+            document.docType}
+          {document.tags.length > 0 ? ` · ${document.tags.join("、")}` : ""}
+        </div>
       </li>
     );
   }

@@ -338,6 +338,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
       documentPath: documents.logicalPath,
       directoryPath: documents.directoryPath,
       docType: documents.docType,
+      tags: documents.tagsJson,
       anchorId: citationAnchors.id,
     })
     .from(documentChunks)
@@ -355,6 +356,7 @@ async function fetchChunksForIndex(documentVersionId: string) {
     docType: row.docType,
     documentPath: row.documentPath,
     directoryPath: row.directoryPath,
+    tags: row.tags ?? [],
     pageStart: row.pageStart,
     pageEnd: row.pageEnd,
     headingPath: row.headingPath ?? [],

@@ -88,6 +88,12 @@ erDiagram
 - 一个逻辑文件可以有多个版本。
 - `latest_version_id` 指向最新版本。
 
+设计补充：
+
+- `documents.doc_type` 保存当前文档类型。
+- `documents.tags_json` 保存当前标签集合。
+- 文档重命名和移动目录通过更新 `title`、`source_filename`、`logical_path`、`directory_path` 完成，不新增额外目录表。
+
 ### 3.4 `parse_artifacts`
 
 用途：

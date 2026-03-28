@@ -7,6 +7,7 @@ export default defineConfig({
       "apps/**/src/**/*.test.ts",
       "apps/**/lib/**/*.test.ts",
       "packages/**/src/**/*.test.ts",
+      "scripts/**/*.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/.next/**", "**/dist/**"],
     restoreMocks: true,

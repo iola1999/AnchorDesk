@@ -114,6 +114,7 @@ export async function POST(
         directoryPath,
         mimeType,
         status: "processing",
+        tagsJson: [],
       })
       .returning();
   }

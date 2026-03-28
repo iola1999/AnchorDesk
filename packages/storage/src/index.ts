@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -111,4 +112,21 @@ export async function getJson<T>(key: string): Promise<T | null> {
   }
 
   return JSON.parse(text) as T;
+}
+
+export async function deleteObject(key: string) {
+  try {
+    await getS3Client().send(
+      new DeleteObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return;
+    }
+
+    throw error;
+  }
 }

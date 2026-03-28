@@ -52,6 +52,7 @@ export type RetrievalChunkRecord = {
   pageEnd: number;
   headingPath: string[];
   sectionLabel: string | null;
+  tags: string[];
   keywords: string[];
   text: string;
 };
@@ -138,6 +139,22 @@ function roundScore(score: number) {
 
 function toRoundedBasisPoints(score: number) {
   return Math.round(clampScore(score) * 10_000);
+}
+
+export function buildRetrievalTagValues(input: {
+  docType: string;
+  tags: string[];
+  sectionLabel: string | null;
+  headingPath: string[];
+  keywords: string[];
+}) {
+  return uniqueNormalized([
+    input.docType,
+    ...input.tags,
+    input.sectionLabel,
+    ...input.headingPath,
+    ...input.keywords,
+  ]);
 }
 
 function getCollectionName() {
@@ -323,11 +340,13 @@ export async function deleteDocumentVersionPoints(input: {
 }
 
 function toPayload(chunk: RetrievalChunkRecord): RetrievalPointPayload {
-  const tagValues = uniqueNormalized([
-    chunk.sectionLabel,
-    ...chunk.headingPath,
-    ...chunk.keywords,
-  ]);
+  const tagValues = buildRetrievalTagValues({
+    docType: chunk.docType,
+    tags: chunk.tags,
+    sectionLabel: chunk.sectionLabel,
+    headingPath: chunk.headingPath,
+    keywords: chunk.keywords,
+  });
 
   return {
     workspace_id: chunk.workspaceId,

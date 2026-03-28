@@ -91,6 +91,16 @@ button {
   cursor: pointer;
 }
 
+.button-danger {
+  background: #b42318;
+}
+
+.button-secondary {
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -175,6 +185,71 @@ button:disabled {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.conversation-link > a {
+  display: grid;
+  gap: 4px;
+}
+
+.conversation-section {
+  gap: 10px;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pdf-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.page-input {
+  width: 72px;
+}
+
+.pdf-canvas-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pdf-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pdf-text-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  line-height: 1.7;
+}
+
+.search-result-list {
+  display: grid;
+  gap: 8px;
+}
+
+.search-result-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
 .empty-state {
   display: grid;
   gap: 4px;
@@ -200,6 +275,10 @@ button:disabled {
 }
 
 .tree-path {
+  font-size: 13px;
+}
+
+.tree-meta {
   font-size: 13px;
 }
 

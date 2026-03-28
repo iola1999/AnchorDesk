@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -162,6 +163,7 @@ export const documents = pgTable(
     directoryPath: text("directory_path").notNull(),
     mimeType: varchar("mime_type", { length: 120 }).notNull(),
     docType: documentTypeEnum("doc_type").notNull().default("other"),
+    tagsJson: jsonb("tags_json").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     status: documentStatusEnum("status").notNull().default("uploading"),
     latestVersionId: uuid("latest_version_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

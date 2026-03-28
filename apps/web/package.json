@@ -13,11 +13,13 @@
     "@law-doc/auth": "workspace:*",
     "@law-doc/db": "workspace:*",
     "@law-doc/queue": "workspace:*",
+    "@law-doc/retrieval": "workspace:*",
     "@law-doc/storage": "workspace:*",
     "docx": "^9.6.1",
     "drizzle-orm": "^0.45.2",
     "next": "^16.2.1",
     "next-auth": "5.0.0-beta.30",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zod": "^4.3.6"

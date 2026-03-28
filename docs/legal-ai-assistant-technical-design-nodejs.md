@@ -49,7 +49,7 @@
 - Agent 规划：`@anthropic-ai/claude-agent-sdk`
 - 最终答案结构化输出：`@anthropic-ai/sdk`
 - 文档解析：`Python + FastAPI + Docling + PaddleOCR`
-- 富文本编辑器：`Tiptap`
+- 富文本编辑器：`暂不进入 P0，报告以生成结果展示为主`
 - PDF 阅读：`PDF.js`
 
 当前 provider 策略补充：
@@ -282,6 +282,7 @@ flowchart LR
 - `directory_path`
 - `mime_type`
 - `doc_type`
+- `tags_json`
 - `status`
 - `latest_version_id`
 - `created_at`
@@ -918,7 +919,7 @@ Agent 不应被写死成“先出报告”。
   - 上传队列
 - 右栏 60%
   - 默认 PDF 阅读器
-  - 报告模式切换为富文本编辑器
+  - 报告模式展示生成结果与导出入口
 
 ### 14.3 关键组件
 
@@ -929,13 +930,13 @@ Agent 不应被写死成“先出报告”。
 - `DocumentViewer`
 - `UploadQueuePanel`
 - `OutlineEditor`
-- `ReportEditor`
+- `ReportResultPanel`
 
 ### 14.4 前端状态策略
 
 - 首屏数据：Server Components
 - 交互数据：TanStack Query
-- 编辑器临时状态：本地 state
+- 结果页局部交互状态：本地 state
 - 流式消息：SSE
 
 ## 15. API 设计
@@ -945,6 +946,7 @@ Agent 不应被写死成“先出报告”。
 - `POST /api/workspaces/:workspaceId/uploads/presign`
 - `POST /api/workspaces/:workspaceId/documents`
 - `GET /api/document-jobs/:jobId`
+- `POST /api/document-jobs/:jobId/retry`
 
 ### 15.2 工作空间
 
@@ -952,6 +954,8 @@ Agent 不应被写死成“先出报告”。
 - `POST /api/workspaces`
 - `GET /api/workspaces/:workspaceId`
 - `GET /api/workspaces/:workspaceId/documents`
+- `PATCH /api/workspaces/:workspaceId/documents/:documentId`
+- `DELETE /api/workspaces/:workspaceId/documents/:documentId`
 
 ### 15.3 对话
 
@@ -965,6 +969,7 @@ Agent 不应被写死成“先出报告”。
 - `GET /api/documents/:documentId`
 - `GET /api/anchors/:anchorId`
 - `GET /api/workspaces/:workspaceId/tree`
+- `GET /api/workspaces/:workspaceId/documents/:documentId/content`
 
 ### 15.5 报告
 
@@ -1005,6 +1010,9 @@ Agent 不应被写死成“先出报告”。
 根目录统一执行：
 
 ```bash
+pnpm dev
+pnpm dev:status
+pnpm dev:down
 pnpm setup:python
 pnpm test
 pnpm test:ts
@@ -1020,6 +1028,9 @@ pnpm verify
 
 说明：
 
+- `pnpm dev`：一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、PostgreSQL / Redis / Qdrant / S3(或 MinIO)，并在依赖可达后自动补建表与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。
+- `pnpm dev:status`：查看本地基础设施连通性与受管开发进程状态。
+- `pnpm dev:down`：停止 `pnpm dev` 拉起的本地开发进程。
 - `pnpm setup:python`：本地创建 `.venv` 并安装 parser 依赖，优先使用 `python3.12`。
 - `pnpm test`：运行 TypeScript 与 Python 单测。
 - `pnpm coverage`：运行 TypeScript 与 Python 覆盖率统计。
@@ -1027,6 +1038,11 @@ pnpm verify
 - `pnpm check:python`：校验 parser Python 文件可编译导入。
 - `pnpm build:web`：构建 Next.js Web 应用。
 - `pnpm verify`：本地完整质量门禁，供提交前和 CI 统一复用。
+
+本地开发约束补充：
+
+- `pnpm dev` 只负责应用层一键拉起，不负责自动创建 PostgreSQL / Redis / Qdrant / MinIO 进程。
+- 如果这些基础设施未启动，脚本必须明确失败，不允许出现“页面能开但主链路不可用”的假成功状态。
 
 ### 17.2 GitHub Actions CI
 
@@ -1116,6 +1132,16 @@ CI 执行顺序：
   - presign 上传
   - `document_jobs` 状态流转
   - `sha256` 解析缓存复用
+- Web / BFF 主链路基础能力：
+  - 工作空间首页对话创建与切换
+  - 会话重命名、归档与最近访问分组
+  - 工作空间目录树与报告回访入口
+  - 文档详情页结构化正文阅读与引用上下文展示
+  - 文档页基础版 PDF.js 阅读器、页码跳转和页内搜索
+  - 任务详情查看、手动刷新和失败任务重试
+  - 文档删除、重命名、目录移动、文档类型/标签编辑
+- 报告生成基础能力：
+  - 当前按“Agent 生成结果 + 导出”组织，不走平台内富文本编辑
 - 检索基础设施：
   - `packages/retrieval`
   - Qdrant collection 初始化
@@ -1161,14 +1187,16 @@ CI 执行顺序：
   - 已引入结构化 final-answer pass
   - 已去掉基于用户问题文本的模糊 citation 回填
   - 仍未让 Agent SDK 直接输出结构化 evidence dossier
+- document management：
+  - 当前标签保存在 `documents.tags_json`
+  - 当前已支持 path / doc type / tags 变更后重建检索 payload
+  - 仍未提供独立标签管理页、批量操作和标签过滤 UI
 
 ### 19.3 当前缺口
 
 - web / BFF 主链路仍缺：
-  - 首次进入工作空间后的对话创建与切换体验
-  - 工作空间维度的目录树与报告回访入口
-  - 文档正文阅读与引用上下文展示
-  - 上传失败、处理中、完成后的更稳定反馈
+  - 更精确的 bbox 级锚点高亮
+  - 独立任务中心页和更完整的任务历史
 - parser 仍缺：
   - 真实 OCR provider 接入（当前只有 `disabled/mock`，且默认关闭）
   - 更真实的 PDF 坐标与页内定位
@@ -1213,10 +1241,11 @@ CI 执行顺序：
 
 优先做：
 
-1. 工作空间首页补齐对话创建、切换、目录树、报告回访。
-2. 文档详情页展示解析正文、引用上下文和页级阅读信息。
-3. 上传与处理状态给出更稳定的错误反馈和自动刷新。
-4. 把关键页面空状态、首次使用入口补完整。
+1. parser 真实 OCR provider 接入（默认仍关闭）。
+2. sparse/BM25 检索与 hybrid retrieval。
+3. Agent evidence dossier 与 grounded answer 前端显式展示。
+4. SSE 工具时间线。
+5. 继续优化报告一键生成与导出质量，但不引入平台内编辑器。
 
 验收标准：
 
