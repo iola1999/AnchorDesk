@@ -36,7 +36,7 @@ describe("conversation helpers", () => {
     expect(selected?.id).toBe("archived-1");
   });
 
-  test("falls back to the most recently updated active conversation", () => {
+  test("returns null when no conversation is explicitly requested", () => {
     const selected = chooseWorkspaceConversation([
       {
         id: "active-older",
@@ -58,7 +58,23 @@ describe("conversation helpers", () => {
       },
     ]);
 
-    expect(selected?.id).toBe("active-newer");
+    expect(selected).toBeNull();
+  });
+
+  test("returns null when the requested conversation does not exist", () => {
+    const selected = chooseWorkspaceConversation(
+      [
+        {
+          id: "active-older",
+          title: "较早",
+          status: "active",
+          updatedAt: new Date("2026-03-28T09:00:00Z"),
+        },
+      ],
+      "missing",
+    );
+
+    expect(selected).toBeNull();
   });
 
   test("groups conversations by status while preserving recent-first order", () => {

@@ -91,64 +91,86 @@ export function SystemSettingsForm({
   }
 
   return (
-    <form className="grid gap-4" onSubmit={onSubmit}>
-      {sections.map((section) => (
-        <section key={section.id} className={cn(ui.panel, "grid gap-4")}>
-          <div className="grid gap-2">
-            <h2>{section.title}</h2>
-            <p className={ui.muted}>{section.description}</p>
+    <form className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]" onSubmit={onSubmit}>
+      <aside className="grid content-start gap-4 xl:sticky xl:top-8">
+        <section className={cn(ui.panel, "grid gap-3")}>
+          <div className="space-y-1">
+            <p className={ui.eyebrow}>Sections</p>
+            <h2>配置分组</h2>
           </div>
-          <div className="grid gap-4">
-            {section.items.map((setting) => (
-              <label key={setting.settingKey} className={ui.label}>
-                <code className={ui.codeChip}>{setting.settingKey}</code>
-                <span className={ui.muted}>
-                  {setting.description ?? "当前设置还没有补充说明。"}
-                </span>
-                {setting.inputKind === "textarea" ? (
-                  <textarea
-                    className={ui.textarea}
-                    rows={4}
-                    value={values[setting.settingKey] ?? ""}
-                    onChange={(event) =>
-                      setValues((current) => ({
-                        ...current,
-                        [setting.settingKey]: event.target.value,
-                      }))
-                    }
-                  />
-                ) : (
-                  <input
-                    autoComplete="off"
-                    className={ui.input}
-                    type={setting.inputKind}
-                    value={values[setting.settingKey] ?? ""}
-                    onChange={(event) =>
-                      setValues((current) => ({
-                        ...current,
-                        [setting.settingKey]: event.target.value,
-                      }))
-                    }
-                  />
-                )}
-              </label>
+          <nav className="grid gap-2">
+            {sections.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className="flex min-h-10 items-center justify-between rounded-xl border border-transparent bg-app-surface-soft/80 px-3 text-sm text-app-muted-strong transition hover:border-app-border-strong hover:bg-white"
+              >
+                <span>{section.title}</span>
+                <span className="text-xs text-app-muted">{section.items.length}</span>
+              </a>
             ))}
-          </div>
+          </nav>
         </section>
-      ))}
 
-      <div className={cn(ui.panel, "grid gap-4")}>
-        <div className={ui.toolbar}>
-          <button className={buttonStyles()} disabled={isPending} type="submit">
+        <section className={cn(ui.panel, "grid gap-3")}>
+          <button className={buttonStyles({ block: true })} disabled={isPending} type="submit">
             {isPending ? "刷新中..." : "保存系统设置"}
           </button>
           <p className={ui.muted}>保存后需要重启 `pnpm dev` 才会让后台进程统一生效。</p>
-        </div>
-        {status ? (
-          <p className={status.tone === "error" ? ui.error : ui.muted}>
-            {status.message}
-          </p>
-        ) : null}
+          {status ? (
+            <p className={status.tone === "error" ? ui.error : ui.muted}>
+              {status.message}
+            </p>
+          ) : null}
+        </section>
+      </aside>
+
+      <div className="grid gap-4">
+        {sections.map((section) => (
+          <section id={section.id} key={section.id} className={cn(ui.panel, "grid gap-4 scroll-mt-8")}>
+            <div className="grid gap-2">
+              <p className={ui.eyebrow}>{section.id}</p>
+              <h2>{section.title}</h2>
+              <p className={ui.muted}>{section.description}</p>
+            </div>
+            <div className="grid gap-4">
+              {section.items.map((setting) => (
+                <label key={setting.settingKey} className={ui.label}>
+                  <code className={ui.codeChip}>{setting.settingKey}</code>
+                  <span className={ui.muted}>
+                    {setting.description ?? "当前设置还没有补充说明。"}
+                  </span>
+                  {setting.inputKind === "textarea" ? (
+                    <textarea
+                      className={ui.textarea}
+                      rows={4}
+                      value={values[setting.settingKey] ?? ""}
+                      onChange={(event) =>
+                        setValues((current) => ({
+                          ...current,
+                          [setting.settingKey]: event.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <input
+                      autoComplete="off"
+                      className={ui.input}
+                      type={setting.inputKind}
+                      value={values[setting.settingKey] ?? ""}
+                      onChange={(event) =>
+                        setValues((current) => ({
+                          ...current,
+                          [setting.settingKey]: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
     </form>
   );

@@ -25,40 +25,22 @@ export function chooseWorkspaceConversation(
   conversations: WorkspaceConversationListItem[],
   requestedConversationId?: string,
 ) {
-  if (requestedConversationId) {
-    const requested = conversations.find((item) => item.id === requestedConversationId);
-    if (requested) {
-      return requested;
-    }
+  if (!requestedConversationId) {
+    return null;
   }
 
-  const activeConversations = conversations
-    .filter((item) => item.status === "active")
-    .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
-
-  return (
-    activeConversations[0] ??
-    conversations[0] ??
-    null
-  );
+  return conversations.find((item) => item.id === requestedConversationId) ?? null;
 }
 
 export function chooseWorkspaceConversationWithMeta<T extends WorkspaceConversationListItem>(
   conversations: T[],
   requestedConversationId?: string,
 ) {
-  if (requestedConversationId) {
-    const requested = conversations.find((item) => item.id === requestedConversationId);
-    if (requested) {
-      return requested;
-    }
+  if (!requestedConversationId) {
+    return null;
   }
 
-  const activeConversations = conversations
-    .filter((item) => item.status === "active")
-    .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
-
-  return activeConversations[0] ?? conversations[0] ?? null;
+  return conversations.find((item) => item.id === requestedConversationId) ?? null;
 }
 
 export function groupWorkspaceConversations(

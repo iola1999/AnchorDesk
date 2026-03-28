@@ -29,21 +29,50 @@ export default async function SettingsPage() {
   const sections = buildSystemSettingSections(rows);
 
   return (
-    <div className={ui.pageNarrow}>
-      <section className={cn(ui.panelLarge, "grid gap-4")}>
-        <div className="space-y-2">
-          <h1>系统设置</h1>
-          <p className={ui.muted}>
-            当前页面用于维护大部分 provider / infra 参数。保存后需要重启开发进程，避免
-            `worker`、`agent-runtime`、`parser` 和 `web` 使用到不一致的启动配置。
-          </p>
+    <div className={ui.page}>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.04fr)_320px]">
+        <div className={cn(ui.panelLarge, "grid gap-4")}>
+          <div className="space-y-2">
+            <p className={ui.eyebrow}>System Settings</p>
+            <h1>系统设置</h1>
+            <p className={ui.muted}>
+              当前页面用于维护大部分 provider / infra 参数。保存后需要重启开发进程，避免
+              `worker`、`agent-runtime`、`parser` 和 `web` 使用到不一致的启动配置。
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className={cn(ui.subcard, "grid gap-2")}>
+              <strong className="text-sm">数据库内可运营参数</strong>
+              <p className={ui.muted}>
+                模型、对象存储、Qdrant、服务地址等运行参数都优先在这里维护。
+              </p>
+            </div>
+            <div className={cn(ui.subcard, "grid gap-2")}>
+              <strong className="text-sm">保存后需要重启</strong>
+              <p className={ui.muted}>
+                当前是启动时加载配置，不会热更新到已运行进程。
+              </p>
+            </div>
+          </div>
         </div>
-        <p className={ui.muted}>
-          `DATABASE_URL`、`AUTH_SECRET` 以及其他 Auth.js 底层开关仍只读环境变量，不在这里配置。
-        </p>
-        <p className={ui.muted}>
-          当前页面只有 `SUPER_ADMIN_USERNAMES` 中声明的注册用户名可访问。
-        </p>
+
+        <aside className={cn(ui.panel, "grid content-start gap-3")}>
+          <div className="space-y-2">
+            <p className={ui.eyebrow}>Env Only</p>
+            <h2>进程外配置</h2>
+          </div>
+          <div className={cn(ui.subcard, "grid gap-2")}>
+            <code className={ui.codeChip}>DATABASE_URL</code>
+            <p className={ui.muted}>数据库入口，只能从环境变量提供。</p>
+          </div>
+          <div className={cn(ui.subcard, "grid gap-2")}>
+            <code className={ui.codeChip}>AUTH_SECRET</code>
+            <p className={ui.muted}>Auth.js 根密钥，不写回业务数据库。</p>
+          </div>
+          <p className={ui.muted}>
+            当前页面只有 `SUPER_ADMIN_USERNAMES` 中声明的注册用户名可访问。
+          </p>
+        </aside>
       </section>
 
       {sections.length > 0 ? (

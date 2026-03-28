@@ -65,6 +65,8 @@
   - `globals.css` 收敛为 theme token 与 base 样式，不再承载整站组件样式
   - 共享视觉 token 和按钮/面板/input 等 primitive 收敛到 `apps/web/lib/ui.ts`
   - `auth / workspaces / settings / documents / reports` 页面与相关组件已迁到 Tailwind utility class，样式就近跟随组件维护
+  - 空间默认入口已改回“新问题舞台”，不再因为已有历史会话而自动跳进最近一轮对话
+  - 系统设置页已补成更结构化的双栏工作台，避免继续维持超长表单堆叠
 - `working tree` `Add Docker infra commands and dev guide`
   - 根目录新增 `pnpm infra:up` / `pnpm infra:down` / `pnpm infra:logs`
   - 新增本地开发指引文档，明确推荐“应用跑宿主机，依赖跑 Docker Compose”
@@ -98,6 +100,7 @@
 ### 已完成但仍属基础版
 
 - 工作空间壳层已换成产品化结构，但视觉细节、快捷操作和会话筛选仍是基础版
+- 已修正空间默认入口，但会话列表仍缺少搜索、筛选和批量管理
 - PDF 阅读器当前是基础版：已能渲染 PDF、页码跳转和文本搜索，但还没有 bbox 级高亮
 - 文档标签当前保存在 `documents.tags_json`，还没有独立标签管理页和过滤器 UI
 - 报告页支持生成与导出，但当前定位是结果页，不是在线编辑器
