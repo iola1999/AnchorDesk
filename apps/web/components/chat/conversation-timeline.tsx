@@ -1,15 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-
-import {
-  CONVERSATION_STREAM_EVENT,
-  MESSAGE_STATUS,
-  TIMELINE_EVENT,
-  type ConversationStreamEvent,
-  type MessageStatus,
-} from "@knowledge-assistant/contracts";
+import { MESSAGE_STATUS, TIMELINE_EVENT, type MessageStatus } from "@knowledge-assistant/contracts";
 
 import { cn, ui } from "@/lib/ui";
 
@@ -47,107 +38,12 @@ function getTimelineTone(message: TimelineMessage) {
 }
 
 export function ConversationTimeline({
-  conversationId,
-  assistantMessageId,
-  assistantStatus,
-  initialMessages,
+  timelineMessages,
+  runtimeStatus,
 }: {
-  conversationId: string;
-  assistantMessageId: string | null;
-  assistantStatus: MessageStatus | null;
-  initialMessages: TimelineMessage[];
+  timelineMessages: TimelineMessage[];
+  runtimeStatus?: string | null;
 }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
-  const [timelineMessages, setTimelineMessages] = useState(initialMessages);
-  const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
-    assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并调用工具..." : null,
-  );
-  const seenMessageIdsRef = useRef(new Set(initialMessages.map((message) => message.id)));
-
-  useEffect(() => {
-    setTimelineMessages(initialMessages);
-    seenMessageIdsRef.current = new Set(initialMessages.map((message) => message.id));
-  }, [initialMessages]);
-
-  useEffect(() => {
-    if (!assistantMessageId || assistantStatus !== MESSAGE_STATUS.STREAMING) {
-      return;
-    }
-
-    const source = new EventSource(
-      `/api/conversations/${conversationId}/stream?assistantMessageId=${assistantMessageId}`,
-    );
-
-    const handleToolMessage = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as ConversationStreamEvent;
-      if (payload.type !== CONVERSATION_STREAM_EVENT.TOOL_MESSAGE) {
-        return;
-      }
-
-      if (seenMessageIdsRef.current.has(payload.message_id)) {
-        return;
-      }
-
-      seenMessageIdsRef.current.add(payload.message_id);
-      setTimelineMessages((current) => [
-        ...current,
-        {
-          id: payload.message_id,
-          status: payload.status,
-          contentMarkdown: payload.content_markdown,
-          createdAt: payload.created_at,
-          structuredJson: payload.structured ?? null,
-        },
-      ]);
-    };
-
-    const handleAnswerDone = () => {
-      setRuntimeStatus("回答已生成，正在刷新对话...");
-      source.close();
-      startTransition(() => {
-        router.refresh();
-      });
-    };
-
-    const handleRunFailed = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as ConversationStreamEvent;
-      setRuntimeStatus(
-        payload.type === CONVERSATION_STREAM_EVENT.RUN_FAILED
-          ? `运行失败：${payload.error}`
-          : "运行失败。",
-      );
-      source.close();
-      startTransition(() => {
-        router.refresh();
-      });
-    };
-
-    source.addEventListener(
-      CONVERSATION_STREAM_EVENT.TOOL_MESSAGE,
-      handleToolMessage as EventListener,
-    );
-    source.addEventListener(
-      CONVERSATION_STREAM_EVENT.ANSWER_DONE,
-      handleAnswerDone as EventListener,
-    );
-    source.addEventListener(
-      CONVERSATION_STREAM_EVENT.RUN_FAILED,
-      handleRunFailed as EventListener,
-    );
-    source.onerror = () => {
-      source.close();
-      setRuntimeStatus("连接已断开，正在刷新对话...");
-      startTransition(() => {
-        router.refresh();
-      });
-    };
-
-    return () => {
-      source.close();
-    };
-  }, [assistantMessageId, assistantStatus, conversationId, router]);
-
   if (!timelineMessages.length && !runtimeStatus) {
     return null;
   }

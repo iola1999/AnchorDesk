@@ -1,6 +1,6 @@
 # 通用知识库 Agent 助手技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.4  
+版本：v0.5
 日期：2026-03-29
 
 > 文档角色说明：
@@ -22,6 +22,7 @@
 第一版产品核心：
 
 - 单用户账号体系
+- 账号注册开关由 `system_settings` 控制
 - 工作空间级知识库
 - 工作空间级会话与报告
 - 会话级公开只读分享链接
@@ -94,13 +95,14 @@ flowchart LR
 - `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，再交给最终 grounded answer renderer。
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
-- Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端。
+- `Agent Runtime` 现在会抽取 Claude Agent SDK 的 assistant text delta，并把 assistant draft 持久化回 `messages`，供前端会话气泡实时更新。
+- 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会回退到 mock tool + mock assistant chunk，保证主会话链路、SSE 和 UI 可以本地演示与联调。
+- Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
 
 当前已知缺口：
 
-- `/api/conversations/[conversationId]/stream` 已补齐数据库持久化的工具时间线与完成/失败事件，但仍不是 token 级答案流式输出；最终答案仍按整段生成后一次性落库。
-- 上传范围还需要和当前 OCR 策略对齐；在商业 OCR provider 未确认前，图片与扫描件不应继续作为当前可用上传类型暴露给用户。
+- 当前回答流式是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport；最终 grounded answer、structured state 和 citations 仍在完成态统一落库。
 - `search_web_general`、`search_statutes`、`create_report_outline`、`write_report_section` 仍包含明显占位实现，需要后续替换为真实 provider 或真实生成流程。
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但仍未完成更完整的 sparse 候选扩展。
@@ -237,8 +239,8 @@ flowchart LR
 
 优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点仍然是：
 
-1. 上传范围与 OCR 策略对齐
-2. 账号基础能力收口
-3. 工具占位实现替换与研究/写作链路增强
-4. grounded answer 与证据展示 / token 级回答流 / retrieval 深化
+1. 基于已打通的主会话链路，继续稳住回答完成态和前端收尾体验
+2. grounded answer 与证据展示 / citation 联动
+3. retrieval 深化
+4. 工具占位实现替换与研究/写作链路增强
 5. OCR 商业 API provider 方案确认后的接入

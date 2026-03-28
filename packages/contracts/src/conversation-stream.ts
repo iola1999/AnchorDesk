@@ -17,6 +17,13 @@ export const conversationStreamEventSchema = z.discriminatedUnion("type", [
     structured: z.record(z.string(), z.unknown()).nullable().optional(),
   }),
   z.object({
+    type: z.literal(CONVERSATION_STREAM_EVENT.ANSWER_DELTA),
+    conversation_id: z.string().uuid(),
+    message_id: z.string().uuid(),
+    status: z.enum(MESSAGE_STATUS_VALUES),
+    content_markdown: z.string(),
+  }),
+  z.object({
     type: z.literal(CONVERSATION_STREAM_EVENT.ANSWER_DONE),
     conversation_id: z.string().uuid(),
     message_id: z.string().uuid().nullable(),

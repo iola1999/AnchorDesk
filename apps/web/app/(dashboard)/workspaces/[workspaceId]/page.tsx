@@ -1,10 +1,6 @@
-import Link from "next/link";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import {
-  GROUNDED_ANSWER_CONFIDENCE,
-  MESSAGE_ROLE,
-} from "@knowledge-assistant/contracts";
+import { MESSAGE_ROLE } from "@knowledge-assistant/contracts";
 
 import {
   conversations,
@@ -17,13 +13,9 @@ import {
 import { auth } from "@/auth";
 import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
-import { ConversationTimeline } from "@/components/chat/conversation-timeline";
+import { ConversationSession } from "@/components/chat/conversation-session";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
-import {
-  describeGroundedAnswerConfidence,
-  readGroundedAnswerStatus,
-} from "@/lib/api/grounded-answer-status";
 import { cn, ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
@@ -100,13 +92,6 @@ export default async function WorkspacePage({
           .orderBy(asc(messageCitations.ordinal))
       : [];
 
-  const citationsByMessage = new Map<string, Array<(typeof citations)[number]>>();
-  for (const citation of citations) {
-    const group = citationsByMessage.get(citation.messageId) ?? [];
-    group.push(citation);
-    citationsByMessage.set(citation.messageId, group);
-  }
-
   return (
     <WorkspaceShell
       workspace={{
@@ -146,15 +131,16 @@ export default async function WorkspacePage({
               </div>
             </header>
 
-            <ConversationTimeline
+            <ConversationSession
               conversationId={activeConversation.id}
+              workspaceId={workspaceId}
               assistantMessageId={activeAssistantMessage?.id ?? null}
               assistantStatus={
                 activeAssistantMessage?.role === MESSAGE_ROLE.ASSISTANT
                   ? activeAssistantMessage.status
                   : null
               }
-              initialMessages={toolTimelineMessages.map((message) => ({
+              initialTimelineMessages={toolTimelineMessages.map((message) => ({
                 id: message.id,
                 status: message.status,
                 contentMarkdown: message.contentMarkdown,
@@ -162,103 +148,22 @@ export default async function WorkspacePage({
                 structuredJson:
                   (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
               }))}
+              initialMessages={chatThread.map((message) => ({
+                id: message.id,
+                role: message.role,
+                status: message.status,
+                contentMarkdown: message.contentMarkdown,
+                structuredJson:
+                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+              }))}
+              initialCitations={citations.map((citation) => ({
+                id: citation.id,
+                messageId: citation.messageId,
+                anchorId: citation.anchorId,
+                documentId: citation.documentId,
+                label: citation.label,
+              }))}
             />
-
-            <div className="grid gap-4">
-              {chatThread.length > 0 ? (
-                chatThread.map((message) => {
-                  const groundedStatus =
-                    message.role === MESSAGE_ROLE.ASSISTANT
-                      ? readGroundedAnswerStatus(
-                          (message.structuredJson ?? null) as Record<string, unknown> | null,
-                        )
-                      : null;
-                  const groundedStatusLabel = groundedStatus
-                    ? describeGroundedAnswerConfidence(groundedStatus)
-                    : null;
-
-                  return (
-                    <article
-                      key={message.id}
-                      className={cn(
-                        "grid max-w-[720px] gap-2 rounded-[20px] border border-app-border px-4 py-4",
-                        message.role === MESSAGE_ROLE.USER
-                          ? "ml-auto bg-app-surface-strong/80"
-                          : "bg-white/92",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3 text-[13px]">
-                        <strong>
-                          {message.role === MESSAGE_ROLE.ASSISTANT
-                            ? "AI 助手"
-                            : message.role === MESSAGE_ROLE.USER
-                              ? "你"
-                              : message.role}
-                        </strong>
-                        <span className="text-app-muted">{message.status}</span>
-                      </div>
-                      {groundedStatusLabel ? (
-                        <div className="flex flex-wrap gap-2">
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full border px-3 py-1 text-[12px]",
-                              groundedStatus?.unsupportedReason
-                                ? "border-amber-300 bg-amber-50 text-amber-800"
-                                : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.HIGH
-                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                                  : groundedStatus?.confidence ===
-                                      GROUNDED_ANSWER_CONFIDENCE.MEDIUM
-                                    ? "border-sky-300 bg-sky-50 text-sky-800"
-                                    : "border-stone-300 bg-stone-50 text-stone-700",
-                            )}
-                          >
-                            {groundedStatusLabel}
-                          </span>
-                        </div>
-                      ) : null}
-                      <div className="whitespace-pre-wrap leading-7">{message.contentMarkdown}</div>
-                      {groundedStatus?.unsupportedReason ? (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                          {groundedStatus.unsupportedReason}
-                        </div>
-                      ) : null}
-                      {groundedStatus && groundedStatus.missingInformation.length > 0 ? (
-                        <div className="grid gap-2 rounded-2xl border border-app-border bg-app-surface-soft/70 px-4 py-3">
-                          <strong className="text-sm">待补充信息</strong>
-                          <div className="flex flex-wrap gap-2">
-                            {groundedStatus.missingInformation.map((item) => (
-                              <span
-                                key={item}
-                                className="inline-flex items-center rounded-full border border-app-border bg-white px-3 py-1 text-[12px] text-app-muted-strong"
-                              >
-                                {item}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {(citationsByMessage.get(message.id) ?? []).map((citation) => (
-                            <Link
-                              key={citation.id}
-                              href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                              className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[13px] hover:border-app-border-strong"
-                            >
-                              {citation.label}
-                            </Link>
-                          ))}
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })
-              ) : (
-                <div className={ui.muted}>
-                  这一轮还没有消息，从底部输入框继续提问。
-                </div>
-              )}
-            </div>
 
             <div className="mt-auto">
               <Composer

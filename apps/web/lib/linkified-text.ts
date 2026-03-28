@@ -23,7 +23,7 @@ export function splitTrailingLinkPunctuation(value: string) {
   };
 }
 
-export function tokenizeTextWithLinks(value: string) {
+export function tokenizeTextWithLinks(value: string): TextLinkSegment[] {
   const segments: TextLinkSegment[] = [];
   let cursor = 0;
 

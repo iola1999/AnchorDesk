@@ -1,6 +1,6 @@
 # 通用知识库 Agent 助手 Next.js App Router 结构
 
-版本：v0.4  
+版本：v0.5
 日期：2026-03-29
 
 > 文档角色说明：
@@ -50,8 +50,8 @@
   - 创建 assistant placeholder
   - 入队 `conversation.respond`
 - `/api/conversations/[conversationId]/stream`
-  - 轮询数据库里的 `tool` 消息
-  - 推送 assistant 完成/失败事件
+  - 轮询数据库里的 `tool` 消息和 assistant draft
+  - 推送 `answer_delta` / `answer_done` / `run_failed`
 - `/api/conversations/[conversationId]/share`
   - 查询当前会话分享状态
   - 创建或撤销公开分享链接
@@ -73,6 +73,7 @@ Client Components：
 
 - AccountPasswordForm
 - Composer
+- ConversationSession
 - ConversationTimeline
 - ConversationSharePopover
 - PDF Viewer

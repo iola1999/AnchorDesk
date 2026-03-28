@@ -9,6 +9,7 @@ import {
 } from "@knowledge-assistant/contracts";
 
 import {
+  buildAssistantDeltaStreamEvent,
   buildAssistantTerminalStreamEvent,
   buildToolMessageStreamEvent,
   readAssistantRunError,
@@ -63,6 +64,27 @@ describe("readAssistantRunError", () => {
         },
       }),
     ).toBe("Agent 处理失败：fallback");
+  });
+});
+
+describe("buildAssistantDeltaStreamEvent", () => {
+  test("serializes assistant content deltas for SSE consumers", () => {
+    expect(
+      buildAssistantDeltaStreamEvent({
+        conversationId: "conversation-1",
+        assistantMessage: {
+          id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "正在生成回答",
+        },
+      }),
+    ).toEqual({
+      type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+      conversation_id: "conversation-1",
+      message_id: "assistant-1",
+      status: MESSAGE_STATUS.STREAMING,
+      content_markdown: "正在生成回答",
+    });
   });
 });
 

@@ -101,7 +101,7 @@ export async function POST(
       conversationId,
       role: MESSAGE_ROLE.ASSISTANT,
       status: MESSAGE_STATUS.STREAMING,
-      contentMarkdown: "助手正在分析问题并检索依据...",
+      contentMarkdown: "",
     })
     .returning();
 

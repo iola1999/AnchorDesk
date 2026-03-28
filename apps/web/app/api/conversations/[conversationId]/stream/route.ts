@@ -4,12 +4,14 @@ import {
   CONVERSATION_STREAM_EVENT,
   DEFAULT_CONVERSATION_STREAM_POLL_INTERVAL_MS,
   MESSAGE_ROLE,
+  MESSAGE_STATUS,
   type ConversationStreamEvent,
 } from "@knowledge-assistant/contracts";
 import { getDb, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import {
+  buildAssistantDeltaStreamEvent,
   buildAssistantTerminalStreamEvent,
   buildToolMessageStreamEvent,
 } from "@/lib/api/conversation-stream";
@@ -50,6 +52,7 @@ export async function GET(
     async start(controller) {
       const encoder = new TextEncoder();
       const emittedMessageIds = new Set<string>();
+      let lastAssistantContent = "";
 
       while (!request.signal.aborted) {
         const toolMessages = await db
@@ -117,6 +120,34 @@ export async function GET(
               }
             : null,
         });
+
+        if (
+          assistantMessage &&
+          assistantMessage.status === MESSAGE_STATUS.STREAMING &&
+          assistantMessage.contentMarkdown !== lastAssistantContent
+        ) {
+          lastAssistantContent = assistantMessage.contentMarkdown;
+          controller.enqueue(
+            encoder.encode(
+              encodeSse(
+                CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+                buildAssistantDeltaStreamEvent({
+                  conversationId,
+                  assistantMessage: {
+                    id: assistantMessage.id,
+                    status: assistantMessage.status,
+                    contentMarkdown: assistantMessage.contentMarkdown,
+                    structuredJson:
+                      (assistantMessage.structuredJson as
+                        | Record<string, unknown>
+                        | null
+                        | undefined) ?? null,
+                  },
+                }),
+              ),
+            ),
+          );
+        }
 
         if (terminalEvent) {
           controller.enqueue(

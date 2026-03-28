@@ -14,6 +14,10 @@ import {
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
 
+import {
+  extractAssistantTextDelta,
+  splitMockAssistantText,
+} from "./assistant-stream";
 import { renderGroundedAnswer } from "./final-answerer";
 
 const agentWorkdirRoot = process.env.AGENT_WORKDIR_ROOT
@@ -151,7 +155,15 @@ export type RunAgentResponseHooks = {
     toolUseId: string;
     error: string;
   }) => Promise<void> | void;
+  onAssistantDelta?: (input: {
+    textDelta: string;
+    fullText: string;
+  }) => Promise<void> | void;
 };
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function runAgentResponse(
   input: RunAgentResponseInput,
@@ -167,15 +179,59 @@ export async function runAgentResponse(
   await fs.mkdir(workdir, { recursive: true });
 
   if (!process.env.ANTHROPIC_API_KEY) {
+    const mockToolName = "mock_workspace_probe";
+    const mockToolInput = {
+      query: prompt,
+      workspace_id: workspaceId,
+    };
+    const mockToolUseId = `mock-${conversationId}`;
+    const mockAnswer = [
+      "当前正在使用本地 mock 会话链路。",
+      "正式工具还可以后接，但消息入队、工具时间线、回答增量和最终完成事件已经会按真实链路工作。",
+      "下一步可以继续把检索和 grounded answer 的真实能力逐步替换进去。",
+    ].join("");
+
+    await hooks.onToolStarted?.({
+      toolName: mockToolName,
+      toolInput: mockToolInput,
+      toolUseId: mockToolUseId,
+    });
+    await sleep(120);
+    await hooks.onToolFinished?.({
+      toolName: mockToolName,
+      toolInput: mockToolInput,
+      toolResponse: {
+        ok: true,
+        results: [
+          {
+            title: "mock_workspace_probe",
+            note: "Local mock tool response for the main conversation chain.",
+          },
+        ],
+      },
+      toolUseId: mockToolUseId,
+    });
+
+    let streamedText = "";
+    for (const chunk of splitMockAssistantText(mockAnswer, 1)) {
+      streamedText += chunk;
+      await hooks.onAssistantDelta?.({
+        textDelta: chunk,
+        fullText: streamedText,
+      });
+      await sleep(180);
+    }
+
     return {
       ok: true as const,
-      text: "Agent runtime is configured, but ANTHROPIC_API_KEY is not set yet.",
+      text: mockAnswer,
       sessionId: input.agentSessionId ?? null,
       workdir,
       citations: [],
       structured: {
         confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-        unsupported_reason: "Agent runtime is configured, but ANTHROPIC_API_KEY is not set yet.",
+        unsupported_reason:
+          "当前是本地 mock 会话链路，尚未接入真实 Anthropic Agent 调用。",
         missing_information: [],
       },
     };
@@ -183,6 +239,7 @@ export async function runAgentResponse(
 
   const assistantServer = createAssistantMcpServer();
   let finalResult = "";
+  let streamedDraft = "";
   let sessionId = input.agentSessionId ?? null;
   const citationMap = new Map<string, GroundedEvidence>();
 
@@ -276,14 +333,24 @@ export async function runAgentResponse(
       sessionId = message.session_id;
     }
 
+    const textDelta = extractAssistantTextDelta(message);
+    if (textDelta) {
+      streamedDraft += textDelta;
+      await hooks.onAssistantDelta?.({
+        textDelta,
+        fullText: streamedDraft,
+      });
+    }
+
     if (message.type === "result" && message.subtype === "success") {
-      finalResult = message.result;
+      finalResult = message.result || streamedDraft;
     }
   }
 
   const groundedAnswer = await renderGroundedAnswer({
     prompt,
-    draftText: finalResult || "Agent completed without a final result payload.",
+    draftText:
+      finalResult || streamedDraft || "Agent completed without a final result payload.",
     evidence: Array.from(citationMap.values()),
   });
 

@@ -1,6 +1,6 @@
 # 实施跟踪
 
-版本：v0.4  
+版本：v0.5
 日期：2026-03-29
 
 > 本文件是项目的执行跟踪文档。
@@ -24,7 +24,7 @@
 - 资料管理 CRUD 已补齐基础版。
 - 第一版口径是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 会话管理、文档阅读器和上传任务反馈都已有基础版。
-- SSE 工具时间线基础版已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
+- 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 本地开发一键启动脚本已补齐。
 - 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，再继续深化 retrieval / grounded answer / SSE。
@@ -35,12 +35,13 @@
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间也已补齐归档与删除。
-- `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息和 assistant 完成/失败事件，前端已补齐基础版工具时间线，但最终答案仍不是 token 级流式输出。
+- `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
+- 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport，最终 grounded answer 与 citations 仍在完成态统一落库。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
-- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
+- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
 - OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
@@ -73,6 +74,7 @@
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `working tree` Surface grounded answer confidence / unsupported reason / missing information in workspace conversation UI
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
+- `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
@@ -84,11 +86,12 @@
 - OCR 商业 API provider 方案待定
   - 当前继续保持 `disabled`
   - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
+- 主会话链路后的回答可信度与收尾体验
+  - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
+  - grounded final answer、citations 和引用跳转仍在完成态刷新后统一呈现
+  - 仍需继续补 evidence dossier、引用说明和完成态切换体验
 - 工具占位实现替换与研究/写作链路增强
-  - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要逐步替换为真实 provider 或真实生成流程
-- SSE 当前是数据库轮询版工具时间线
-  - 已能展示 tool start / completed / failed 与 assistant 完成/失败
-  - 仍未覆盖 token 级答案流式输出
+  - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，但当前不再优先于主会话链路打磨
 - grounded answer 证据 dossier 与更清晰的证据展示
 - sparse/BM25 混合检索深化
   - 当前已补 dense 候选窗口上的 BM25 打分
@@ -98,9 +101,11 @@
 
 默认按以下顺序推进：
 
-1. 替换工具占位实现并回到真实研究/写作链路
-2. Agent evidence dossier / token 级回答流 / sparse retrieval 深化
-3. OCR 商业 API provider 方案确认后再接入
+1. 稳定主会话链路的完成态体验
+2. Agent evidence dossier / grounded answer 证据展示 / citation 刷新与阅读器联动
+3. sparse retrieval 深化与引用准确性回归
+4. 工具占位实现替换并回到真实研究/写作链路
+5. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项
 
@@ -112,4 +117,5 @@
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
-- 当前 SSE 仅补齐“工具时间线 + assistant 完成/失败”这一层；最终答案依旧是整段落库，不应误判为 token 级回答流式输出。
+- 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
+- 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库，前端依赖刷新后显示最终版本。

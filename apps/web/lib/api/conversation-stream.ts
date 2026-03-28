@@ -25,6 +25,10 @@ type ToolMessageEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.TOOL_MESSAGE }
 >;
+type AnswerDeltaEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA }
+>;
 type AnswerDoneEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DONE }
@@ -43,6 +47,19 @@ export function buildToolMessageStreamEvent(message: ToolMessageRow): ToolMessag
     content_markdown: message.contentMarkdown,
     created_at: message.createdAt.toISOString(),
     structured: message.structuredJson ?? null,
+  };
+}
+
+export function buildAssistantDeltaStreamEvent(input: {
+  conversationId: string;
+  assistantMessage: AssistantMessageRow;
+}): AnswerDeltaEvent {
+  return {
+    type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+    conversation_id: input.conversationId,
+    message_id: input.assistantMessage.id,
+    status: input.assistantMessage.status,
+    content_markdown: input.assistantMessage.contentMarkdown,
   };
 }
 
