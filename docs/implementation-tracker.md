@@ -24,6 +24,7 @@
 - 资料管理 CRUD 已补齐基础版。
 - 第一版口径是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 会话管理、文档阅读器和上传任务反馈都已有基础版。
+- SSE 工具时间线基础版已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 本地开发一键启动脚本已补齐。
 - 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
 - 当前最缺的不是更多 agent 花样，而是 parser / retrieval / grounded answer / SSE 这些可信回答底座能力。
@@ -31,7 +32,8 @@
 
 当前实现快照：
 
-- `web -> agent-runtime -> grounded final answer -> citations` 主问答链路已通，但当前回答仍以“同步请求 + 落库后刷新页面”为主，尚未形成真正的工具级时间线流。
+- `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
+- `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息和 assistant 完成/失败事件，前端已补齐基础版工具时间线，但最终答案仍不是 token 级流式输出。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
@@ -61,6 +63,7 @@
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
 - `working tree` Surface grounded answer confidence / unsupported reason / missing information in workspace conversation UI
+- `working tree` Persist tool timeline into conversation messages and stream it over SSE
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
@@ -75,7 +78,10 @@
 - sparse/BM25 混合检索深化
   - 当前已补 dense 候选窗口上的 BM25 打分
   - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
-- SSE 工具时间线补齐。
+- grounded answer 证据 dossier 与更清晰的证据展示
+- SSE 当前是数据库轮询版工具时间线
+  - 已能展示 tool start / completed / failed 与 assistant 完成/失败
+  - 仍未覆盖 token 级答案流式输出
 - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要后续逐步替换为真实 provider 或真实生成流程。
 
 ## 4. 下一步
@@ -85,7 +91,7 @@
 1. 完成去法律化改造的剩余测试与文案清理
 2. sparse/BM25 混合检索
 3. Agent evidence dossier
-4. SSE 工具时间线
+4. 工具占位实现替换与研究/写作链路增强
 5. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项
@@ -97,4 +103,4 @@
 - OCR 不要默认开启。
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
-- 对话“流式”接口当前仍是回放已落库消息，不应误判为完整 SSE 工具时间线能力。
+- 当前 SSE 仅补齐“工具时间线 + assistant 完成/失败”这一层；最终答案依旧是整段落库，不应误判为 token 级回答流式输出。

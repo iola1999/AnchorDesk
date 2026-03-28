@@ -13,6 +13,10 @@
     "@anthropic-ai/claude-agent-sdk": "^0.2.85",
     "@knowledge-assistant/agent-tools": "workspace:*",
     "@knowledge-assistant/contracts": "workspace:*",
+    "@knowledge-assistant/db": "workspace:*",
+    "@knowledge-assistant/queue": "workspace:*",
+    "bullmq": "^5.63.1",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.1.0"
   },
   "devDependencies": {

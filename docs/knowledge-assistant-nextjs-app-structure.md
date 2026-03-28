@@ -1,6 +1,6 @@
 # 通用知识库 Agent 助手 Next.js App Router 结构
 
-版本：v0.2  
+版本：v0.3  
 日期：2026-03-28
 
 > 文档角色说明：
@@ -39,7 +39,12 @@
 - `/api/workspaces/[workspaceId]/tree`
 - `/api/workspaces/[workspaceId]/conversations`
 - `/api/conversations/[conversationId]/messages`
+  - 写入 user message
+  - 创建 assistant placeholder
+  - 入队 `conversation.respond`
 - `/api/conversations/[conversationId]/stream`
+  - 轮询数据库里的 `tool` 消息
+  - 推送 assistant 完成/失败事件
 - `/api/workspaces/[workspaceId]/reports`
 - `/api/reports/[reportId]/outline`
 - `/api/reports/[reportId]/sections/[sectionId]/generate`
@@ -57,7 +62,7 @@ Server Components：
 Client Components：
 
 - Composer
-- SSE 对话流
+- ConversationTimeline
 - PDF Viewer
 - 上传表单
 - 会话操作与自动刷新

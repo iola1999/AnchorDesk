@@ -1,15 +1,13 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import {
-  citationAnchors,
   conversations,
   getDb,
-  messageCitations,
   messages,
 } from "@knowledge-assistant/db";
+import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
-import { requestAgentResponse } from "@/lib/api/agent-runtime";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
@@ -95,92 +93,26 @@ export async function POST(
       .where(eq(conversations.id, conversationId));
   }
 
-  try {
-    const agentResponse = await requestAgentResponse({
-      prompt: content,
-      workspaceId: conversation.workspaceId,
+  const [assistantMessage] = await db
+    .insert(messages)
+    .values({
       conversationId,
-      mode: conversation.mode,
-      agentSessionId: conversation.agentSessionId,
-      agentWorkdir: conversation.agentWorkdir,
+      role: "assistant",
+      status: "streaming",
+      contentMarkdown: "助手正在分析问题并检索依据...",
+      structuredJson: {
+        mode: conversation.mode,
+      },
+    })
+    .returning();
+
+  try {
+    await enqueueConversationResponse({
+      conversationId,
+      userMessageId: userMessage.id,
+      assistantMessageId: assistantMessage.id,
+      prompt: content,
     });
-
-    await db
-      .update(conversations)
-      .set({
-        agentSessionId: agentResponse.sessionId ?? conversation.agentSessionId,
-        agentWorkdir: agentResponse.workdir ?? conversation.agentWorkdir,
-        updatedAt: new Date(),
-      })
-      .where(eq(conversations.id, conversationId));
-
-    const [assistantMessage] = await db
-      .insert(messages)
-      .values({
-        conversationId,
-        role: "assistant",
-        status: "completed",
-        contentMarkdown: agentResponse.text,
-        structuredJson: {
-          mode: conversation.mode,
-          confidence: agentResponse.structured?.confidence ?? "low",
-          unsupported_reason: agentResponse.structured?.unsupported_reason ?? null,
-          missing_information: agentResponse.structured?.missing_information ?? [],
-        },
-      })
-      .returning();
-
-    const returnedCitations = Array.isArray(agentResponse.citations)
-      ? agentResponse.citations
-      : [];
-    const citationMap = new Map(
-      returnedCitations.map((citation) => [citation.anchor_id, citation]),
-    );
-    const requestedAnchorIds = Array.from(citationMap.keys());
-
-    const anchorRows =
-      requestedAnchorIds.length > 0
-        ? await db
-            .select({
-              anchorId: citationAnchors.id,
-              documentId: citationAnchors.documentId,
-              documentVersionId: citationAnchors.documentVersionId,
-              documentPath: citationAnchors.documentPath,
-              pageNo: citationAnchors.pageNo,
-              blockId: citationAnchors.blockId,
-              quoteText: citationAnchors.anchorText,
-            })
-            .from(citationAnchors)
-            .where(
-              and(
-                eq(citationAnchors.workspaceId, conversation.workspaceId),
-                inArray(citationAnchors.id, requestedAnchorIds),
-              ),
-            )
-        : [];
-
-    if (anchorRows.length > 0) {
-      await db.insert(messageCitations).values(
-        anchorRows.map((anchor, index) => {
-          const runtimeCitation = citationMap.get(anchor.anchorId);
-
-          return {
-            messageId: assistantMessage.id,
-            anchorId: anchor.anchorId,
-            documentId: anchor.documentId,
-            documentVersionId: anchor.documentVersionId,
-            documentPath: anchor.documentPath,
-            pageNo: anchor.pageNo,
-            blockId: anchor.blockId,
-            quoteText: runtimeCitation?.quote_text || anchor.quoteText,
-            label:
-              runtimeCitation?.label ||
-              [anchor.documentPath, `第${anchor.pageNo}页`].filter(Boolean).join(" · "),
-            ordinal: index,
-          };
-        }),
-      );
-    }
 
     return Response.json(
       {
@@ -192,11 +124,9 @@ export async function POST(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Agent runtime failed";
 
-    const [assistantMessage] = await db
-      .insert(messages)
-      .values({
-        conversationId,
-        role: "assistant",
+    await db
+      .update(messages)
+      .set({
         status: "failed",
         contentMarkdown: `Agent 处理失败：${message}`,
         structuredJson: {
@@ -204,7 +134,7 @@ export async function POST(
           agent_error: message,
         },
       })
-      .returning();
+      .where(eq(messages.id, assistantMessage.id));
 
     return Response.json(
       {

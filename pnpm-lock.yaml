@@ -41,6 +41,18 @@ importers:
       '@knowledge-assistant/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@knowledge-assistant/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@knowledge-assistant/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      bullmq:
+        specifier: ^5.63.1
+        version: 5.71.1
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -54,6 +66,9 @@ importers:
       '@knowledge-assistant/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@knowledge-assistant/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@knowledge-assistant/db':
         specifier: workspace:*
         version: link:../../packages/db

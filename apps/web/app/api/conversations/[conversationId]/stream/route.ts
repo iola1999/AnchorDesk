@@ -1,8 +1,13 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
+import type { ConversationStreamEvent } from "@knowledge-assistant/contracts";
 import { getDb, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
+import {
+  buildAssistantTerminalStreamEvent,
+  buildToolMessageStreamEvent,
+} from "@/lib/api/conversation-stream";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
@@ -11,11 +16,16 @@ function encodeSse(event: string, data: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   const { conversationId } = await params;
+  const assistantMessageId = new URL(request.url).searchParams.get("assistantMessageId");
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
@@ -26,48 +36,90 @@ export async function GET(
   if (!conversation) {
     return Response.json({ error: "Conversation not found" }, { status: 404 });
   }
+  if (!assistantMessageId) {
+    return Response.json({ error: "assistantMessageId is required" }, { status: 400 });
+  }
 
   const db = getDb();
-  const conversationMessages = await db
-    .select({
-      id: messages.id,
-      role: messages.role,
-      status: messages.status,
-      contentMarkdown: messages.contentMarkdown,
-      createdAt: messages.createdAt,
-    })
-    .from(messages)
-    .where(eq(messages.conversationId, conversationId))
-    .orderBy(asc(messages.createdAt));
-
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const encoder = new TextEncoder();
+      const emittedMessageIds = new Set<string>();
 
-      for (const message of conversationMessages) {
-        controller.enqueue(
-          encoder.encode(
-            encodeSse("message", {
-              id: message.id,
-              role: message.role,
-              status: message.status,
-              content_markdown: message.contentMarkdown,
-              created_at: message.createdAt,
-            }),
-          ),
-        );
+      while (!request.signal.aborted) {
+        const toolMessages = await db
+          .select({
+            id: messages.id,
+            status: messages.status,
+            contentMarkdown: messages.contentMarkdown,
+            createdAt: messages.createdAt,
+            structuredJson: messages.structuredJson,
+          })
+          .from(messages)
+          .where(and(eq(messages.conversationId, conversationId), eq(messages.role, "tool")))
+          .orderBy(asc(messages.createdAt));
+
+        for (const message of toolMessages) {
+          if (emittedMessageIds.has(message.id)) {
+            continue;
+          }
+
+          emittedMessageIds.add(message.id);
+          const payload = buildToolMessageStreamEvent({
+            id: message.id,
+            status: message.status,
+            contentMarkdown: message.contentMarkdown,
+            createdAt: message.createdAt,
+            structuredJson:
+              (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+          });
+
+          controller.enqueue(encoder.encode(encodeSse("tool_message", payload)));
+        }
+
+        const [assistantMessage] = await db
+          .select({
+            id: messages.id,
+            status: messages.status,
+            contentMarkdown: messages.contentMarkdown,
+            structuredJson: messages.structuredJson,
+          })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.id, assistantMessageId),
+              eq(messages.conversationId, conversationId),
+            ),
+          )
+          .limit(1);
+
+        const terminalEvent = buildAssistantTerminalStreamEvent({
+          conversationId,
+          assistantMessage: assistantMessage
+            ? {
+                id: assistantMessage.id,
+                status: assistantMessage.status,
+                contentMarkdown: assistantMessage.contentMarkdown,
+                structuredJson:
+                  (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ??
+                  null,
+              }
+            : null,
+        });
+
+        if (terminalEvent) {
+          controller.enqueue(
+            encoder.encode(
+              encodeSse(terminalEvent.type, terminalEvent satisfies ConversationStreamEvent),
+            ),
+          );
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(encoder.encode(": keepalive\n\n"));
+        await sleep(700);
       }
-
-      const lastMessage = conversationMessages[conversationMessages.length - 1];
-      controller.enqueue(
-        encoder.encode(
-          encodeSse("answer_done", {
-            conversation_id: conversationId,
-            message_id: lastMessage?.role === "assistant" ? lastMessage.id : null,
-          }),
-        ),
-      );
-      controller.close();
     },
   });
 

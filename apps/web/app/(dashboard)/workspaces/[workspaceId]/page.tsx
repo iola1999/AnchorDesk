@@ -13,6 +13,7 @@ import {
 import { auth } from "@/auth";
 import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
+import { ConversationTimeline } from "@/components/chat/conversation-timeline";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
 import {
@@ -80,13 +81,19 @@ export default async function WorkspacePage({
         .where(eq(messages.conversationId, activeConversation.id))
         .orderBy(asc(messages.createdAt))
     : [];
+  const chatThread = thread.filter((message) => message.role !== "tool");
+  const toolTimelineMessages = thread.filter((message) => message.role === "tool");
+  const activeAssistantMessage =
+    [...chatThread]
+      .reverse()
+      .find((message) => message.role === "assistant") ?? null;
 
   const citations =
-    thread.length > 0
+    chatThread.length > 0
       ? await db
           .select()
           .from(messageCitations)
-          .where(inArray(messageCitations.messageId, thread.map((message) => message.id)))
+          .where(inArray(messageCitations.messageId, chatThread.map((message) => message.id)))
           .orderBy(asc(messageCitations.ordinal))
       : [];
 
@@ -136,9 +143,27 @@ export default async function WorkspacePage({
               </div>
             </header>
 
+            <ConversationTimeline
+              conversationId={activeConversation.id}
+              assistantMessageId={activeAssistantMessage?.id ?? null}
+              assistantStatus={
+                activeAssistantMessage?.role === "assistant"
+                  ? activeAssistantMessage.status
+                  : null
+              }
+              initialMessages={toolTimelineMessages.map((message) => ({
+                id: message.id,
+                status: message.status,
+                contentMarkdown: message.contentMarkdown,
+                createdAt: message.createdAt.toISOString(),
+                structuredJson:
+                  (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+              }))}
+            />
+
             <div className="grid gap-4">
-              {thread.length > 0 ? (
-                thread.map((message) => {
+              {chatThread.length > 0 ? (
+                chatThread.map((message) => {
                   const groundedStatus =
                     message.role === "assistant"
                       ? readGroundedAnswerStatus(

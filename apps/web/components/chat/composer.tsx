@@ -75,7 +75,7 @@ export function Composer({
       setStatus(
         body?.agentError
           ? `消息已保存，但 Agent 处理失败：${body.agentError}`
-          : "消息已提交，正在刷新对话...",
+          : "消息已提交，正在建立工具时间线...",
       );
       startTransition(() => {
         if (!conversationId && workspaceId) {
@@ -115,7 +115,7 @@ export function Composer({
         <div className={cn(ui.muted, "max-w-[42ch] text-[13px]")}>
           {variant === "stage"
             ? "助手会优先使用当前空间里的资料和对话上下文。"
-            : "消息会写入当前会话并触发 Agent 处理。"}
+            : "消息会写入当前会话，并开始推送工具时间线。"}
         </div>
         <button className={buttonStyles()} disabled={isPending} type="submit">
           {isPending ? "刷新中..." : submitLabel}
