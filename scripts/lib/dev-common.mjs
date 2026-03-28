@@ -61,7 +61,6 @@ export function getManagedServices(env) {
         "-m",
         "uvicorn",
         "main:app",
-        "--reload",
         "--host",
         endpoints.parser.host,
         "--port",
@@ -69,6 +68,7 @@ export function getManagedServices(env) {
       ],
       host: endpoints.parser.host,
       port: endpoints.parser.port,
+      healthUrl: `${endpoints.parser.url.replace(/\/$/u, "")}/health`,
     },
     {
       id: "agent",
@@ -456,6 +456,15 @@ async function waitForHttpOk(url, timeoutMs = 30_000) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
+async function isHttpOk(url) {
+  try {
+    const response = await fetch(url);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForTcpPort(host, port, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
 
@@ -538,7 +547,52 @@ export async function startManagedService(service, env) {
     );
   }
 
+  // Give the process a short grace window so quick-start/quick-exit processes
+  // are treated as startup failures instead of "ready" ghosts.
+  await sleep(750);
+  if (!isProcessRunning(child.pid)) {
+    await stopManagedService(service.id);
+    const recentLog = await readRecentLogLines(logPath);
+    throw new Error(
+      `${service.name} exited shortly after startup.\nRecent log output:\n${recentLog || "(no log output yet)"}`,
+    );
+  }
+
   return { started: true, pid: child.pid };
+}
+
+export async function getManagedServiceStatus(service) {
+  const record = await readPidRecord(service.id);
+  const portLabel =
+    service.port && service.host ? `, port ${service.host}:${service.port}` : "";
+
+  const reachable = service.healthUrl
+    ? await isHttpOk(service.healthUrl)
+    : service.port && service.host
+      ? await isPortOpen(service.host, service.port)
+      : false;
+
+  if (!record) {
+    return {
+      state: reachable ? "unmanaged" : "stopped",
+      detail: `${reachable ? "running (unmanaged)" : "not running"}${portLabel}`,
+    };
+  }
+
+  const running = record.pid ? isProcessRunning(record.pid) : false;
+  if (running) {
+    return {
+      state: "running",
+      detail: `running (pid ${record.pid}${portLabel}, log ${getLogPath(service.id)})`,
+    };
+  }
+
+  return {
+    state: reachable ? "stale_unmanaged" : "stale",
+    detail: `${
+      reachable ? "stale pid / running unmanaged" : "stale pid"
+    } (pid ${record.pid}${portLabel}, log ${getLogPath(service.id)})`,
+  };
 }
 
 export async function stopManagedService(serviceId) {

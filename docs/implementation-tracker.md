@@ -74,6 +74,7 @@
   - 根目录新增 `pnpm dev` / `pnpm dev:status` / `pnpm dev:down`
   - 启动脚本会检查 `.env.local/.env`、本地基础设施连通性、数据库 schema 和对象存储 bucket
   - 当前策略是不自动代管 PostgreSQL / Redis / Qdrant / MinIO 进程；缺失时明确失败并给出缺口
+  - parser 开发进程已改成稳定受管模式，并补了更准确的 `dev:status` 状态判断
 - `working tree` `Add PDF viewer and upload job feedback`
   - 文档页接入基础版 PDF.js 阅读器
   - 支持页码跳转、页内文本搜索、按引用页打开

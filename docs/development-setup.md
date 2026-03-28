@@ -87,11 +87,23 @@ pnpm dev
 5. 自动确保 S3 bucket 存在
 6. 拉起 `web` / `worker` / `agent-runtime` / `parser`
 
+补充说明：
+
+- parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
+- 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
+
 状态检查：
 
 ```bash
 pnpm dev:status
 ```
+
+`pnpm dev:status` 现在会区分：
+
+- `running`
+- `running (unmanaged)`
+- `not running`
+- `stale pid`
 
 停止应用层进程：
 
