@@ -1047,7 +1047,7 @@ CI 执行顺序：
 - parser 的 heading / block / clause 提取逻辑
 - 后续将补上的 grounded answer schema 与 citation 绑定逻辑
 
-## 17. 里程碑
+## 18. 里程碑
 
 ### M1：基础设施打底
 
@@ -1084,22 +1084,169 @@ CI 执行顺序：
 - report section generation
 - DOCX export
 
-## 18. 当前结论
+## 19. 当前实现进度
+
+截至当前代码状态，已完成的主链路如下：
+
+### 19.1 已完成
+
+- monorepo 基础设施：
+  - `Next.js`
+  - `BullMQ`
+  - `Drizzle`
+  - `Qdrant`
+  - `MinIO/S3`
+- 账号与工作空间基础流程：
+  - 用户名密码登录
+  - 工作空间创建与读取
+  - 工作空间级会话与报告容器
+- 上传与异步处理基础链路：
+  - presign 上传
+  - `document_jobs` 状态流转
+  - `sha256` 解析缓存复用
+- 检索基础设施：
+  - `packages/retrieval`
+  - Qdrant collection 初始化
+  - chunk upsert / delete
+  - workspace 过滤检索
+  - retrieval 审计日志
+- Agent 基础链路：
+  - `@anthropic-ai/claude-agent-sdk`
+  - legal MCP server
+  - workspace knowledge search
+  - citation anchor 读取
+- answer layer 基础链路：
+  - grounded final answer schema
+  - `@anthropic-ai/sdk` 最终回答器
+  - 应用层仅接受已验证 `anchor_id`
+- 报告基础能力：
+  - outline
+  - section generation
+  - DOCX export
+- TDD / CI：
+  - `Vitest`
+  - parser `unittest`
+  - GitHub Actions `CI`
+  - `pnpm verify`
+
+### 19.2 已完成但仍属基础版
+
+- parser：
+  - 当前支持 `PDF(原生可抽文本)`、`DOCX`、`TXT/Markdown`
+  - 已支持 heading 识别、heading path、DOCX 表格抽取
+  - 已提供 OCR fallback 抽象、`disabled/mock` provider 与结构化降级错误
+  - 仍未接入真实 OCR / Docling / bbox 恢复
+- chunking：
+  - 已支持按 heading / 条款合并
+  - 已支持长条款分段
+  - 仍未加入表格上下文摘要和更细的 clause-aware 切分
+- retrieval：
+  - 当前是 dense 向量检索 + 规则重排
+  - 尚未接入真正的 sparse/BM25 与外部 reranker
+- grounded answer：
+  - 已引入结构化 final-answer pass
+  - 已去掉基于用户问题文本的模糊 citation 回填
+  - 仍未让 Agent SDK 直接输出结构化 evidence dossier
+
+### 19.3 当前缺口
+
+- parser 仍缺：
+  - 真实 OCR provider 接入（当前只有 `disabled/mock`）
+  - 更真实的 PDF 坐标与页内定位
+  - 更高保真的版面结构恢复
+- answer layer 仍缺：
+  - Agent SDK 直接输出 evidence dossier
+  - `confidence / unsupported_reason / missing_information` 的前端显式展示
+  - 更完整的 citation 校验与回放测试
+- tool 层仍缺：
+  - 真实法条搜索
+  - 真实通用网络搜索
+  - 更稳的 source fetch 正文抽取
+- 前端仍缺：
+  - SSE 工具时间线
+  - PDF 页内高亮与 bbox 跳转
+  - 更完整的阅读器交互
+- 测试覆盖仍缺：
+  - `apps/worker/src/index.ts`
+  - `packages/retrieval/src/index.ts`
+  - `packages/agent-tools/src/index.ts`
+  - `apps/web/lib/api/agent-runtime.ts`
+  - 各类 web guard / route 辅助逻辑
+
+## 20. 下一阶段计划
+
+结合 PRD、技术设计和当前代码状态，下一阶段按以下顺序推进：
+
+### 20.1 P0: Parser V2
+
+目标：
+
+- 让上传链路真正接近“可用于律师试用”的资料消化质量。
+
+优先做：
+
+1. 接入真实 OCR provider，并保留当前 `disabled/mock` fallback 契约。
+2. 更稳的 heading 层级、条款编号、表格抽取。
+3. 解析质量评分细化。
+4. 为 parser 主流程补更多测试，而不只测试 utils。
+
+验收标准：
+
+- 无文本 PDF 在 OCR 未配置时返回结构化降级原因，配置 OCR 时能走 OCR 路径。
+- `heading_path` 与 `section_label` 对合同/法规类文档更稳定。
+- parser 单测继续覆盖主流程。
+
+### 20.2 P1: Grounded Final Answer
+
+目标：
+
+- 把当前 agent 自由文本回答升级为“规划与回答分层”。
+
+优先做：
+
+1. Agent SDK 输出 evidence dossier，而不只是自由文本草稿。
+2. 把结构化字段透传到前端并做显式 UI 提示。
+3. 为 citation 校验与消息落库补更多回归测试。
+
+验收标准：
+
+- 最终答案结构中必须显式携带 citations。
+- 无依据时返回 unsupported / missing info，而不是自由发挥。
+
+### 20.3 P2: Tool Timeline 与阅读器增强
+
+目标：
+
+- 让律师看到系统在做什么，并能准确跳回原文。
+
+优先做：
+
+1. SSE 工具开始/结束/回答增量事件。
+2. 文档页内锚点定位。
+3. 引用 hover 与目录路径展示强化。
+
+### 20.4 P3: 外部检索工具实装
+
+目标：
+
+- 把当前 placeholder 工具替换成真实官方来源与通用搜索接入。
+
+优先做：
+
+1. `search_statutes`
+2. `search_web_general`
+3. `fetch_source`
+
+## 21. 当前结论
 
 当前这版设计已经确认以下口径：
 
 1. 解析缓存按 `sha256` 全局复用，但索引和业务记录按工作空间独立创建。
 2. 知识库归属于工作空间，会话也归属于工作空间。
 3. 第一版目录能力只做逻辑目录树、上传路径、移动和重命名，不做复杂权限。
+4. 后续开发默认按 TDD 与 `pnpm verify` 门禁推进。
 
-下一步我可以继续往下做：
-
-- 数据库 ERD
-- Drizzle schema 草案
-- MCP tool 接口定义
-- Next.js 路由与目录结构
-
-## 19. 参考来源
+## 22. 参考来源
 
 截至 2026-03-28，我主要依据以下官方资料做出以上设计与选型：
 

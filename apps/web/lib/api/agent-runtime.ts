@@ -13,11 +13,15 @@ export async function requestAgentResponse(input: {
       text: "Agent runtime is not configured. Message saved, but no automated answer was generated.",
       citations: [] as Array<{
         anchor_id: string;
-        document_path: string;
-        page_no: number | null;
         label: string;
         quote_text: string;
       }>,
+      structured: {
+        confidence: "low" as const,
+        unsupported_reason:
+          "Agent runtime is not configured. Message saved, but no automated answer was generated.",
+        missing_information: [] as string[],
+      },
       sessionId: input.agentSessionId ?? null,
       workdir: input.agentWorkdir ?? null,
     };
@@ -43,10 +47,13 @@ export async function requestAgentResponse(input: {
     workdir?: string | null;
     citations?: Array<{
       anchor_id: string;
-      document_path: string;
-      page_no: number | null;
       label: string;
       quote_text: string;
     }>;
+    structured?: {
+      confidence: "high" | "medium" | "low";
+      unsupported_reason: string | null;
+      missing_information: string[];
+    };
   };
 }

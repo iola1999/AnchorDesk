@@ -1,9 +1,8 @@
-import { and, desc, eq, ilike, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import {
   citationAnchors,
   conversations,
-  documents,
   getDb,
   messageCitations,
   messages,
@@ -124,6 +123,9 @@ export async function POST(
         contentMarkdown: agentResponse.text,
         structuredJson: {
           mode: conversation.mode,
+          confidence: agentResponse.structured?.confidence ?? "low",
+          unsupported_reason: agentResponse.structured?.unsupported_reason ?? null,
+          missing_information: agentResponse.structured?.missing_information ?? [],
         },
       })
       .returning();
@@ -157,37 +159,10 @@ export async function POST(
             )
         : [];
 
-    const finalAnchors =
-      anchorRows.length > 0
-        ? anchorRows
-        : await db
-            .select({
-              anchorId: citationAnchors.id,
-              documentId: citationAnchors.documentId,
-              documentVersionId: citationAnchors.documentVersionId,
-              documentPath: citationAnchors.documentPath,
-              pageNo: citationAnchors.pageNo,
-              blockId: citationAnchors.blockId,
-              quoteText: citationAnchors.anchorText,
-            })
-            .from(citationAnchors)
-            .innerJoin(documents, eq(documents.id, citationAnchors.documentId))
-            .where(
-              and(
-                eq(citationAnchors.workspaceId, conversation.workspaceId),
-                ilike(citationAnchors.anchorText, `%${content}%`),
-              ),
-            )
-            .orderBy(desc(citationAnchors.createdAt))
-            .limit(3);
-
-    if (finalAnchors.length > 0) {
+    if (anchorRows.length > 0) {
       await db.insert(messageCitations).values(
-        finalAnchors.map((anchor, index) => {
+        anchorRows.map((anchor, index) => {
           const runtimeCitation = citationMap.get(anchor.anchorId);
-          const label =
-            runtimeCitation?.label ||
-            [anchor.documentPath, `第${anchor.pageNo}页`].filter(Boolean).join(" · ");
 
           return {
             messageId: assistantMessage.id,
@@ -198,7 +173,9 @@ export async function POST(
             pageNo: anchor.pageNo,
             blockId: anchor.blockId,
             quoteText: runtimeCitation?.quote_text || anchor.quoteText,
-            label,
+            label:
+              runtimeCitation?.label ||
+              [anchor.documentPath, `第${anchor.pageNo}页`].filter(Boolean).join(" · "),
             ordinal: index,
           };
         }),

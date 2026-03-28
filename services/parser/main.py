@@ -7,13 +7,14 @@ import boto3
 from botocore.config import Config
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pypdf import PdfReader
 from docx import Document
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
 from docx.text.paragraph import Paragraph
+from pypdf import PdfReader
 
+from ocr import OCRProviderError, get_ocr_provider
 from parser_utils import (
     build_blocks_from_items,
     build_blocks_from_paragraphs,
@@ -168,48 +169,98 @@ def parse_docx_document(data: bytes):
     }
 
 
-def parse_pdf_document(data: bytes):
-    reader = PdfReader(io.BytesIO(data))
+def build_document_from_page_texts(
+    page_texts: list[dict],
+    *,
+    source_mode: str,
+    ocr_provider: str | None = None,
+):
     pages: list[dict] = []
     blocks: list[dict] = []
     inherited_headings: list[str] = []
     order_index = 1
     total_text_length = 0
 
-    for page_index, page in enumerate(reader.pages, start=1):
-        text = (page.extract_text() or "").strip()
+    for page in page_texts:
+        text = (page.get("text") or "").strip()
         total_text_length += len(text)
         pages.append(
             {
-                "page_no": page_index,
-                "width": None,
-                "height": None,
+                "page_no": page["page_no"],
+                "width": page.get("width"),
+                "height": page.get("height"),
                 "text_length": len(text),
             }
         )
 
-        paragraphs = split_paragraphs(text)
         page_blocks, inherited_headings = build_blocks_from_paragraphs(
-            paragraphs,
-            page_no=page_index,
+            split_paragraphs(text),
+            page_no=page["page_no"],
             starting_order_index=order_index,
             inherited_headings=inherited_headings,
         )
         blocks.extend(page_blocks)
         order_index += len(page_blocks)
 
-    if total_text_length == 0 or len(blocks) == 0:
-        raise HTTPException(
-            status_code=422,
-            detail="No extractable PDF text found. OCR pipeline is not enabled yet.",
-        )
-
     return {
         "page_count": len(pages),
         "pages": pages,
         "blocks": blocks,
         "parse_score_bp": compute_parse_score_bp(len(pages), total_text_length, len(blocks)),
+        "source": {
+            "mode": source_mode,
+            "ocr_provider": ocr_provider,
+        },
     }
+
+
+def extract_pdf_page_texts(data: bytes):
+    reader = PdfReader(io.BytesIO(data))
+    page_texts: list[dict] = []
+
+    for page_index, page in enumerate(reader.pages, start=1):
+        page_texts.append(
+            {
+                "page_no": page_index,
+                "width": float(page.mediabox.width) if page.mediabox else None,
+                "height": float(page.mediabox.height) if page.mediabox else None,
+                "text": (page.extract_text() or "").strip(),
+            }
+        )
+
+    return page_texts
+
+
+def parse_pdf_document(data: bytes):
+    page_texts = extract_pdf_page_texts(data)
+    result = build_document_from_page_texts(page_texts, source_mode="native")
+
+    if result["parse_score_bp"] > 0 and result["blocks"]:
+        return result
+
+    provider = get_ocr_provider()
+    try:
+        ocr_page_texts = provider.extract_pdf_pages(data)
+    except OCRProviderError as error:
+        raise HTTPException(status_code=422, detail=error.to_detail()) from error
+
+    ocr_result = build_document_from_page_texts(
+        ocr_page_texts,
+        source_mode="ocr",
+        ocr_provider=provider.name,
+    )
+    if ocr_result["parse_score_bp"] <= 0 or not ocr_result["blocks"]:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "ocr_no_text",
+                "message": "OCR completed but no structured text was produced.",
+                "ocr_provider": provider.name,
+                "recoverable": True,
+            },
+        )
+
+    return ocr_result
 
 
 @app.get("/health")

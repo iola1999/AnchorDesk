@@ -1,11 +1,19 @@
 import io
 import unittest
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from docx import Document
 from pypdf import PdfWriter
 
-from main import decode_text_bytes, parse_docx_document, parse_pdf_document, parse_text_document
+from main import (
+    ParseRequest,
+    decode_text_bytes,
+    parse_docx_document,
+    parse_document,
+    parse_pdf_document,
+    parse_text_document,
+)
 
 
 class ParserMainTestCase(unittest.TestCase):
@@ -64,6 +72,47 @@ class ParserMainTestCase(unittest.TestCase):
             parse_pdf_document(buffer.getvalue())
 
         self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(context.exception.detail["code"], "ocr_required")
+        self.assertEqual(context.exception.detail["ocr_provider"], "disabled")
+
+    def test_parse_pdf_document_uses_mock_ocr_provider_for_blank_pdf(self):
+        writer = PdfWriter()
+        writer.add_blank_page(width=300, height=300)
+        buffer = io.BytesIO()
+        writer.write(buffer)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "PARSER_OCR_PROVIDER": "mock",
+                "PARSER_OCR_MOCK_TEXT": "# 合同概述\n\n第8条 不可抗力\n\n发生不可抗力时应及时通知。",
+            },
+            clear=False,
+        ):
+            result = parse_pdf_document(buffer.getvalue())
+
+        self.assertEqual(result["source"]["mode"], "ocr")
+        self.assertEqual(result["source"]["ocr_provider"], "mock")
+        self.assertEqual(result["blocks"][0]["block_type"], "heading")
+        self.assertEqual(result["blocks"][1]["heading_path"], ["合同概述", "第8条 不可抗力"])
+        self.assertEqual(result["blocks"][2]["heading_path"], ["合同概述", "第8条 不可抗力"])
+
+    def test_parse_document_reads_storage_and_dispatches_by_logical_path(self):
+        request = ParseRequest(
+            workspace_id="ws_123",
+            document_version_id="dv_123",
+            storage_key="workspaces/ws_123/uploads/source.bin",
+            sha256="abc123",
+            logical_path="法规库/notes.md",
+        )
+
+        with patch("main.get_object_bytes", return_value="# 合同范围".encode("utf-8")) as get_object_bytes:
+            with patch("main.parse_text_document", return_value={"ok": True}) as parse_text:
+                result = parse_document(request)
+
+        get_object_bytes.assert_called_once_with("workspaces/ws_123/uploads/source.bin")
+        parse_text.assert_called_once_with("# 合同范围".encode("utf-8"))
+        self.assertEqual(result, {"ok": True})
 
 
 if __name__ == "__main__":

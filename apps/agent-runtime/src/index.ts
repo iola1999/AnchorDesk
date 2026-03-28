@@ -5,6 +5,9 @@ import express from "express";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 import { createLegalMcpServer } from "@law-doc/agent-tools";
+import type { GroundedEvidence } from "@law-doc/contracts";
+
+import { renderGroundedAnswer } from "./final-answerer";
 
 const app = express();
 app.use(express.json());
@@ -104,16 +107,7 @@ app.post("/respond", async (req, res) => {
     const legalServer = createLegalMcpServer();
     let finalResult = "";
     let sessionId = agentSessionId ?? null;
-    const citationMap = new Map<
-      string,
-      {
-        anchor_id: string;
-        document_path: string;
-        page_no: number | null;
-        label: string;
-        quote_text: string;
-      }
-    >();
+    const citationMap = new Map<string, GroundedEvidence>();
 
     for await (const message of query({
       prompt,
@@ -237,13 +231,24 @@ app.post("/respond", async (req, res) => {
       }
     }
 
+    const groundedAnswer = await renderGroundedAnswer({
+      prompt,
+      draftText: finalResult || "Agent completed without a final result payload.",
+      evidence: Array.from(citationMap.values()),
+    });
+
     res.json({
       ok: true,
-      text: finalResult || "Agent completed without a final result payload.",
+      text: groundedAnswer.answer_markdown,
       mode,
       sessionId,
       workdir,
-      citations: Array.from(citationMap.values()),
+      citations: groundedAnswer.citations,
+      structured: {
+        confidence: groundedAnswer.confidence,
+        unsupported_reason: groundedAnswer.unsupported_reason,
+        missing_information: groundedAnswer.missing_information,
+      },
     });
   } catch (error) {
     const message =
