@@ -90,7 +90,6 @@ export async function POST(request: Request) {
   await db.insert(conversations).values({
     workspaceId: workspace.id,
     title: `${workspace.title} 默认对话`,
-    mode: workspace.defaultMode,
   });
 
   return Response.json({ workspace }, { status: 201 });

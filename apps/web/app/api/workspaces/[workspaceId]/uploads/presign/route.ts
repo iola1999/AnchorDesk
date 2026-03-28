@@ -2,6 +2,7 @@ import { createPresignedUploadUrl } from "@knowledge-assistant/storage";
 
 import { auth } from "@/auth";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
+import { validateUploadSupport } from "@/lib/api/upload-policy";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,11 @@ export async function POST(
 
   if (!filename) {
     return Response.json({ error: "filename is required" }, { status: 400 });
+  }
+
+  const support = validateUploadSupport({ filename, contentType });
+  if (!support.ok) {
+    return Response.json({ error: support.message, code: support.code }, { status: 400 });
   }
 
   const safeFilename = filename.replace(/[^\w.\-\u4e00-\u9fa5]/g, "_");

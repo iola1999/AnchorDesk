@@ -5,7 +5,6 @@ import { getDb, users, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
-import { describeWorkspaceMode } from "@/lib/api/workspace-mode";
 import { summarizeWorkspacePrompt } from "@/lib/api/workspace-prompt";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -74,8 +73,8 @@ export default async function WorkspacesPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-app-muted">
-                  <span>默认：{describeWorkspaceMode(workspace.defaultMode)}</span>
-                  <span>联网工具可用</span>
+                  <span>资料库 + 联网查询</span>
+                  <span>回答会优先引用空间资料</span>
                 </div>
               </Link>
             );

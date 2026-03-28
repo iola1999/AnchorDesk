@@ -102,9 +102,6 @@ export async function POST(
       role: MESSAGE_ROLE.ASSISTANT,
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "助手正在分析问题并检索依据...",
-      structuredJson: {
-        mode: conversation.mode,
-      },
     })
     .returning();
 
@@ -135,7 +132,6 @@ export async function POST(
         status: MESSAGE_STATUS.FAILED,
         contentMarkdown: `Agent 处理失败：${message}`,
         structuredJson: {
-          mode: conversation.mode,
           agent_error: message,
         },
       })

@@ -5,7 +5,6 @@ import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_TOOL,
   DEFAULT_FETCH_SOURCE_PARAGRAPH_LIMIT,
-  DEFAULT_WORKSPACE_MODE,
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
   readCitationAnchorInputSchema,
@@ -74,7 +73,6 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
       .values({
         workspaceId: args.workspace_id,
         query: args.query,
-        mode: DEFAULT_WORKSPACE_MODE,
         rawQueriesJson: {
           filters: args.filters ?? null,
           provider: describeRetrievalProvider(),

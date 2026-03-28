@@ -59,7 +59,6 @@ export default async function WorkspacePage({
         id: conversations.id,
         title: conversations.title,
         status: conversations.status,
-        mode: conversations.mode,
         updatedAt: conversations.updatedAt,
         createdAt: conversations.createdAt,
       })

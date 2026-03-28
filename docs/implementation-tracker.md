@@ -27,14 +27,16 @@
 - SSE 工具时间线基础版已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 本地开发一键启动脚本已补齐。
 - 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
-- 当前最缺的不是更多 agent 花样，而是 parser / retrieval / grounded answer / SSE 这些可信回答底座能力。
+- 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，再继续深化 retrieval / grounded answer / SSE。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 
 当前实现快照：
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
+- 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息和 assistant 完成/失败事件，前端已补齐基础版工具时间线，但最终答案仍不是 token 级流式输出。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
+- 上传链路当前仍需要继续收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端都应明确限制并给出清晰提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
@@ -45,6 +47,7 @@
 
 ## 2. 最近完成
 
+- `working tree` Remove workspace mode toggles and fix answer strategy to knowledge-first plus web search
 - `working tree` 去法律化重定位
   - 产品定位改成通用知识库助手
   - 保留 `search_statutes` 专项工具
@@ -69,29 +72,36 @@
 
 ## 3. 活跃待办
 
+- 上传/OCR 范围收口
+  - 当前仅支持 PDF、DOCX、TXT、Markdown
+  - 图片、扫描件和 OCR 路径继续保持 disabled，前后端需要显式提示而不是让用户踩进失败链路
 - 去法律化后的回归清理与文案收口
   - 继续检查其余页面和占位实现中的垂类默认文案
   - 回归补齐相关测试，防止后续再漂回法律垂类默认文案
+- 账号基础能力收口
+  - 补齐退出登录
+  - 补齐修改密码
 - OCR 商业 API provider 方案待定
   - 当前继续保持 `disabled`
   - 候选方向优先考虑百炼，但在 provider 口径确认前暂不开发 OCR 接入
-- sparse/BM25 混合检索深化
-  - 当前已补 dense 候选窗口上的 BM25 打分
-  - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
-- grounded answer 证据 dossier 与更清晰的证据展示
+- 工具占位实现替换与研究/写作链路增强
+  - `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要逐步替换为真实 provider 或真实生成流程
 - SSE 当前是数据库轮询版工具时间线
   - 已能展示 tool start / completed / failed 与 assistant 完成/失败
   - 仍未覆盖 token 级答案流式输出
-- `search_web_general` / `search_statutes` / 报告章节生成仍有占位能力，需要后续逐步替换为真实 provider 或真实生成流程。
+- grounded answer 证据 dossier 与更清晰的证据展示
+- sparse/BM25 混合检索深化
+  - 当前已补 dense 候选窗口上的 BM25 打分
+  - 后续仍需要更完整的 sparse 候选扩展与 rerank 回归测试
 
 ## 4. 下一步
 
 默认按以下顺序推进：
 
-1. 完成去法律化改造的剩余测试与文案清理
-2. sparse/BM25 混合检索
-3. Agent evidence dossier
-4. 工具占位实现替换与研究/写作链路增强
+1. 收口上传范围，明确图片/OCR 暂不支持并补齐测试
+2. 补退出登录与修改密码
+3. 替换工具占位实现并回到真实研究/写作链路
+4. Agent evidence dossier / token 级回答流 / sparse retrieval 深化
 5. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项

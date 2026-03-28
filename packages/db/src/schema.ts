@@ -9,7 +9,6 @@ import {
   DEFAULT_REPORT_STATUS,
   DEFAULT_RETRIEVAL_RUN_TOP_K,
   DEFAULT_RUN_STATUS,
-  DEFAULT_WORKSPACE_MODE,
   type DocumentStatus,
   type DocumentType,
   type MessageRole,
@@ -17,7 +16,6 @@ import {
   type ParseStatus,
   type ReportStatus,
   type RunStatus,
-  type WorkspaceMode,
 } from "@knowledge-assistant/contracts";
 import {
   bigint,
@@ -91,11 +89,6 @@ export const workspaces = pgTable(
     title: varchar("title", { length: 200 }).notNull(),
     workspacePrompt: text("workspace_prompt"),
     industry: varchar("industry", { length: 80 }),
-    defaultMode: varchar("default_mode", { length: 32 })
-      .$type<WorkspaceMode>()
-      .notNull()
-      .default(DEFAULT_WORKSPACE_MODE),
-    allowWebSearch: boolean("allow_web_search").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -327,10 +320,6 @@ export const conversations = pgTable(
       .$type<ConversationStatus>()
       .notNull()
       .default(DEFAULT_CONVERSATION_STATUS),
-    mode: varchar("mode", { length: 32 })
-      .$type<WorkspaceMode>()
-      .notNull()
-      .default(DEFAULT_WORKSPACE_MODE),
     agentSessionId: text("agent_session_id"),
     agentWorkdir: text("agent_workdir"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -447,7 +436,6 @@ export const retrievalRuns = pgTable(
     }),
     messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
     query: text("query").notNull(),
-    mode: varchar("mode", { length: 32 }).$type<WorkspaceMode>().notNull(),
     rawQueriesJson: jsonb("raw_queries_json").$type<Record<string, unknown>>(),
     topK: integer("top_k").notNull().default(DEFAULT_RETRIEVAL_RUN_TOP_K),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

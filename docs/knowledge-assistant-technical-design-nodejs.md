@@ -89,7 +89,8 @@ flowchart LR
 
 - `Next.js BFF` 已经承接注册登录、工作空间、上传签名、文档管理、会话消息落库、报告基础操作和文档阅读页。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
-- `Agent Runtime` 已经能按 workspace mode 控制 `allowedTools`，并在工具调用后回收 citation evidence，再交给最终 grounded answer renderer。
+- `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，再交给最终 grounded answer renderer。
+- 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
@@ -97,6 +98,7 @@ flowchart LR
 当前已知缺口：
 
 - `/api/conversations/[conversationId]/stream` 已补齐数据库持久化的工具时间线与完成/失败事件，但仍不是 token 级答案流式输出；最终答案仍按整段生成后一次性落库。
+- 上传范围还需要和当前 OCR 策略对齐；在商业 OCR provider 未确认前，图片与扫描件不应继续作为当前可用上传类型暴露给用户。
 - `search_web_general`、`search_statutes`、`create_report_outline`、`write_report_section` 仍包含明显占位实现，需要后续替换为真实 provider 或真实生成流程。
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但仍未完成更完整的 sparse 候选扩展。
@@ -137,7 +139,7 @@ flowchart LR
 
 - 多步任务规划和工具调用
 - 管理会话 session
-- 控制不同模式下的 `allowedTools`
+- 管理工具调用与 grounded answer 校验链路
 - 组织问答、研究和写作流程
 - 在工具结果与最终答案之间插入 grounded final answer 校验层
 
@@ -231,7 +233,8 @@ flowchart LR
 
 优先级统一以 [implementation-tracker.md](/Users/fan/project/tmp/law-doc/docs/implementation-tracker.md) 为准。当前重点仍然是：
 
-1. sparse/BM25 混合检索深化与回归
-2. grounded answer 与证据展示
+1. 上传范围与 OCR 策略对齐
+2. 账号基础能力收口
 3. 工具占位实现替换与研究/写作链路增强
-4. OCR 商业 API provider 方案确认后的接入
+4. grounded answer 与证据展示 / token 级回答流 / retrieval 深化
+5. OCR 商业 API provider 方案确认后的接入

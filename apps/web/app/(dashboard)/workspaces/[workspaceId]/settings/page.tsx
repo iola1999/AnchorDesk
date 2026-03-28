@@ -16,7 +16,6 @@ import { auth } from "@/auth";
 import { DocumentTreePanel } from "@/components/workspaces/document-tree-panel";
 import { ManualRefreshButton } from "@/components/workspaces/manual-refresh-button";
 import { UploadForm } from "@/components/workspaces/upload-form";
-import { WorkspaceModeForm } from "@/components/workspaces/workspace-mode-form";
 import { WorkspaceSettingsForm } from "@/components/workspaces/workspace-settings-form";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
@@ -146,9 +145,6 @@ export default async function WorkspaceSettingsPage({
             >
               空间信息
             </Link>
-            <Link href="#mode" className={buttonStyles({ variant: "secondary", size: "sm" })}>
-              默认模式
-            </Link>
             <Link
               href="#knowledge-base"
               className={buttonStyles({ variant: "secondary", size: "sm" })}
@@ -159,20 +155,12 @@ export default async function WorkspaceSettingsPage({
         </section>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)]">
-          <div className="grid content-start gap-4">
-            <WorkspaceSettingsForm
-              sectionId="general"
-              workspaceId={workspace.id}
-              initialTitle={workspace.title}
-              initialPrompt={workspace.workspacePrompt}
-            />
-
-            <WorkspaceModeForm
-              sectionId="mode"
-              workspaceId={workspace.id}
-              initialDefaultMode={workspace.defaultMode}
-            />
-          </div>
+          <WorkspaceSettingsForm
+            sectionId="general"
+            workspaceId={workspace.id}
+            initialTitle={workspace.title}
+            initialPrompt={workspace.workspacePrompt}
+          />
 
           <section id="knowledge-base" className={cn(ui.panelLarge, "grid gap-4 p-6")}>
             <div className={ui.toolbar}>

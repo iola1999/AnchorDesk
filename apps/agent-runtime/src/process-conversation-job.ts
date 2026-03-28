@@ -136,7 +136,6 @@ export async function processConversationResponseJob(
         prompt: payload.prompt,
         workspaceId: conversation.workspaceId,
         conversationId: payload.conversationId,
-        mode: conversation.mode,
         agentSessionId: conversation.agentSessionId,
         agentWorkdir: conversation.agentWorkdir,
       },
@@ -181,7 +180,6 @@ export async function processConversationResponseJob(
         status: MESSAGE_STATUS.COMPLETED,
         contentMarkdown: agentResponse.text,
         structuredJson: {
-          mode: conversation.mode,
           confidence:
             agentResponse.structured?.confidence ?? DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
           unsupported_reason: agentResponse.structured?.unsupported_reason ?? null,
@@ -215,7 +213,6 @@ export async function processConversationResponseJob(
         status: MESSAGE_STATUS.FAILED,
         contentMarkdown: `Agent 处理失败：${message}`,
         structuredJson: {
-          mode: conversation.mode,
           agent_error: message,
         },
       })

@@ -6,16 +6,12 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { createAssistantMcpServer } from "@knowledge-assistant/agent-tools";
 import {
   ASSISTANT_MCP_SERVER_NAME,
+  ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
   DEFAULT_AGENT_MAX_TURNS,
   DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-  KB_ONLY_ALLOWED_TOOL_NAMES,
-  KB_PLUS_WEB_ALLOWED_TOOL_NAMES,
   normalizeAssistantToolName,
-  normalizeWorkspaceMode,
   type GroundedEvidence,
-  type WorkspaceMode,
-  WORKSPACE_MODE,
 } from "@knowledge-assistant/contracts";
 
 import { renderGroundedAnswer } from "./final-answerer";
@@ -24,23 +20,18 @@ const agentWorkdirRoot = process.env.AGENT_WORKDIR_ROOT
   ? path.resolve(process.env.AGENT_WORKDIR_ROOT)
   : path.resolve(process.cwd(), ".agent-sessions");
 
-export function getAllowedTools(mode: WorkspaceMode) {
-  if (mode === WORKSPACE_MODE.KB_ONLY) {
-    return [...KB_ONLY_ALLOWED_TOOL_NAMES];
-  }
-
-  return [...KB_PLUS_WEB_ALLOWED_TOOL_NAMES];
+export function getAllowedTools() {
+  return [...ASSISTANT_ALLOWED_TOOL_NAMES];
 }
 
-function buildAgentSystemPrompt(input: { workspaceId: string; mode: WorkspaceMode }) {
+function buildAgentSystemPrompt(input: { workspaceId: string }) {
   return [
     "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
-    `Current mode: ${input.mode}.`,
     "When you use search_workspace_knowledge or create_report_outline, always pass the exact workspace_id shown above.",
     "Do not invent facts, sources, anchor IDs, or directory paths.",
     "If the workspace knowledge base does not support the answer, say so plainly.",
-    "Prefer workspace knowledge first. Use web tools only when mode allows it and local evidence is insufficient.",
+    "Prefer workspace knowledge first. Use web tools when local evidence is insufficient.",
     "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
   ].join("\n");
@@ -138,7 +129,6 @@ export type RunAgentResponseInput = {
   prompt: string;
   workspaceId: string;
   conversationId: string;
-  mode: string;
   agentSessionId?: string | null;
   agentWorkdir?: string | null;
 };
@@ -170,7 +160,6 @@ export async function runAgentResponse(
   const prompt = input.prompt.trim();
   const workspaceId = input.workspaceId.trim();
   const conversationId = input.conversationId.trim();
-  const mode = normalizeWorkspaceMode(input.mode.trim());
   const requestedWorkdir = input.agentWorkdir?.trim() || undefined;
   const workdir =
     requestedWorkdir || path.join(agentWorkdirRoot, conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
@@ -181,7 +170,6 @@ export async function runAgentResponse(
     return {
       ok: true as const,
       text: "Agent runtime is configured, but ANTHROPIC_API_KEY is not set yet.",
-      mode,
       sessionId: input.agentSessionId ?? null,
       workdir,
       citations: [],
@@ -205,14 +193,14 @@ export async function runAgentResponse(
       mcpServers: {
         [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
       },
-      allowedTools: getAllowedTools(mode),
+      allowedTools: getAllowedTools(),
       cwd: workdir,
       resume: input.agentSessionId ?? undefined,
       maxTurns: DEFAULT_AGENT_MAX_TURNS,
       systemPrompt: {
         type: "preset",
         preset: "claude_code",
-        append: buildAgentSystemPrompt({ workspaceId, mode }),
+        append: buildAgentSystemPrompt({ workspaceId }),
       },
       hooks: {
         PreToolUse: [
@@ -302,7 +290,6 @@ export async function runAgentResponse(
   return {
     ok: true as const,
     text: groundedAnswer.answer_markdown,
-    mode,
     sessionId,
     workdir,
     citations: groundedAnswer.citations,

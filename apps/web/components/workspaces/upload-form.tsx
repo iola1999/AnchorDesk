@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import {
+  SUPPORTED_UPLOAD_ACCEPT,
+  SUPPORTED_UPLOAD_TYPES_LABEL,
+  validateUploadSupport,
+} from "@/lib/api/upload-policy";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function UploadForm({ workspaceId }: { workspaceId: string }) {
@@ -16,6 +21,15 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
     const formData = new FormData(event.currentTarget);
     const file = formData.get("file") as File | null;
     if (!file) {
+      return;
+    }
+
+    const support = validateUploadSupport({
+      filename: file.name,
+      contentType: file.type,
+    });
+    if (!support.ok) {
+      setStatus(support.message);
       return;
     }
 
@@ -98,7 +112,16 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
       </label>
       <label className={ui.label}>
         文件
-        <input className={ui.input} required name="file" type="file" />
+        <input
+          className={ui.input}
+          required
+          name="file"
+          type="file"
+          accept={SUPPORTED_UPLOAD_ACCEPT}
+        />
+        <span className={cn(ui.muted, "text-[13px] leading-5")}>
+          当前支持 {SUPPORTED_UPLOAD_TYPES_LABEL}。图片和扫描件暂不开放上传。
+        </span>
       </label>
       <button className={buttonStyles()} disabled={isPending} type="submit">
         {isPending ? "刷新中..." : "上传"}

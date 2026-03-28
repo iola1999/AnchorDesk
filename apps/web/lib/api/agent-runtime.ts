@@ -1,14 +1,12 @@
 import {
   DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
   type GroundedAnswerConfidence,
-  type WorkspaceMode,
 } from "@knowledge-assistant/contracts";
 
 export async function requestAgentResponse(input: {
   prompt: string;
   workspaceId: string;
   conversationId: string;
-  mode: WorkspaceMode;
   agentSessionId?: string | null;
   agentWorkdir?: string | null;
 }) {

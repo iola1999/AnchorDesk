@@ -31,7 +31,6 @@ export async function POST(
     .values({
       workspaceId,
       title: String(body.title ?? "").trim() || `${workspace.title} 对话`,
-      mode: workspace.defaultMode,
     })
     .returning();
 
