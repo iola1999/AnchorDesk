@@ -35,6 +35,9 @@ export default async function WorkspacesPage() {
         </div>
 
         <div className={ui.actions}>
+          <Link href="/account" className={buttonStyles({ variant: "secondary" })}>
+            账号与安全
+          </Link>
           <Link href="/workspaces/new" className={buttonStyles()}>
             新建工作空间
           </Link>
