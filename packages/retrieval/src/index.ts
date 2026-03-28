@@ -1,0 +1,485 @@
+import { QdrantClient } from "@qdrant/js-client-rest";
+import {
+  buildDirectoryPrefixes,
+  buildHashedEmbedding,
+  chunkTextSnippet,
+  computeKeywordScore,
+  normalizeToken,
+  normalizeWhitespace,
+  textContainsToken,
+  uniqueNormalized,
+} from "./scoring";
+
+const DEFAULT_COLLECTION_NAME = "legal_chunks";
+const DEFAULT_HASH_VECTOR_SIZE = 256;
+const DEFAULT_EMBED_BATCH_SIZE = 16;
+const DEFAULT_QUERY_CANDIDATE_LIMIT = 36;
+
+type PayloadSchema =
+  | "keyword"
+  | "integer"
+  | "float"
+  | "geo"
+  | "text"
+  | "bool"
+  | "datetime"
+  | "uuid"
+  | Record<string, unknown>;
+
+type QdrantFilter = {
+  must?: Array<Record<string, unknown>>;
+  should?: Array<Record<string, unknown>>;
+  must_not?: Array<Record<string, unknown>>;
+};
+
+export type RetrievalChunkRecord = {
+  pointId: string;
+  workspaceId: string;
+  documentId: string;
+  documentVersionId: string;
+  chunkId: string;
+  anchorId: string;
+  docType: string;
+  documentPath: string;
+  directoryPath: string;
+  pageStart: number;
+  pageEnd: number;
+  headingPath: string[];
+  sectionLabel: string | null;
+  keywords: string[];
+  text: string;
+};
+
+export type WorkspaceKnowledgeFilters = {
+  directoryPrefix?: string;
+  docTypes?: string[];
+  tags?: string[];
+};
+
+export type WorkspaceKnowledgeSearchParams = {
+  workspaceId: string;
+  query: string;
+  topK: number;
+  filters?: WorkspaceKnowledgeFilters;
+};
+
+export type WorkspaceKnowledgeSearchResult = {
+  anchorId: string;
+  chunkId: string;
+  documentId: string;
+  documentVersionId: string;
+  documentPath: string;
+  pageStart: number;
+  pageEnd: number;
+  sectionLabel: string | null;
+  headingPath: string[];
+  docType: string;
+  snippet: string;
+  rawScore: number;
+  rerankScore: number;
+  score: number;
+};
+
+type OpenAiCompatibleEmbeddingsResponse = {
+  data?: Array<{ embedding?: number[] }>;
+};
+
+type RetrievalPointPayload = {
+  workspace_id: string;
+  document_id: string;
+  document_version_id: string;
+  chunk_id: string;
+  anchor_id: string;
+  doc_type: string;
+  document_path: string;
+  directory_path: string;
+  directory_prefixes: string[];
+  page_start: number;
+  page_end: number;
+  heading_path: string[];
+  section_label: string | null;
+  keywords: string[];
+  tag_values: string[];
+  chunk_text: string;
+};
+
+let qdrantClient: QdrantClient | null = null;
+let ensureCollectionPromise: Promise<void> | null = null;
+let resolvedVectorSizePromise: Promise<number> | null = null;
+
+function getRequiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
+
+function getOptionalPositiveInt(name: string, fallback: number) {
+  const value = process.env[name];
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function clampScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, score));
+}
+
+function roundScore(score: number) {
+  return Number(score.toFixed(6));
+}
+
+function toRoundedBasisPoints(score: number) {
+  return Math.round(clampScore(score) * 10_000);
+}
+
+function getCollectionName() {
+  return process.env.QDRANT_COLLECTION ?? DEFAULT_COLLECTION_NAME;
+}
+
+function getQdrantClient() {
+  if (!qdrantClient) {
+    qdrantClient = new QdrantClient({
+      url: getRequiredEnv("QDRANT_URL"),
+      apiKey: process.env.QDRANT_API_KEY,
+    });
+  }
+
+  return qdrantClient;
+}
+
+async function fetchRemoteEmbeddings(texts: string[]) {
+  const url = getRequiredEnv("EMBEDDING_API_URL");
+  const apiKey = process.env.EMBEDDING_API_KEY;
+  const model = process.env.EMBEDDING_MODEL;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+    },
+    body: JSON.stringify({
+      input: texts,
+      ...(model ? { model } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Embedding API failed with ${response.status}`);
+  }
+
+  const payload = (await response.json()) as OpenAiCompatibleEmbeddingsResponse;
+  const embeddings = payload.data?.map((item) => item.embedding ?? []) ?? [];
+
+  if (embeddings.length !== texts.length || embeddings.some((item) => !item.length)) {
+    throw new Error("Embedding API returned an unexpected payload");
+  }
+
+  return embeddings;
+}
+
+async function resolveVectorSize() {
+  if (!resolvedVectorSizePromise) {
+    resolvedVectorSizePromise = (async () => {
+      const configured = process.env.EMBEDDING_VECTOR_SIZE;
+      if (configured) {
+        const parsed = Number.parseInt(configured, 10);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed;
+        }
+      }
+
+      if (process.env.EMBEDDING_API_URL) {
+        const [probe] = await fetchRemoteEmbeddings(["dimension probe"]);
+        if (!probe?.length) {
+          throw new Error("Failed to infer embedding vector size");
+        }
+        return probe.length;
+      }
+
+      return DEFAULT_HASH_VECTOR_SIZE;
+    })().catch((error) => {
+      resolvedVectorSizePromise = null;
+      throw error;
+    });
+  }
+
+  return resolvedVectorSizePromise;
+}
+
+async function createPayloadIndexes() {
+  const client = getQdrantClient();
+  const collectionName = getCollectionName();
+  const indexes: Array<{ fieldName: string; schema: PayloadSchema }> = [
+    { fieldName: "workspace_id", schema: "keyword" },
+    { fieldName: "document_id", schema: "keyword" },
+    { fieldName: "document_version_id", schema: "keyword" },
+    { fieldName: "anchor_id", schema: "keyword" },
+    { fieldName: "doc_type", schema: "keyword" },
+    { fieldName: "directory_prefixes", schema: "keyword" },
+    { fieldName: "page_start", schema: "integer" },
+    { fieldName: "page_end", schema: "integer" },
+  ];
+
+  for (const indexConfig of indexes) {
+    try {
+      await client.createPayloadIndex(collectionName, {
+        field_name: indexConfig.fieldName,
+        field_schema: indexConfig.schema,
+        wait: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!/already exists|existing/i.test(message)) {
+        throw error;
+      }
+    }
+  }
+}
+
+export async function ensureRetrievalCollection() {
+  if (!ensureCollectionPromise) {
+    ensureCollectionPromise = (async () => {
+      const client = getQdrantClient();
+      const collectionName = getCollectionName();
+      const vectorSize = await resolveVectorSize();
+      const existing = await client.getCollections();
+      const exists = existing.collections.some((collection) => collection.name === collectionName);
+
+      if (!exists) {
+        await client.createCollection(collectionName, {
+          vectors: {
+            size: vectorSize,
+            distance: "Cosine",
+          },
+          on_disk_payload: true,
+        });
+      }
+
+      await createPayloadIndexes();
+    })().catch((error) => {
+      ensureCollectionPromise = null;
+      throw error;
+    });
+  }
+
+  return ensureCollectionPromise;
+}
+
+export async function embedTexts(texts: string[]) {
+  if (!texts.length) {
+    return [] as number[][];
+  }
+
+  if (!process.env.EMBEDDING_API_URL) {
+    const dimensions = await resolveVectorSize();
+    return texts.map((text) => buildHashedEmbedding(text, dimensions));
+  }
+
+  const batchSize = getOptionalPositiveInt("EMBEDDING_BATCH_SIZE", DEFAULT_EMBED_BATCH_SIZE);
+  const result: number[][] = [];
+
+  for (let index = 0; index < texts.length; index += batchSize) {
+    const batch = texts.slice(index, index + batchSize);
+    const embeddings = await fetchRemoteEmbeddings(batch);
+    result.push(...embeddings);
+  }
+
+  return result;
+}
+
+export async function deleteDocumentVersionPoints(input: {
+  workspaceId: string;
+  documentVersionId: string;
+}) {
+  await ensureRetrievalCollection();
+
+  await getQdrantClient().delete(getCollectionName(), {
+    wait: true,
+    filter: {
+      must: [
+        { key: "workspace_id", match: { value: input.workspaceId } },
+        { key: "document_version_id", match: { value: input.documentVersionId } },
+      ],
+    },
+  } as never);
+}
+
+function toPayload(chunk: RetrievalChunkRecord): RetrievalPointPayload {
+  const tagValues = uniqueNormalized([
+    chunk.sectionLabel,
+    ...chunk.headingPath,
+    ...chunk.keywords,
+  ]);
+
+  return {
+    workspace_id: chunk.workspaceId,
+    document_id: chunk.documentId,
+    document_version_id: chunk.documentVersionId,
+    chunk_id: chunk.chunkId,
+    anchor_id: chunk.anchorId,
+    doc_type: chunk.docType,
+    document_path: chunk.documentPath,
+    directory_path: chunk.directoryPath,
+    directory_prefixes: buildDirectoryPrefixes(chunk.directoryPath, chunk.documentPath),
+    page_start: chunk.pageStart,
+    page_end: chunk.pageEnd,
+    heading_path: chunk.headingPath,
+    section_label: chunk.sectionLabel,
+    keywords: chunk.keywords,
+    tag_values: tagValues,
+    chunk_text: chunkTextSnippet(chunk.text),
+  };
+}
+
+export async function upsertDocumentChunks(
+  chunks: RetrievalChunkRecord[],
+  options?: { vectors?: number[][] },
+) {
+  if (!chunks.length) {
+    return;
+  }
+
+  await ensureRetrievalCollection();
+
+  const vectors = options?.vectors ?? (await embedTexts(chunks.map((chunk) => chunk.text)));
+  const collectionName = getCollectionName();
+  const client = getQdrantClient();
+
+  const points = chunks.map((chunk, index) => ({
+    id: chunk.pointId,
+    vector: vectors[index] ?? [],
+    payload: toPayload(chunk),
+  }));
+
+  for (let index = 0; index < points.length; index += 64) {
+    await client.upsert(collectionName, {
+      wait: true,
+      points: points.slice(index, index + 64),
+    });
+  }
+}
+
+function matchesPostFilters(payload: RetrievalPointPayload, filters?: WorkspaceKnowledgeFilters) {
+  if (!filters) {
+    return true;
+  }
+
+  if (filters.docTypes?.length && !filters.docTypes.includes(payload.doc_type)) {
+    return false;
+  }
+
+  if (filters.tags?.length) {
+    const haystack = new Set(payload.tag_values.map((item) => normalizeToken(item)));
+    const matchesTag = filters.tags.some((tag) => haystack.has(normalizeToken(tag)));
+    if (!matchesTag) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function buildSearchFilter(
+  workspaceId: string,
+  filters?: WorkspaceKnowledgeFilters,
+): QdrantFilter {
+  const must: Array<Record<string, unknown>> = [
+    { key: "workspace_id", match: { value: workspaceId } },
+  ];
+
+  if (filters?.directoryPrefix) {
+    must.push({
+      key: "directory_prefixes",
+      match: { value: filters.directoryPrefix.replace(/^\/+|\/+$/g, "") },
+    });
+  }
+
+  return { must };
+}
+
+export async function searchWorkspaceKnowledge(
+  params: WorkspaceKnowledgeSearchParams,
+): Promise<WorkspaceKnowledgeSearchResult[]> {
+  await ensureRetrievalCollection();
+
+  const [queryVector] = await embedTexts([params.query]);
+  const candidateLimit = Math.max(
+    params.topK * 6,
+    DEFAULT_QUERY_CANDIDATE_LIMIT,
+  );
+
+  const results = await getQdrantClient().search(getCollectionName(), {
+    vector: queryVector,
+    limit: candidateLimit,
+    with_payload: true,
+    filter: buildSearchFilter(params.workspaceId, params.filters) as never,
+  });
+
+  const reranked = results
+    .map((item) => {
+      const payload = (item.payload ?? {}) as RetrievalPointPayload;
+      if (!payload.anchor_id || !payload.chunk_id || !matchesPostFilters(payload, params.filters)) {
+        return null;
+      }
+
+      const denseScore = clampScore(typeof item.score === "number" ? item.score : 0);
+      const keywordScore = computeKeywordScore(params.query, payload);
+      const rerankScore = clampScore(denseScore * 0.72 + keywordScore * 0.28);
+      const exactBoost =
+        textContainsToken(payload.chunk_text, params.query) ||
+        textContainsToken(payload.section_label ?? "", params.query)
+          ? 0.05
+          : 0;
+      const finalScore = clampScore(rerankScore + exactBoost);
+
+      return {
+        anchorId: payload.anchor_id,
+        chunkId: payload.chunk_id,
+        documentId: payload.document_id,
+        documentVersionId: payload.document_version_id,
+        documentPath: payload.document_path,
+        pageStart: payload.page_start,
+        pageEnd: payload.page_end,
+        sectionLabel: payload.section_label,
+        headingPath: payload.heading_path ?? [],
+        docType: payload.doc_type,
+        snippet: payload.chunk_text,
+        rawScore: roundScore(denseScore),
+        rerankScore: roundScore(rerankScore),
+        score: roundScore(finalScore),
+      } satisfies WorkspaceKnowledgeSearchResult;
+    })
+    .filter((item): item is WorkspaceKnowledgeSearchResult => item !== null)
+    .sort((left, right) => right.score - left.score);
+
+  const deduped: WorkspaceKnowledgeSearchResult[] = [];
+  const seen = new Set<string>();
+
+  for (const item of reranked) {
+    if (seen.has(item.anchorId)) {
+      continue;
+    }
+
+    seen.add(item.anchorId);
+    deduped.push(item);
+
+    if (deduped.length >= params.topK) {
+      break;
+    }
+  }
+
+  return deduped;
+}
+
+export function scoreToBasisPoints(score: number) {
+  return toRoundedBasisPoints(score);
+}

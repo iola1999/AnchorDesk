@@ -15,6 +15,11 @@ import {
   parseArtifacts,
 } from "@law-doc/db";
 import { QUEUE_NAMES, getRedisConnection } from "@law-doc/queue";
+import {
+  deleteDocumentVersionPoints,
+  embedTexts,
+  upsertDocumentChunks,
+} from "@law-doc/retrieval";
 import { getJson, getObjectBytes, putJson } from "@law-doc/storage";
 
 type ParseArtifact = {
@@ -30,6 +35,15 @@ type ParseArtifact = {
     bbox_json?: { x1: number; y1: number; x2: number; y2: number } | null;
   }>;
   parse_score_bp: number;
+};
+
+type EmbeddingArtifact = {
+  generated_at: string;
+  vector_size: number;
+  points: Array<{
+    chunk_id: string;
+    vector: number[];
+  }>;
 };
 
 const db = getDb();
@@ -291,8 +305,65 @@ async function chunkDocument(documentVersionId: string) {
   }
 }
 
+async function fetchChunksForIndex(documentVersionId: string) {
+  const rows = await db
+    .select({
+      chunkId: documentChunks.id,
+      workspaceId: documentChunks.workspaceId,
+      documentId: documentChunks.documentId,
+      documentVersionId: documentChunks.documentVersionId,
+      pageStart: documentChunks.pageStart,
+      pageEnd: documentChunks.pageEnd,
+      sectionLabel: documentChunks.sectionLabel,
+      headingPath: documentChunks.headingPath,
+      keywords: documentChunks.keywords,
+      text: documentChunks.chunkText,
+      documentPath: documents.logicalPath,
+      directoryPath: documents.directoryPath,
+      docType: documents.docType,
+      anchorId: citationAnchors.id,
+    })
+    .from(documentChunks)
+    .innerJoin(documents, eq(documents.id, documentChunks.documentId))
+    .innerJoin(citationAnchors, eq(citationAnchors.chunkId, documentChunks.id))
+    .where(eq(documentChunks.documentVersionId, documentVersionId));
+
+  return rows.map((row) => ({
+    pointId: row.chunkId,
+    workspaceId: row.workspaceId,
+    documentId: row.documentId,
+    documentVersionId: row.documentVersionId,
+    chunkId: row.chunkId,
+    anchorId: row.anchorId,
+    docType: row.docType,
+    documentPath: row.documentPath,
+    directoryPath: row.directoryPath,
+    pageStart: row.pageStart,
+    pageEnd: row.pageEnd,
+    headingPath: row.headingPath ?? [],
+    sectionLabel: row.sectionLabel ?? null,
+    keywords: row.keywords ?? [],
+    text: row.text,
+  }));
+}
+
+function getEmbeddingArtifactKey(documentVersionId: string) {
+  return `embedding-artifacts/${documentVersionId}.json`;
+}
+
 async function embedDocument(documentVersionId: string) {
   await updateJob(documentVersionId, "embedding", 75);
+  const chunks = await fetchChunksForIndex(documentVersionId);
+  const vectors = await embedTexts(chunks.map((chunk) => chunk.text));
+
+  await putJson(getEmbeddingArtifactKey(documentVersionId), {
+    generated_at: new Date().toISOString(),
+    vector_size: vectors[0]?.length ?? 0,
+    points: chunks.map((chunk, index) => ({
+      chunk_id: chunk.chunkId,
+      vector: vectors[index] ?? [],
+    })),
+  } satisfies EmbeddingArtifact);
 }
 
 async function indexDocument(documentVersionId: string) {
@@ -300,6 +371,26 @@ async function indexDocument(documentVersionId: string) {
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
+  }
+
+  const chunks = await fetchChunksForIndex(documentVersionId);
+  const embeddingArtifact =
+    (await getJson<EmbeddingArtifact>(getEmbeddingArtifactKey(documentVersionId))) ?? null;
+  const embeddedVectors = new Map(
+    (embeddingArtifact?.points ?? []).map((item) => [item.chunk_id, item.vector]),
+  );
+  const vectors =
+    chunks.length > 0 && chunks.every((chunk) => embeddedVectors.has(chunk.chunkId))
+      ? chunks.map((chunk) => embeddedVectors.get(chunk.chunkId) ?? [])
+      : undefined;
+
+  await deleteDocumentVersionPoints({
+    workspaceId: version.workspaceId,
+    documentVersionId,
+  });
+
+  if (chunks.length > 0) {
+    await upsertDocumentChunks(chunks, { vectors });
   }
 
   await db

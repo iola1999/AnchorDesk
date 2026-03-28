@@ -978,6 +978,69 @@ Agent 不应被写死成“先出报告”。
 
 这版部署足够支撑前期试用和迭代。
 
+## 17. 工程流程与 TDD
+
+从当前版本开始，研发流程切换为 **测试驱动开发（TDD）优先**：
+
+- 先写失败测试，再写最小实现，再做重构。
+- 纯逻辑优先抽成可测试函数，不把核心规则埋进 route handler、worker 回调或组件事件里。
+- Node.js 侧单测统一使用 `Vitest`。
+- Python parser 侧单测统一使用 `unittest`。
+- 每次合并前至少通过本地 `verify` 与 GitHub Actions `CI`。
+
+### 17.1 当前命令约定
+
+根目录统一执行：
+
+```bash
+pnpm test
+pnpm test:ts
+pnpm test:python
+pnpm typecheck
+pnpm check:python
+pnpm build:web
+pnpm verify
+```
+
+说明：
+
+- `pnpm test`：运行 TypeScript 与 Python 单测。
+- `pnpm typecheck`：运行 monorepo 全量 TypeScript 类型检查。
+- `pnpm check:python`：校验 parser Python 文件可编译导入。
+- `pnpm build:web`：构建 Next.js Web 应用。
+- `pnpm verify`：本地完整质量门禁，供提交前和 CI 统一复用。
+
+### 17.2 GitHub Actions CI
+
+新增 workflow：
+
+- 路径：`.github/workflows/ci.yml`
+- 触发条件：
+  - push 到 `main`
+  - 所有 pull request
+
+CI 执行顺序：
+
+1. 安装 Node.js / pnpm / Python
+2. 安装 Node 依赖
+3. 安装 parser Python 依赖
+4. 运行 `pnpm verify`
+
+### 17.3 后续开发约束
+
+后续功能开发按以下顺序执行：
+
+1. 先补或先写测试。
+2. 只实现让测试通过所需的最小代码。
+3. 通过 `pnpm verify` 后再继续扩大范围。
+
+对于当前项目，优先要求测试覆盖：
+
+- 检索规则与重排逻辑
+- 文档目录树和 slug 等基础规则
+- parser 的 heading / block / clause 提取逻辑
+- 后续将补上的 grounded answer schema 与 citation 绑定逻辑
+
 ## 17. 里程碑
 
 ### M1：基础设施打底

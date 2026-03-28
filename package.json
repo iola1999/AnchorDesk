@@ -7,7 +7,14 @@
     "dev:web": "pnpm --filter @law-doc/web dev",
     "dev:worker": "pnpm --filter @law-doc/worker dev",
     "dev:agent": "pnpm --filter @law-doc/agent-runtime dev",
+    "build:web": "pnpm --filter @law-doc/web build",
+    "test": "pnpm test:ts && pnpm test:python",
+    "test:ts": "vitest run",
+    "test:python": "python3 -m unittest discover -s services/parser -p 'test_*.py'",
+    "test:watch": "vitest",
+    "check:python": "python3 -m py_compile services/parser/main.py services/parser/parser_utils.py services/parser/test_parser_utils.py",
     "typecheck": "pnpm -r --if-present typecheck",
+    "verify": "pnpm test && pnpm typecheck && pnpm check:python && pnpm build:web",
     "db:generate": "pnpm --filter @law-doc/db drizzle-kit generate",
     "db:migrate": "pnpm --filter @law-doc/db drizzle-kit migrate"
   },
@@ -15,6 +22,7 @@
     "@types/node": "^24.9.1",
     "@types/pg": "^8.20.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.7"
   }
 }

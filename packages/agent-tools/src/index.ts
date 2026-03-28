@@ -1,5 +1,5 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
-import { and, desc, eq, ilike, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import {
   createReportOutlineInputSchema,
@@ -15,9 +15,15 @@ import {
   documentChunks,
   documents,
   getDb,
+  retrievalResults,
+  retrievalRuns,
   reports,
   reportSections,
 } from "@law-doc/db";
+import {
+  scoreToBasisPoints,
+  searchWorkspaceKnowledge,
+} from "@law-doc/retrieval";
 
 function asToolText(value: unknown) {
   return {
@@ -44,51 +50,113 @@ export async function searchWorkspaceKnowledgeHandler(input: unknown) {
   const args = searchWorkspaceKnowledgeInputSchema.parse(input);
   const db = getDb();
 
-  const filters = [eq(citationAnchors.workspaceId, args.workspace_id)];
+  try {
+    const ranked = await searchWorkspaceKnowledge({
+      workspaceId: args.workspace_id,
+      query: args.query,
+      topK: args.top_k,
+      filters: {
+        directoryPrefix: args.filters?.directory_prefix,
+        docTypes: args.filters?.doc_types,
+        tags: args.filters?.tags,
+      },
+    });
 
-  if (args.filters?.directory_prefix) {
-    filters.push(ilike(documents.logicalPath, `${args.filters.directory_prefix}%`));
+    const [retrievalRun] = await db
+      .insert(retrievalRuns)
+      .values({
+        workspaceId: args.workspace_id,
+        query: args.query,
+        mode: "kb_only",
+        rawQueriesJson: {
+          filters: args.filters ?? null,
+          provider: "qdrant_dense_keyword_rerank",
+        },
+        topK: args.top_k,
+      })
+      .returning({
+        id: retrievalRuns.id,
+      });
+
+    if (retrievalRun && ranked.length > 0) {
+      await db.insert(retrievalResults).values(
+        ranked.map((item, index) => ({
+          retrievalRunId: retrievalRun.id,
+          anchorId: item.anchorId,
+          chunkId: item.chunkId,
+          rank: index + 1,
+          rawScoreBp: scoreToBasisPoints(item.rawScore),
+          rerankScoreBp: scoreToBasisPoints(item.score),
+        })),
+      );
+    }
+
+    if (ranked.length === 0) {
+      return {
+        ok: true,
+        results: [],
+      };
+    }
+
+    const anchorIds = ranked.map((item) => item.anchorId);
+    const hydrated = await db
+      .select({
+        anchorId: citationAnchors.id,
+        documentId: citationAnchors.documentId,
+        documentPath: citationAnchors.documentPath,
+        documentTitle: documents.title,
+        pageNo: citationAnchors.pageNo,
+        sectionLabel: documentChunks.sectionLabel,
+        snippet: citationAnchors.anchorText,
+      })
+      .from(citationAnchors)
+      .innerJoin(documents, eq(documents.id, citationAnchors.documentId))
+      .innerJoin(documentChunks, eq(documentChunks.id, citationAnchors.chunkId))
+      .where(
+        and(
+          eq(citationAnchors.workspaceId, args.workspace_id),
+          inArray(citationAnchors.id, anchorIds),
+        ),
+      );
+
+    const hydratedByAnchorId = new Map(
+      hydrated.map((item) => [item.anchorId, item] as const),
+    );
+
+    return {
+      ok: true,
+      results: ranked
+        .map((item) => {
+          const row = hydratedByAnchorId.get(item.anchorId);
+          if (!row) {
+            return null;
+          }
+
+          return {
+            anchor_id: row.anchorId,
+            document_id: row.documentId,
+            document_title: row.documentTitle,
+            document_path: row.documentPath,
+            page_no: row.pageNo,
+            section_label: row.sectionLabel,
+            snippet: row.snippet,
+            score: item.score,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Workspace retrieval failed";
+    return {
+      ok: false,
+      error: {
+        code: "SEARCH_UNAVAILABLE",
+        message,
+        retryable: true,
+      },
+    };
   }
-
-  if (args.filters?.doc_types?.length) {
-    filters.push(inArray(documents.docType, args.filters.doc_types as never[]));
-  }
-
-  const results = await db
-    .select({
-      anchorId: citationAnchors.id,
-      documentId: citationAnchors.documentId,
-      documentPath: citationAnchors.documentPath,
-      documentTitle: documents.title,
-      pageNo: citationAnchors.pageNo,
-      sectionLabel: documentChunks.sectionLabel,
-      snippet: citationAnchors.anchorText,
-    })
-    .from(citationAnchors)
-    .innerJoin(documents, eq(documents.id, citationAnchors.documentId))
-    .innerJoin(documentChunks, eq(documentChunks.id, citationAnchors.chunkId))
-    .where(
-      and(
-        ...filters,
-        ilike(citationAnchors.anchorText, `%${args.query}%`),
-      ),
-    )
-    .orderBy(desc(citationAnchors.createdAt))
-    .limit(args.top_k);
-
-  return {
-    ok: true,
-    results: results.map((item, index) => ({
-      anchor_id: item.anchorId,
-      document_id: item.documentId,
-      document_title: item.documentTitle,
-      document_path: item.documentPath,
-      page_no: item.pageNo,
-      section_label: item.sectionLabel,
-      snippet: item.snippet,
-      score: Number((1 - index * 0.05).toFixed(2)),
-    })),
-  };
 }
 
 export async function readCitationAnchorHandler(input: unknown) {
