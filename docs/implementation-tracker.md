@@ -58,6 +58,7 @@
 - `working tree` Implement document management CRUD
 - `working tree` Document implementation snapshot and current gap assessment
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
+- `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `f0e431a` Prioritize DashScope retrieval providers
 - `70aa665` Add parser OCR fallback and grounded answer validation
 
@@ -78,11 +79,10 @@
 默认按以下顺序推进：
 
 1. 完成去法律化改造的剩余测试与文案清理
-2. 为去法律化清理补局部质量门禁，并提交一批稳定可验证的变更
-3. sparse/BM25 混合检索
-4. Agent evidence dossier
-5. SSE 工具时间线
-6. OCR 商业 API provider 方案确认后再接入
+2. sparse/BM25 混合检索
+3. Agent evidence dossier
+4. SSE 工具时间线
+5. OCR 商业 API provider 方案确认后再接入
 
 ## 5. 风险与注意事项
 
