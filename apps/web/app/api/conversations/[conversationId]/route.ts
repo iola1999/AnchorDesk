@@ -98,3 +98,25 @@ export async function PATCH(
 
   return Response.json({ conversation: updatedConversation });
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ conversationId: string }> },
+) {
+  const { conversationId } = await params;
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const conversation = await requireOwnedConversation(conversationId, userId);
+  if (!conversation) {
+    return Response.json({ error: "Conversation not found" }, { status: 404 });
+  }
+
+  const db = getDb();
+  await db.delete(conversations).where(eq(conversations.id, conversationId));
+
+  return Response.json({ ok: true, workspaceId: conversation.workspaceId });
+}

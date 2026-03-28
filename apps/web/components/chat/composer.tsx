@@ -3,7 +3,27 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-export function Composer({ conversationId }: { conversationId: string }) {
+type ComposerProps = {
+  conversationId?: string;
+  workspaceId?: string;
+  title?: string;
+  description?: string;
+  placeholder?: string;
+  submitLabel?: string;
+  variant?: "card" | "stage";
+  rows?: number;
+};
+
+export function Composer({
+  conversationId,
+  workspaceId,
+  title = "提问",
+  description,
+  placeholder = "输入你的问题...",
+  submitLabel = "发送",
+  variant = "card",
+  rows,
+}: ComposerProps) {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -14,8 +34,32 @@ export function Composer({ conversationId }: { conversationId: string }) {
     const prompt = content.trim();
     if (!prompt) return;
 
+    let targetConversationId = conversationId;
+    if (!targetConversationId) {
+      if (!workspaceId) {
+        setStatus("缺少工作空间信息，无法创建对话。");
+        return;
+      }
+
+      setStatus("正在创建对话...");
+      const createResponse = await fetch(`/api/workspaces/${workspaceId}/conversations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const createBody = (await createResponse.json().catch(() => null)) as
+        | { error?: string; conversation?: { id: string } }
+        | null;
+
+      targetConversationId = createBody?.conversation?.id;
+      if (!createResponse.ok || !targetConversationId) {
+        setStatus(createBody?.error ?? "创建对话失败。");
+        return;
+      }
+    }
+
     setStatus("正在发送...");
-    const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+    const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: prompt }),
@@ -32,6 +76,9 @@ export function Composer({ conversationId }: { conversationId: string }) {
           : "消息已提交，正在刷新对话...",
       );
       startTransition(() => {
+        if (!conversationId && workspaceId) {
+          router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
+        }
         router.refresh();
       });
     } else {
@@ -40,19 +87,32 @@ export function Composer({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
-      <h3>提问</h3>
+    <form
+      onSubmit={onSubmit}
+      className={variant === "stage" ? "assistant-composer" : "card form"}
+    >
+      <div className={variant === "stage" ? "assistant-composer-head" : "stack"}>
+        <h3>{title}</h3>
+        {description ? <p className="muted">{description}</p> : null}
+      </div>
       <textarea
         required
-        rows={4}
+        rows={rows ?? (variant === "stage" ? 6 : 4)}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="输入你的问题..."
+        placeholder={placeholder}
       />
-      <button disabled={isPending} type="submit">
-        {isPending ? "刷新中..." : "发送"}
-      </button>
-      {status ? <p>{status}</p> : null}
+      <div className="assistant-composer-actions">
+        <div className="assistant-composer-hint muted">
+          {variant === "stage"
+            ? "助手会优先使用当前空间里的资料和对话上下文。"
+            : "消息会写入当前会话并触发 Agent 处理。"}
+        </div>
+        <button disabled={isPending} type="submit">
+          {isPending ? "刷新中..." : submitLabel}
+        </button>
+      </div>
+      {status ? <p className="assistant-composer-status muted">{status}</p> : null}
     </form>
   );
 }

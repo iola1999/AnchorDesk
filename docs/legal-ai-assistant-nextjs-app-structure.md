@@ -29,6 +29,7 @@ apps/web/
 │  │  ├─ workspaces/page.tsx
 │  │  ├─ workspaces/new/page.tsx
 │  │  ├─ workspaces/[workspaceId]/page.tsx
+│  │  ├─ workspaces/[workspaceId]/settings/page.tsx
 │  │  ├─ workspaces/[workspaceId]/documents/[documentId]/page.tsx
 │  │  └─ workspaces/[workspaceId]/reports/[reportId]/page.tsx
 │  ├─ api/
@@ -73,13 +74,14 @@ apps/web/
 
 用途：
 
-- 工作空间列表
+- 登录后的空间选择页
 - 新建工作空间入口
+- 不再承载资料上传、系统运营等后台功能
 
 组件建议：
 
-- `WorkspaceList`
-- `CreateWorkspaceDialog`
+- `WorkspaceSelector`
+- `CreateWorkspaceEntry`
 
 ### 3.2 `/settings`
 
@@ -98,26 +100,34 @@ apps/web/
 
 用途：
 
-- 主工作台页面
-- 左侧对话，右侧文档阅读或报告结果查看
+- 空间内的问答主工作台
+- 顶部面包屑 / 空间切换
+- 左侧历史会话、左侧当前空间设置、底部用户信息
+- 中央主舞台根据是否选中会话展示“新问题页”或“会话页”
 
 组件建议：
 
-- `ChatThread`
+- `WorkspaceShell`
+- `ConversationSidebar`
+- `ChatStage`
 - `Composer`
-- `ToolRunTimeline`
-- `UploadQueuePanel`
-- `WorkspaceTree`
-- `DocumentViewer`
 
-### 3.4 `/workspaces/[workspaceId]/documents/[documentId]`
+### 3.4 `/workspaces/[workspaceId]/settings`
+
+用途：
+
+- 当前空间设置页
+- 维护空间名称、说明、资料库、上传入口和处理状态
+- 作为左侧“当前空间设置”二级入口的落点页
+
+### 3.5 `/workspaces/[workspaceId]/documents/[documentId]`
 
 用途：
 
 - 单文档深度阅读
 - 支持从 citation 跳入
 
-### 3.5 `/workspaces/[workspaceId]/reports/[reportId]`
+### 3.6 `/workspaces/[workspaceId]/reports/[reportId]`
 
 用途：
 
@@ -135,6 +145,8 @@ apps/web/
   - 列出当前用户工作空间
 - `GET /api/workspaces/:workspaceId`
   - 读取工作空间详情
+- `PATCH /api/workspaces/:workspaceId`
+  - 更新工作空间名称、说明和行业
 
 ### 4.1A 系统设置类
 
@@ -170,6 +182,8 @@ apps/web/
   - 获取对话基础信息
 - `PATCH /api/conversations/:conversationId`
   - 重命名、归档或恢复会话
+- `DELETE /api/conversations/:conversationId`
+  - 删除会话
 - `POST /api/conversations/:conversationId/messages`
   - 发送一条用户消息
 - `GET /api/conversations/:conversationId/stream`
@@ -251,7 +265,8 @@ data: {"message_id":"msg_xxx"}
 
 1. `/workspaces`
 2. `/workspaces/[workspaceId]`
-3. 上传相关 API
-4. 对话相关 API
-5. 引用跳转 API
-6. 报告页面和导出
+3. `/workspaces/[workspaceId]/settings`
+4. 上传相关 API
+5. 对话相关 API
+6. 引用跳转 API
+7. 报告页面和导出

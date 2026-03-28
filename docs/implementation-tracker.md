@@ -40,6 +40,7 @@
 - 本地开发一键启动脚本已补齐，联调不再需要手工逐个拉起 `web/worker/agent/parser`。
 - 系统级 provider / infra 配置开始从 env 收敛到数据库 `system_settings`。
 - 系统设置后台页已补齐基础版；大部分配置现在可在 `/settings` 页面维护，但仅超管可见。
+- 工作空间主界面已重构为“先选空间 -> 左侧会话/设置 -> 中央问答主舞台”的助手式产品壳层，不再平铺功能卡片。
 - 开发期基础设施推荐统一走 Docker Compose，而不是手工本机安装 Qdrant / MinIO。
 - 当前最缺的不是更多 agent 花样，而是 parser/retrieval/grounded answer/SSE 这些“可信回答底座”能力。
 
@@ -53,6 +54,11 @@
   - `pnpm dev` / `pnpm dev:web` / `pnpm dev:worker` / `pnpm dev:agent` 启动前会自动补齐并加载系统参数
   - Web 端新增 `/settings` 页面和 `/api/system-settings` 接口，用于超管可视化维护系统参数
   - `.env.example` 收敛为最小配置；进程外只保留 `DATABASE_URL` 与 `AUTH_SECRET`
+- `working tree` `Redesign workspace shell around assistant-first flow`
+  - 登录后先进入 `/workspaces` 选择具体空间，再进入空间内的问答工作台
+  - 空会话态改成大输入框的新问题页，提交首问后前端会自动创建会话
+  - 空间内改成“顶部面包屑/空间切换 + 左侧历史会话 + 左侧当前空间设置 + 中央会话主舞台”的产品结构
+  - 资料库、上传入口和空间名称维护统一收进 `/workspaces/[workspaceId]/settings`
 - `working tree` `Add Docker infra commands and dev guide`
   - 根目录新增 `pnpm infra:up` / `pnpm infra:down` / `pnpm infra:logs`
   - 新增本地开发指引文档，明确推荐“应用跑宿主机，依赖跑 Docker Compose”
@@ -85,7 +91,7 @@
 
 ### 已完成但仍属基础版
 
-- 工作空间首页仍是基础工作台，不是最终桌面级 UX
+- 工作空间壳层已换成产品化结构，但视觉细节、快捷操作和会话筛选仍是基础版
 - PDF 阅读器当前是基础版：已能渲染 PDF、页码跳转和文本搜索，但还没有 bbox 级高亮
 - 文档标签当前保存在 `documents.tags_json`，还没有独立标签管理页和过滤器 UI
 - 报告页支持生成与导出，但当前定位是结果页，不是在线编辑器

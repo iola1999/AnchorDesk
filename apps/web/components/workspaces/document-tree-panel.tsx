@@ -68,7 +68,7 @@ export function DocumentTreePanel({
   const documentByPath = new Map(documents.map((item) => [item.logicalPath, item] as const));
 
   return (
-    <div className="card">
+    <div className="assistant-settings-subcard">
       <h3>资料目录</h3>
       {tree.length ? (
         <ul className="tree-list">

@@ -5,8 +5,10 @@ import { useState, useTransition } from "react";
 
 export function CreateConversationButton({
   workspaceId,
+  label = "新建对话",
 }: {
   workspaceId: string;
+  label?: string;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function CreateConversationButton({
   return (
     <div className="stack">
       <button disabled={isPending} onClick={handleClick} type="button">
-        {isPending ? "进入中..." : "新建对话"}
+        {isPending ? "进入中..." : label}
       </button>
       {status ? <p className="error">{status}</p> : null}
     </div>

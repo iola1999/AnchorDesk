@@ -32,22 +32,42 @@ export function CreateWorkspaceForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
-      <h2>新建工作空间</h2>
+    <form onSubmit={onSubmit} className="workspace-create-form">
+      <div className="stack">
+        <p className="workspace-panel-eyebrow">Create Space</p>
+        <h2>新建工作空间</h2>
+        <p className="muted">
+          先把空间名称和背景说明定义清楚，后续的资料库、历史会话和输出结果都会沉淀在这里。
+        </p>
+      </div>
       <label>
         标题
-        <input required value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input
+          required
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="例如：供应商主合同审查"
+        />
       </label>
       <label>
         行业
-        <input value={industry} onChange={(e) => setIndustry(e.target.value)} />
+        <input
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value)}
+          placeholder="例如：制造业 / SaaS / 医疗"
+        />
       </label>
       <label>
         描述
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea
+          rows={5}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="说明当前空间希望处理的资料主题、常见问题和输出目标。"
+        />
       </label>
       {error ? <p className="error">{error}</p> : null}
-      <button type="submit">创建</button>
+      <button type="submit">创建空间</button>
     </form>
   );
 }

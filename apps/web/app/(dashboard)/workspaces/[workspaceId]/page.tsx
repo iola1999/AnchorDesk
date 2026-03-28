@@ -4,32 +4,17 @@ import { notFound } from "next/navigation";
 
 import {
   conversations,
-  documentJobs,
-  documentVersions,
-  documents,
   getDb,
   messageCitations,
   messages,
-  reports,
   workspaces,
 } from "@law-doc/db";
 
-import { Composer } from "@/components/chat/composer";
-import { ConversationActions } from "@/components/chat/conversation-actions";
-import { CreateConversationButton } from "@/components/chat/create-conversation-button";
-import { CreateReportForm } from "@/components/reports/create-report-form";
-import { WorkspaceAutoRefresh } from "@/components/workspaces/auto-refresh";
-import { DocumentTreePanel } from "@/components/workspaces/document-tree-panel";
-import { ManualRefreshButton } from "@/components/workspaces/manual-refresh-button";
-import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-job-button";
-import { UploadForm } from "@/components/workspaces/upload-form";
 import { auth } from "@/auth";
-import {
-  chooseWorkspaceConversationWithMeta,
-  formatConversationUpdatedAt,
-  groupWorkspaceConversationsWithMeta,
-} from "@/lib/api/conversations";
-import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
+import { Composer } from "@/components/chat/composer";
+import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
+import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
+import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
 
 export default async function WorkspacePage({
   params,
@@ -42,78 +27,46 @@ export default async function WorkspacePage({
   const { conversationId: requestedConversationId } = await searchParams;
   const session = await auth();
   const userId = session?.user?.id ?? "";
+  const user = session?.user;
   const db = getDb();
 
-  const [workspace, docs, conversationList, reportList] = await Promise.all([
+  const [workspaceList, workspaceRows, conversationList] = await Promise.all([
+    db
+      .select({
+        id: workspaces.id,
+        title: workspaces.title,
+      })
+      .from(workspaces)
+      .where(eq(workspaces.userId, userId))
+      .orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt)),
     db
       .select()
       .from(workspaces)
       .where(and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)))
       .limit(1),
     db
-      .select()
-      .from(documents)
-      .where(eq(documents.workspaceId, workspaceId))
-      .orderBy(desc(documents.createdAt)),
-    db
-      .select()
+      .select({
+        id: conversations.id,
+        title: conversations.title,
+        status: conversations.status,
+        mode: conversations.mode,
+        updatedAt: conversations.updatedAt,
+        createdAt: conversations.createdAt,
+      })
       .from(conversations)
       .where(eq(conversations.workspaceId, workspaceId))
       .orderBy(desc(conversations.updatedAt), desc(conversations.createdAt)),
-    db
-      .select()
-      .from(reports)
-      .where(eq(reports.workspaceId, workspaceId))
-      .orderBy(desc(reports.updatedAt), desc(reports.createdAt))
-      .limit(8),
   ]);
 
-  if (!workspace[0]) {
+  const workspace = workspaceRows[0];
+  if (!workspace || !user) {
     notFound();
   }
-
-  const latestVersionIds = docs
-    .map((doc) => doc.latestVersionId)
-    .filter((value): value is string => Boolean(value));
-
-  const [latestVersions, latestJobs] = await Promise.all([
-    latestVersionIds.length > 0
-      ? db
-          .select()
-          .from(documentVersions)
-          .where(inArray(documentVersions.id, latestVersionIds))
-      : Promise.resolve([]),
-    latestVersionIds.length > 0
-      ? db
-          .select()
-          .from(documentJobs)
-          .where(inArray(documentJobs.documentVersionId, latestVersionIds))
-      : Promise.resolve([]),
-  ]);
-
-  const versionById = new Map(latestVersions.map((version) => [version.id, version]));
-  const jobByVersionId = new Map(
-    latestJobs.map((job) => [job.documentVersionId, job]),
-  );
-
-  const docsWithProgress = docs.map((doc) => {
-    const latestVersion = doc.latestVersionId
-      ? versionById.get(doc.latestVersionId) ?? null
-      : null;
-    const latestJob = latestVersion ? jobByVersionId.get(latestVersion.id) ?? null : null;
-
-    return {
-      ...doc,
-      latestVersion,
-      latestJob,
-    };
-  });
 
   const activeConversation = chooseWorkspaceConversationWithMeta(
     conversationList,
     requestedConversationId,
   );
-  const groupedConversations = groupWorkspaceConversationsWithMeta(conversationList);
 
   const thread = activeConversation
     ? await db
@@ -139,253 +92,124 @@ export default async function WorkspacePage({
     citationsByMessage.set(citation.messageId, group);
   }
 
-  const hasActiveJobs = docsWithProgress.some(
-    (doc) =>
-      doc.latestJob?.status === "queued" ||
-      doc.latestJob?.status === "running" ||
-      (doc.latestVersion && doc.latestVersion.parseStatus !== "ready" && doc.latestVersion.parseStatus !== "failed"),
-  );
-
   return (
-    <div className="stack">
-      <WorkspaceAutoRefresh enabled={hasActiveJobs} />
-      <div className="toolbar">
-        <div>
-          <h1>{workspace[0].title}</h1>
-          <p className="muted">{workspace[0].description || "暂无描述"}</p>
-        </div>
-      </div>
-
-      <div className="grid two">
-        <div className="stack">
-          <div className="card stack">
-            <div className="toolbar">
-              <h3>对话</h3>
-              <CreateConversationButton workspaceId={workspaceId} />
-            </div>
-            {conversationList.length > 0 ? (
+    <WorkspaceShell
+      workspace={{
+        id: workspace.id,
+        title: workspace.title,
+      }}
+      workspaces={workspaceList}
+      conversations={conversationList}
+      activeConversationId={activeConversation?.id}
+      currentUser={{
+        name: user.name,
+        username: user.username,
+      }}
+      breadcrumbs={[
+        { label: "空间", href: "/workspaces" },
+        { label: workspace.title },
+      ]}
+      topActions={
+        activeConversation ? (
+          <ConversationPageActions
+            conversationId={activeConversation.id}
+            workspaceId={workspaceId}
+          />
+        ) : undefined
+      }
+    >
+      {activeConversation ? (
+        <div className="conversation-stage">
+          <div className="conversation-stage-panel">
+            <header className="conversation-stage-header">
               <div className="stack">
-                <section className="stack conversation-section">
-                  <div className="toolbar">
-                    <strong>活跃会话</strong>
-                    <span className="muted">{groupedConversations.active.length} 个</span>
-                  </div>
-                  {groupedConversations.active.length > 0 ? (
-                    <div className="conversation-list">
-                      {groupedConversations.active.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`conversation-link${item.id === activeConversation?.id ? " is-active" : ""}`}
-                        >
-                          <Link href={`/workspaces/${workspaceId}?conversationId=${item.id}`}>
-                            <strong>{item.title}</strong>
-                            <span className="muted">
-                              {item.mode} · 最近访问 {formatConversationUpdatedAt(item.updatedAt)}
-                            </span>
-                          </Link>
-                          <ConversationActions
-                            conversationId={item.id}
-                            workspaceId={workspaceId}
-                            title={item.title}
-                            status={item.status}
-                            isActive={item.id === activeConversation?.id}
-                          />
-                        </div>
-                      ))}
+                <p className="workspace-panel-eyebrow">Conversation</p>
+                <h1>{activeConversation.title}</h1>
+                <p className="muted">
+                  当前会话持续沉淀在 {workspace.title} 里，引用会继续指向该空间下的资料。
+                </p>
+              </div>
+            </header>
+
+            <div className="conversation-thread">
+              {thread.length > 0 ? (
+                thread.map((message) => (
+                  <article
+                    key={message.id}
+                    className={`conversation-bubble conversation-bubble-${message.role}`}
+                  >
+                    <div className="conversation-bubble-head">
+                      <strong>
+                        {message.role === "assistant"
+                          ? "AI 助手"
+                          : message.role === "user"
+                            ? "你"
+                            : message.role}
+                      </strong>
+                      <span className="muted">{message.status}</span>
                     </div>
-                  ) : (
-                    <p className="muted">当前没有活跃会话。</p>
-                  )}
-                </section>
-                <section className="stack conversation-section">
-                  <div className="toolbar">
-                    <strong>已归档</strong>
-                    <span className="muted">{groupedConversations.archived.length} 个</span>
-                  </div>
-                  {groupedConversations.archived.length > 0 ? (
-                    <div className="conversation-list">
-                      {groupedConversations.archived.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`conversation-link${item.id === activeConversation?.id ? " is-active" : ""}`}
-                        >
-                          <Link href={`/workspaces/${workspaceId}?conversationId=${item.id}`}>
-                            <strong>{item.title}</strong>
-                            <span className="muted">
-                              已归档 · 最近访问 {formatConversationUpdatedAt(item.updatedAt)}
-                            </span>
+                    <div className="conversation-bubble-body">{message.contentMarkdown}</div>
+                    {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
+                      <div className="citation-list">
+                        {(citationsByMessage.get(message.id) ?? []).map((citation) => (
+                          <Link
+                            key={citation.id}
+                            href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
+                            className="citation-link"
+                          >
+                            {citation.label}
                           </Link>
-                          <ConversationActions
-                            conversationId={item.id}
-                            workspaceId={workspaceId}
-                            title={item.title}
-                            status={item.status}
-                            isActive={item.id === activeConversation?.id}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="muted">当前没有归档会话。</p>
-                  )}
-                </section>
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>当前还没有对话。</p>
-                <p className="muted">先创建一个对话，再开始基于知识库提问。</p>
-              </div>
-            )}
-          </div>
-
-          {activeConversation ? (
-            <>
-              <div className="card stack">
-                <div className="toolbar">
-                  <h3>当前对话</h3>
-                  <span className="muted">
-                    {activeConversation.title} · {activeConversation.mode} · 最近访问{" "}
-                    {formatConversationUpdatedAt(activeConversation.updatedAt)}
-                  </span>
-                </div>
-                <div className="thread">
-                  {thread.length > 0 ? (
-                    thread.map((message) => (
-                      <article key={message.id} className="message-card">
-                        <div className="message-meta">
-                          <strong>
-                            {message.role === "assistant"
-                              ? "AI 助手"
-                              : message.role === "user"
-                                ? "你"
-                                : message.role}
-                          </strong>
-                          <span className="muted">{message.status}</span>
-                        </div>
-                        <div>{message.contentMarkdown}</div>
-                        {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
-                          <div className="citation-list">
-                            {(citationsByMessage.get(message.id) ?? []).map((citation) => (
-                              <Link
-                                key={citation.id}
-                                href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                                className="citation-link"
-                              >
-                                {citation.label}
-                              </Link>
-                            ))}
-                          </div>
-                        ) : null}
-                      </article>
-                    ))
-                  ) : (
-                    <p className="muted">还没有消息。</p>
-                  )}
-                </div>
-              </div>
-              <Composer conversationId={activeConversation.id} />
-            </>
-          ) : (
-            <div className="card">
-              <p>先创建一个对话。</p>
-              <p className="muted">创建后即可在当前工作空间中提问和沉淀回答记录。</p>
-            </div>
-          )}
-
-          <DocumentTreePanel
-            workspaceId={workspaceId}
-            documents={docsWithProgress.map((doc) => ({
-              id: doc.id,
-              title: doc.title,
-              logicalPath: doc.logicalPath,
-              docType: doc.docType,
-              tags: doc.tagsJson ?? [],
-            }))}
-          />
-        </div>
-
-        <div className="stack">
-          <UploadForm workspaceId={workspaceId} />
-          <CreateReportForm
-            workspaceId={workspaceId}
-            conversationId={activeConversation?.id}
-          />
-          <div className="card">
-            <div className="toolbar">
-              <h3>处理队列</h3>
-              <ManualRefreshButton />
-            </div>
-            <ul className="list">
-              {docsWithProgress
-                .filter((doc) => doc.latestJob || doc.status !== "ready")
-                .slice(0, 6)
-                .map((doc) => (
-                  <li key={doc.id}>
-                    <div className="stack">
-                      <div>
-                        <Link href={`/workspaces/${workspaceId}/documents/${doc.id}`}>
-                          <strong>{doc.title}</strong>
-                        </Link>
-                        <span className="muted">
-                          {" "}
-                          · {doc.latestJob?.stage ?? doc.latestVersion?.parseStatus ?? doc.status}
-                          {doc.latestJob ? ` · ${doc.latestJob.progress}%` : ""}
-                        </span>
+                        ))}
                       </div>
-                      {doc.latestJob?.status === "failed" ? (
-                        <p className="error">
-                          {describeDocumentJobFailure({
-                            stage: doc.latestJob.stage,
-                            errorCode: doc.latestJob.errorCode,
-                            errorMessage: doc.latestJob.errorMessage,
-                          })}
-                        </p>
-                      ) : null}
-                      {doc.latestJob && canRetryDocumentJob(doc.latestJob) ? (
-                        <RetryDocumentJobButton jobId={doc.latestJob.id} />
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              {docsWithProgress.filter((doc) => doc.latestJob || doc.status !== "ready")
-                .length === 0 ? <li className="muted">当前没有进行中的处理任务。</li> : null}
-            </ul>
-          </div>
-          <div className="card">
-            <div className="toolbar">
-              <h3>最近报告</h3>
+                    ) : null}
+                  </article>
+                ))
+              ) : (
+                <div className="conversation-empty muted">
+                  这一轮还没有消息，从底部输入框继续提问。
+                </div>
+              )}
             </div>
-            {reportList.length > 0 ? (
-              <ul className="list">
-                {reportList.map((report) => (
-                  <li key={report.id}>
-                    <Link href={`/workspaces/${workspaceId}/reports/${report.id}`}>
-                      {report.title}
-                    </Link>
-                    <span className="muted"> · {report.status}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted">当前还没有报告。</p>
-            )}
-          </div>
-          <div className="card">
-            <h3>最近文档</h3>
-            <ul className="list">
-              {docsWithProgress.slice(0, 5).map((doc) => (
-                <li key={doc.id}>
-                  {doc.title}{" "}
-                  <span className="muted">
-                    ({doc.latestJob?.stage ?? doc.latestVersion?.parseStatus ?? doc.status}
-                    {doc.latestJob ? ` · ${doc.latestJob.progress}%` : ""})
-                  </span>
-                </li>
-              ))}
-            </ul>
+
+            <div className="conversation-composer-wrap">
+              <Composer
+                conversationId={activeConversation.id}
+                workspaceId={workspaceId}
+                variant="stage"
+                rows={4}
+                title="继续提问"
+                description="上下文会沿用本轮会话，不需要重复描述已经上传的资料。"
+                placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证。"
+                submitLabel="发送"
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        <div className="new-question-stage">
+          <div className="new-question-stage-panel">
+            <div className="new-question-stage-copy">
+              <p className="workspace-panel-eyebrow">New Question</p>
+              <h1>{workspace.title}</h1>
+              <p className="muted">
+                先把要解决的问题直接写出来。资料库维护、上传和空间名称调整，都统一收到左侧“当前空间设置”里。
+              </p>
+            </div>
+
+            <div className="new-question-stage-composer">
+              <Composer
+                workspaceId={workspaceId}
+                variant="stage"
+                rows={8}
+                title="输入 / 粘贴你的问题"
+                description="提交第一轮问题后，系统会自动创建会话，并把后续回答沉淀到左侧历史里。"
+                placeholder="例如：请基于本空间资料，对供应合同中的违约责任和终止条款做风险审查，并列出仍需补充的事实。"
+                submitLabel="开始对话"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </WorkspaceShell>
   );
 }

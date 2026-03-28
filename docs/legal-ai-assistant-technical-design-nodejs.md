@@ -924,24 +924,35 @@ Agent 不应被写死成“先出报告”。
 - `/workspaces`
 - `/workspaces/new`
 - `/workspaces/[workspaceId]`
+- `/workspaces/[workspaceId]/settings`
 - `/workspaces/[workspaceId]/documents/[documentId]`
 - `/workspaces/[workspaceId]/reports/[reportId]`
 
 ### 14.2 `workspaces/[workspaceId]` 页面布局
 
-左右双栏：
+助手式工作台壳层：
 
-- 左栏 40%
-  - 对话流
-  - 工具状态
-  - 快捷动作
-  - 上传队列
-- 右栏 60%
-  - 默认 PDF 阅读器
-  - 报告模式展示生成结果与导出入口
+- 顶部
+  - 面包屑 / 导航栏
+  - 空间切换器
+  - 会话级动作（如分享、删除）
+- 左侧栏
+  - 新建问题入口
+  - 历史会话列表
+  - 当前空间设置二级入口
+  - 当前用户与系统设置入口
+- 中央主舞台
+  - 未选中会话时展示大输入框的新问题页
+  - 选中会话后展示会话线程和底部输入框
+- 资料库、上传和空间名称维护
+  - 收敛到 `/workspaces/[workspaceId]/settings`
+  - 不再和主问答页混排
 
 ### 14.3 关键组件
 
+- `WorkspaceShell`
+- `ConversationSidebar`
+- `WorkspaceSettingsPanel`
 - `ChatThread`
 - `Composer`
 - `ToolRunTimeline`
@@ -972,6 +983,7 @@ Agent 不应被写死成“先出报告”。
 - `GET /api/workspaces`
 - `POST /api/workspaces`
 - `GET /api/workspaces/:workspaceId`
+- `PATCH /api/workspaces/:workspaceId`
 - `GET /api/workspaces/:workspaceId/documents`
 - `PATCH /api/workspaces/:workspaceId/documents/:documentId`
 - `DELETE /api/workspaces/:workspaceId/documents/:documentId`
@@ -980,6 +992,8 @@ Agent 不应被写死成“先出报告”。
 
 - `POST /api/workspaces/:workspaceId/conversations`
 - `GET /api/conversations/:conversationId`
+- `PATCH /api/conversations/:conversationId`
+- `DELETE /api/conversations/:conversationId`
 - `POST /api/conversations/:conversationId/messages`
 - `GET /api/conversations/:conversationId/stream`
 

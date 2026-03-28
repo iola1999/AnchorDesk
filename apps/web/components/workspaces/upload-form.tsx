@@ -83,7 +83,7 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card form">
+    <form onSubmit={onSubmit} className="assistant-settings-subcard form">
       <h3>上传资料</h3>
       <label>
         目录路径
