@@ -24,7 +24,7 @@ type WorkspaceShellProps = {
   workspaces: WorkspaceListItem[];
   conversations: ConversationListItem[];
   activeConversationId?: string;
-  activeView?: "chat" | "settings";
+  activeView?: "chat" | "settings" | "knowledge-base";
   currentUser: {
     name?: string | null;
     username: string;
@@ -61,6 +61,13 @@ export function WorkspaceShell({
   const canAccessSystemSettings = isSuperAdminUsername(currentUser.username);
   const displayName = currentUser.name ?? currentUser.username;
   const avatarLabel = displayName.slice(0, 1).toUpperCase();
+  const workspaceNavLink = (selected: boolean) =>
+    cn(
+      "flex min-h-10 items-center justify-between rounded-xl px-3 text-sm transition",
+      selected
+        ? "bg-white text-app-text shadow-soft"
+        : "bg-white/68 text-app-muted-strong hover:bg-white hover:text-app-text",
+    );
 
   return (
     <div className="grid min-h-screen grid-cols-1 xl:grid-cols-[258px_minmax(0,1fr)]">
@@ -129,36 +136,26 @@ export function WorkspaceShell({
           </div>
         </div>
 
-        <div
-          className={cn(
-            "grid gap-2 rounded-[18px] border p-3 shadow-soft",
-            activeView === "settings"
-              ? "border-app-border-strong bg-white/70"
-              : "border-app-border bg-white/58",
-          )}
-        >
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-app-muted">
-            <span>当前空间设置</span>
-            {archivedConversations.length > 0 ? (
-              <span className="text-[11px] normal-case tracking-normal">
-                已归档 {archivedConversations.length}
-              </span>
-            ) : null}
-          </div>
-          <nav className="grid gap-2">
+        <div className="grid gap-2 rounded-[18px] border border-app-border bg-white/58 p-2 shadow-soft">
+          <nav className="grid gap-1">
             <Link
               href={`/workspaces/${workspace.id}/settings`}
-              className="flex min-h-10 items-center justify-between rounded-xl border border-transparent bg-white/75 px-3 text-sm hover:border-app-border-strong hover:bg-white"
+              className={workspaceNavLink(activeView === "settings")}
             >
-              空间信息
+              设置
             </Link>
             <Link
-              href={`/workspaces/${workspace.id}/settings#knowledge-base`}
-              className="flex min-h-10 items-center justify-between rounded-xl border border-transparent bg-white/75 px-3 text-sm hover:border-app-border-strong hover:bg-white"
+              href={`/workspaces/${workspace.id}/knowledge-base`}
+              className={workspaceNavLink(activeView === "knowledge-base")}
             >
-              资料库与上传
+              资料库
             </Link>
           </nav>
+          {archivedConversations.length > 0 ? (
+            <div className="px-3 pt-1 text-[11px] text-app-muted">
+              已归档 {archivedConversations.length}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-auto grid gap-3 rounded-[18px] border border-app-border bg-white/60 p-3 shadow-soft">
@@ -170,12 +167,6 @@ export function WorkspaceShell({
             <span className={ui.muted}>@{currentUser.username}</span>
           </div>
           <div className="grid gap-2">
-            <Link
-              href="/workspaces"
-              className="flex min-h-10 items-center justify-between rounded-xl bg-white/75 px-3 text-sm hover:bg-white"
-            >
-              切换空间
-            </Link>
             {canAccessSystemSettings ? (
               <Link
                 href="/settings"

@@ -7,6 +7,7 @@ import {
 } from "@knowledge-assistant/contracts";
 
 import {
+  formatRelativeWorkspaceActivity,
   isWorkspaceDocumentFailed,
   isWorkspaceDocumentProcessing,
   isWorkspaceDocumentReady,
@@ -104,5 +105,34 @@ describe("summarizeWorkspaceOverview", () => {
       hasKnowledgeReady: true,
       hasPendingWork: true,
     });
+  });
+});
+
+describe("formatRelativeWorkspaceActivity", () => {
+  test("formats very recent activity as just now", () => {
+    expect(
+      formatRelativeWorkspaceActivity(
+        new Date("2026-03-29T12:00:30Z"),
+        new Date("2026-03-29T12:01:00Z"),
+      ),
+    ).toBe("刚刚");
+  });
+
+  test("formats recent activity in relative hours", () => {
+    expect(
+      formatRelativeWorkspaceActivity(
+        new Date("2026-03-29T09:00:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("3小时前");
+  });
+
+  test("formats older activity in relative days", () => {
+    expect(
+      formatRelativeWorkspaceActivity(
+        new Date("2026-03-26T12:00:00Z"),
+        new Date("2026-03-29T12:00:00Z"),
+      ),
+    ).toBe("3天前");
   });
 });

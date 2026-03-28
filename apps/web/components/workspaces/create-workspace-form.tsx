@@ -44,9 +44,6 @@ export function CreateWorkspaceForm() {
       <div className="grid gap-2">
         <p className={ui.eyebrow}>Create Space</p>
         <h2>新建工作空间</h2>
-        <p className={ui.muted}>
-          先定义空间名称，再补一条统一提示词。之后这个空间里的每次对话，都会自动沿用这条要求。
-        </p>
       </div>
       <label className={ui.label}>
         空间名称
@@ -86,7 +83,6 @@ export function CreateWorkspaceForm() {
         >
           {isSubmitting ? "创建中..." : "创建空间"}
         </button>
-        <span className={cn(ui.muted, "text-[13px]")}>创建后会自动生成一个默认对话。</span>
       </div>
     </form>
   );

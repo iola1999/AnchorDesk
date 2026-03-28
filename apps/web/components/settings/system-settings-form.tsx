@@ -72,8 +72,7 @@ export function SystemSettingsForm({
 
       setStatus({
         tone: "muted",
-        message:
-          "系统设置已保存。重启 pnpm dev 后，web / worker / agent / parser 才会统一加载新配置。",
+        message: "已保存。重启 `pnpm dev` 后生效。",
       });
 
       startTransition(() => {
@@ -116,7 +115,6 @@ export function SystemSettingsForm({
           <button className={buttonStyles({ block: true })} disabled={isPending} type="submit">
             {isPending ? "刷新中..." : "保存系统设置"}
           </button>
-          <p className={ui.muted}>保存后需要重启 `pnpm dev` 才会让后台进程统一生效。</p>
           {status ? (
             <p className={status.tone === "error" ? ui.error : ui.muted}>
               {status.message}
@@ -128,18 +126,14 @@ export function SystemSettingsForm({
       <div className="grid gap-4">
         {sections.map((section) => (
           <section id={section.id} key={section.id} className={cn(ui.panel, "grid gap-4 scroll-mt-8")}>
-            <div className="grid gap-2">
+            <div className="grid gap-1">
               <p className={ui.eyebrow}>{section.id}</p>
               <h2>{section.title}</h2>
-              <p className={ui.muted}>{section.description}</p>
             </div>
             <div className="grid gap-4">
               {section.items.map((setting) => (
                 <label key={setting.settingKey} className={ui.label}>
                   <code className={ui.codeChip}>{setting.settingKey}</code>
-                  <span className={ui.muted}>
-                    {setting.description ?? "当前设置还没有补充说明。"}
-                  </span>
                   {setting.inputKind === "textarea" ? (
                     <textarea
                       className={ui.textarea}

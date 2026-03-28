@@ -54,11 +54,10 @@ export function WorkspaceSettingsForm({
 
   return (
     <form id={sectionId} onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5 p-6")}>
-      <div className="grid gap-2">
-        <p className={ui.eyebrow}>General</p>
-        <h2>空间信息</h2>
-        <p className={ui.muted}>
-          这里维护空间名称和统一提示词。统一提示词会在每次提问时自动附加给助手。
+      <div className="grid gap-1">
+        <h1>设置</h1>
+        <p className={cn(ui.muted, "text-[13px] leading-5")}>
+          修改空间名称和预置提示词。
         </p>
       </div>
 
@@ -93,7 +92,7 @@ export function WorkspaceSettingsForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <button className={cn(buttonStyles(), "justify-self-start")} disabled={isPending} type="submit">
-          {isPending ? "保存中..." : "保存空间设置"}
+          {isPending ? "保存中..." : "保存设置"}
         </button>
         {status ? <span className={ui.muted}>{status}</span> : null}
       </div>

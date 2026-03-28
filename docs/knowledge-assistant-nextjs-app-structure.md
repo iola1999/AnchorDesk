@@ -23,7 +23,9 @@
 - `/workspaces/[workspaceId]`
   - 空间内问答工作台
 - `/workspaces/[workspaceId]/settings`
-  - 当前空间资料与上传设置
+  - 当前空间设置
+- `/workspaces/[workspaceId]/knowledge-base`
+  - 当前空间资料库
 - `/workspaces/[workspaceId]/documents/[documentId]`
   - 单文档阅读页
 - `/workspaces/[workspaceId]/reports/[reportId]`

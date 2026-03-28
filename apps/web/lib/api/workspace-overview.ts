@@ -81,3 +81,47 @@ export function summarizeWorkspaceOverview(input: {
     hasPendingWork: processingDocuments > 0,
   };
 }
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("zh-CN", {
+  numeric: "auto",
+});
+
+export function formatRelativeWorkspaceActivity(
+  value: Date,
+  now = new Date(),
+) {
+  const diffMs = value.getTime() - now.getTime();
+  const absMs = Math.abs(diffMs);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+  const month = 30 * day;
+  const year = 365 * day;
+
+  if (absMs < minute) {
+    return "刚刚";
+  }
+
+  if (absMs < hour) {
+    return relativeTimeFormatter.format(Math.round(diffMs / minute), "minute");
+  }
+
+  if (absMs < day) {
+    return relativeTimeFormatter.format(Math.round(diffMs / hour), "hour");
+  }
+
+  if (absMs < week) {
+    return relativeTimeFormatter.format(Math.round(diffMs / day), "day");
+  }
+
+  if (absMs < month) {
+    return relativeTimeFormatter.format(Math.round(diffMs / week), "week");
+  }
+
+  if (absMs < year) {
+    return relativeTimeFormatter.format(Math.round(diffMs / month), "month");
+  }
+
+  return relativeTimeFormatter.format(Math.round(diffMs / year), "year");
+}
