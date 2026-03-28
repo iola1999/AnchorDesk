@@ -1,7 +1,7 @@
 # 通用知识库 Agent 助手 Next.js App Router 结构
 
-版本：v0.3  
-日期：2026-03-28
+版本：v0.4  
+日期：2026-03-29
 
 > 文档角色说明：
 >
@@ -32,6 +32,8 @@
   - 单文档阅读页
 - `/workspaces/[workspaceId]/reports/[reportId]`
   - 报告结果页
+- `/share/[shareToken]`
+  - 公开只读会话分享页，不要求登录
 
 ## 3. 主要 API
 
@@ -50,6 +52,9 @@
 - `/api/conversations/[conversationId]/stream`
   - 轮询数据库里的 `tool` 消息
   - 推送 assistant 完成/失败事件
+- `/api/conversations/[conversationId]/share`
+  - 查询当前会话分享状态
+  - 创建或撤销公开分享链接
 - `/api/workspaces/[workspaceId]/reports`
 - `/api/reports/[reportId]/outline`
 - `/api/reports/[reportId]/sections/[sectionId]/generate`
@@ -69,6 +74,7 @@ Client Components：
 - AccountPasswordForm
 - Composer
 - ConversationTimeline
+- ConversationSharePopover
 - PDF Viewer
 - 上传表单
 - 会话操作与自动刷新

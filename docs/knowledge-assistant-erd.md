@@ -1,7 +1,7 @@
 # 通用知识库 Agent 助手 ERD
 
-版本：v0.2  
-日期：2026-03-28
+版本：v0.3  
+日期：2026-03-29
 
 > 文档角色说明：
 >
@@ -22,8 +22,9 @@ user
       │       ├─ document_chunks
       │       └─ citation_anchors
       ├─ conversations
-      │   └─ messages
-      │       └─ message_citations
+      │   ├─ messages
+      │   │   └─ message_citations
+      │   └─ conversation_shares
       ├─ reports
       │   └─ report_sections
       └─ retrieval_runs
@@ -37,6 +38,7 @@ user
 - `documents` 保存逻辑文档信息，`document_versions` 保存版本化文件。
 - `document_blocks / document_chunks / citation_anchors` 支撑检索、阅读和引用。
 - `messages` 保存用户与助手消息，`message_citations` 保存回答中的引用映射。
+- `conversation_shares` 保存会话级公开分享记录；一个会话最多一个活跃分享链接，可撤销后重新生成。
 - `reports / report_sections` 承载大纲和分段生成结果。
 - `retrieval_runs / retrieval_results` 保留检索行为回放。
 

@@ -377,6 +377,28 @@ export const messageCitations = pgTable(
   (table) => [index("message_citations_message_idx").on(table.messageId)],
 );
 
+export const conversationShares = pgTable(
+  "conversation_shares",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    createdByUserId: uuid("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    shareToken: varchar("share_token", { length: 80 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("conversation_shares_conversation_uid").on(table.conversationId),
+    uniqueIndex("conversation_shares_token_uid").on(table.shareToken),
+    index("conversation_shares_creator_idx").on(table.createdByUserId),
+  ],
+);
+
 export const reports = pgTable(
   "reports",
   {

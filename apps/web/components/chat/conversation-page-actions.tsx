@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { buttonStyles, ui } from "@/lib/ui";
+import { ConversationSharePopover } from "@/components/chat/conversation-share-popover";
 
 export function ConversationPageActions({
   conversationId,
@@ -15,15 +16,6 @@ export function ConversationPageActions({
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  async function handleShare() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setStatus("会话链接已复制。");
-    } catch {
-      setStatus("复制链接失败。");
-    }
-  }
 
   async function handleDelete() {
     const confirmed = window.confirm("删除后会话消息将一并移除，是否继续？");
@@ -53,14 +45,7 @@ export function ConversationPageActions({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <button
-        className={buttonStyles({ variant: "secondary", size: "sm" })}
-        disabled={isPending}
-        onClick={handleShare}
-        type="button"
-      >
-        分享
-      </button>
+      <ConversationSharePopover conversationId={conversationId} />
       <button
         className={buttonStyles({ variant: "secondary", size: "sm" })}
         disabled={isPending}

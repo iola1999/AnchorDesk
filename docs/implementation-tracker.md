@@ -1,7 +1,7 @@
 # 实施跟踪
 
-版本：v0.3  
-日期：2026-03-28
+版本：v0.4  
+日期：2026-03-29
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -39,6 +39,7 @@
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
+- 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置；`DATABASE_URL` 与 `AUTH_SECRET` 继续保持 env-only。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版，但当前章节生成仍偏占位实现，不代表完整研究写作能力。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
@@ -50,6 +51,7 @@
 
 - `working tree` Add workspace archive/delete controls and hide archived workspaces from default lists
 - `working tree` Add account security page with password change and logout
+- `working tree` Add read-only conversation sharing with revocable share links and public share page
 - `working tree` Align upload scope with OCR-disabled policy and reject image/scanned uploads early
 - `working tree` Remove workspace mode toggles and fix answer strategy to knowledge-first plus web search
 - `working tree` 去法律化重定位
@@ -108,5 +110,6 @@
 - `/settings` 保存的是数据库配置，不会热更新到已运行进程。
 - OCR 不要默认开启。
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
+- 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 仅补齐“工具时间线 + assistant 完成/失败”这一层；最终答案依旧是整段落库，不应误判为 token 级回答流式输出。
