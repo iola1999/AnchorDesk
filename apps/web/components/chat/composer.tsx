@@ -14,6 +14,9 @@ type ComposerProps = {
   submitLabel?: string;
   variant?: "card" | "stage";
   rows?: number;
+  helperText?: string;
+  className?: string;
+  textareaClassName?: string;
 };
 
 export function Composer({
@@ -25,6 +28,9 @@ export function Composer({
   submitLabel = "发送",
   variant = "card",
   rows,
+  helperText,
+  className,
+  textareaClassName,
 }: ComposerProps) {
   const router = useRouter();
   const [content, setContent] = useState("");
@@ -93,7 +99,10 @@ export function Composer({
       onSubmit={onSubmit}
       className={cn(
         "grid gap-4",
-        variant === "stage" ? ui.subpanel : `${ui.panel} gap-3`,
+        variant === "stage"
+          ? "rounded-[28px] border border-app-border/70 bg-white/82 p-5 shadow-soft backdrop-blur-sm"
+          : `${ui.panel} gap-3`,
+        className,
       )}
     >
       <div className="grid gap-2">
@@ -108,15 +117,17 @@ export function Composer({
         placeholder={placeholder}
         className={cn(
           ui.textarea,
-          variant === "stage" ? "min-h-[160px]" : "min-h-[120px]",
+          variant === "stage"
+            ? "min-h-[176px] rounded-[24px] border-app-border/70 bg-app-surface-soft/65 px-5 py-4 text-[15px] leading-7"
+            : "min-h-[120px]",
+          textareaClassName,
         )}
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className={cn(ui.muted, "max-w-[42ch] text-[13px]")}>
-          {variant === "stage"
-            ? "助手会优先使用当前空间里的资料和对话上下文"
-            : "消息会写入当前会话，并开始推送工具时间线"}
-        </div>
+        <div className={cn(ui.muted, "max-w-[44ch] text-[13px]")}>{helperText ??
+          (variant === "stage"
+            ? "首条消息会自动创建会话，助手会优先使用当前空间里的资料和上下文"
+            : "消息会写入当前会话，并开始推送工具时间线")}</div>
         <button className={buttonStyles()} disabled={isPending} type="submit">
           {isPending ? "刷新中..." : submitLabel}
         </button>

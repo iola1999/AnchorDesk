@@ -24,17 +24,17 @@ function getTimelineTone(message: TimelineMessage) {
   const event = String(message.structuredJson?.timeline_event ?? "");
 
   if (message.status === MESSAGE_STATUS.FAILED || event === TIMELINE_EVENT.TOOL_FAILED) {
-    return "border-red-200 bg-red-50 text-red-700";
+    return "border-red-200/80 bg-red-50/70 text-red-700";
   }
 
   if (
     message.status === MESSAGE_STATUS.STREAMING ||
     event === TIMELINE_EVENT.TOOL_STARTED
   ) {
-    return "border-amber-200 bg-amber-50 text-amber-800";
+    return "border-amber-200/80 bg-amber-50/70 text-amber-800";
   }
 
-  return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  return "border-emerald-200/80 bg-emerald-50/70 text-emerald-800";
 }
 
 export function ConversationTimeline({
@@ -49,30 +49,30 @@ export function ConversationTimeline({
   }
 
   return (
-    <section className={cn(ui.subpanel, "grid gap-4")}>
-      <div className={ui.toolbar}>
-        <div className="space-y-1">
-          <h3>工具时间线</h3>
-          <p className={ui.muted}>只展示工具调用与运行状态，不展示思维链。</p>
+    <section className="grid gap-3 rounded-[26px] border border-app-border/70 bg-white/62 px-5 py-4 shadow-soft backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid gap-1">
+          <h3 className="text-sm font-medium text-app-text">运行过程</h3>
+          <p className={cn(ui.muted, "text-[13px]")}>只展示工具调用与状态，不展示思维链。</p>
         </div>
         {runtimeStatus ? (
-          <span className="inline-flex items-center rounded-full border border-app-border bg-white px-3 py-1 text-[12px] text-app-muted-strong">
+          <span className="inline-flex items-center rounded-full border border-app-border/80 bg-white/85 px-3 py-1 text-[12px] text-app-muted-strong">
             {runtimeStatus}
           </span>
         ) : null}
       </div>
 
       {timelineMessages.length > 0 ? (
-        <div className="grid gap-3">
+        <div className="grid gap-2.5">
           {timelineMessages.map((message) => (
             <article
               key={message.id}
-              className="grid gap-2 rounded-2xl border border-app-border bg-white/80 px-4 py-3"
+              className="grid gap-2 rounded-[20px] border border-app-border/65 bg-white/72 px-4 py-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span
                   className={cn(
-                    "inline-flex items-center rounded-full border px-3 py-1 text-[12px]",
+                    "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
                     getTimelineTone(message),
                   )}
                 >
@@ -84,7 +84,7 @@ export function ConversationTimeline({
                 </span>
                 <span className="text-[12px] text-app-muted">{formatTime(message.createdAt)}</span>
               </div>
-              <div className="text-sm leading-6 text-app-text">{message.contentMarkdown}</div>
+              <div className="text-[14px] leading-6 text-app-muted-strong">{message.contentMarkdown}</div>
             </article>
           ))}
         </div>

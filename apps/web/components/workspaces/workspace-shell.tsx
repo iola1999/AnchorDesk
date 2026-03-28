@@ -191,7 +191,7 @@ export function WorkspaceShell({
           {topActions ? <div className="flex flex-wrap items-center gap-2">{topActions}</div> : null}
         </header>
 
-        <div className="min-w-0">{children}</div>
+        <div className="min-h-0 min-w-0">{children}</div>
       </section>
     </div>
   );

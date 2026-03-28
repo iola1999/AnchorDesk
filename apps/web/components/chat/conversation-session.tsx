@@ -192,13 +192,13 @@ export function ConversationSession({
   }
 
   return (
-    <>
+    <div className="grid gap-6">
       <ConversationTimeline
         timelineMessages={timelineMessages}
         runtimeStatus={runtimeStatus}
       />
 
-      <div className="grid gap-4">
+      <div className="grid gap-8 pb-6 md:gap-10 md:pb-8">
         {chatMessages.length > 0 ? (
           chatMessages.map((message) => {
             const groundedStatus =
@@ -213,82 +213,100 @@ export function ConversationSession({
             const isStreamingAssistant =
               message.role === MESSAGE_ROLE.ASSISTANT &&
               message.status === MESSAGE_STATUS.STREAMING;
+            const isUser = message.role === MESSAGE_ROLE.USER;
 
             return (
               <article
                 key={message.id}
                 className={cn(
-                  "grid max-w-[720px] gap-2 rounded-[20px] border border-app-border px-4 py-4",
-                  message.role === MESSAGE_ROLE.USER
-                    ? "ml-auto bg-app-surface-strong/80"
-                    : "bg-white/92",
+                  "grid gap-3",
+                  isUser ? "ml-auto w-full max-w-[560px]" : "w-full max-w-[760px]",
                 )}
               >
-                <div className="flex items-center justify-between gap-3 text-[13px]">
-                  <strong>
+                <div className="flex items-center justify-between gap-3 text-[13px] text-app-muted">
+                  <strong className="font-medium text-app-muted-strong">
                     {message.role === MESSAGE_ROLE.ASSISTANT
                       ? "AI 助手"
                       : message.role === MESSAGE_ROLE.USER
                         ? "你"
                         : message.role}
                   </strong>
-                  <span className="text-app-muted">{message.status}</span>
+                  <span>{message.status}</span>
                 </div>
-                {groundedStatusLabel ? (
-                  <div className="flex flex-wrap gap-2">
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-3 py-1 text-[12px]",
-                        groundedStatus?.unsupportedReason
-                          ? "border-amber-300 bg-amber-50 text-amber-800"
-                          : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.HIGH
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                            : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.MEDIUM
-                              ? "border-sky-300 bg-sky-50 text-sky-800"
-                              : "border-stone-300 bg-stone-50 text-stone-700",
-                      )}
-                    >
-                      {groundedStatusLabel}
-                    </span>
-                  </div>
-                ) : null}
-                <div className="whitespace-pre-wrap leading-7">
-                  {message.contentMarkdown ||
-                    (isStreamingAssistant ? "助手正在生成回答..." : "")}
-                </div>
-                {groundedStatus?.unsupportedReason ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    {groundedStatus.unsupportedReason}
-                  </div>
-                ) : null}
-                {groundedStatus && groundedStatus.missingInformation.length > 0 ? (
-                  <div className="grid gap-2 rounded-2xl border border-app-border bg-app-surface-soft/70 px-4 py-3">
-                    <strong className="text-sm">待补充信息</strong>
+
+                <div
+                  className={cn(
+                    "grid gap-4",
+                    isUser
+                      ? "rounded-[24px] border border-app-border/75 bg-app-surface-strong/65 px-5 py-4 shadow-soft"
+                      : "gap-5 px-1 py-1",
+                  )}
+                >
+                  {groundedStatusLabel ? (
                     <div className="flex flex-wrap gap-2">
-                      {groundedStatus.missingInformation.map((item) => (
-                        <span
-                          key={item}
-                          className="inline-flex items-center rounded-full border border-app-border bg-white px-3 py-1 text-[12px] text-app-muted-strong"
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-3 py-1 text-[12px]",
+                          groundedStatus?.unsupportedReason
+                            ? "border-amber-300 bg-amber-50 text-amber-800"
+                            : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.HIGH
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                              : groundedStatus?.confidence === GROUNDED_ANSWER_CONFIDENCE.MEDIUM
+                                ? "border-sky-300 bg-sky-50 text-sky-800"
+                                : "border-stone-300 bg-stone-50 text-stone-700",
+                        )}
+                      >
+                        {groundedStatusLabel}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <div
+                    className={cn(
+                      "whitespace-pre-wrap text-[15px] leading-8 text-app-text md:text-[16px]",
+                      !isUser && "max-w-none",
+                    )}
+                  >
+                    {message.contentMarkdown ||
+                      (isStreamingAssistant ? "助手正在生成回答..." : "")}
+                  </div>
+
+                  {groundedStatus?.unsupportedReason ? (
+                    <div className="rounded-[20px] border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm leading-6 text-amber-900">
+                      {groundedStatus.unsupportedReason}
+                    </div>
+                  ) : null}
+
+                  {groundedStatus && groundedStatus.missingInformation.length > 0 ? (
+                    <div className="grid gap-2 rounded-[20px] border border-app-border/70 bg-app-surface-soft/55 px-4 py-3">
+                      <strong className="text-sm font-medium text-app-muted-strong">待补充信息</strong>
+                      <div className="flex flex-wrap gap-2">
+                        {groundedStatus.missingInformation.map((item) => (
+                          <span
+                            key={item}
+                            className="inline-flex items-center rounded-full border border-app-border/70 bg-white/85 px-3 py-1 text-[12px] text-app-muted-strong"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {(citationsByMessage.get(message.id) ?? []).map((citation) => (
+                        <Link
+                          key={citation.id}
+                          href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
+                          className="inline-flex items-center rounded-full border border-app-border/75 bg-white/82 px-3 py-1 text-[13px] text-app-muted-strong transition hover:border-app-border-strong hover:text-app-text"
                         >
-                          {item}
-                        </span>
+                          {citation.label}
+                        </Link>
                       ))}
                     </div>
-                  </div>
-                ) : null}
-                {(citationsByMessage.get(message.id) ?? []).length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {(citationsByMessage.get(message.id) ?? []).map((citation) => (
-                      <Link
-                        key={citation.id}
-                        href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                        className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[13px] hover:border-app-border-strong"
-                      >
-                        {citation.label}
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </article>
             );
           })
@@ -296,6 +314,6 @@ export function ConversationSession({
           <div className={ui.muted}>这一轮还没有消息，从底部输入框继续提问</div>
         )}
       </div>
-    </>
+    </div>
   );
 }

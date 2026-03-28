@@ -125,18 +125,18 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="mx-auto w-full max-w-[1040px]">
-          <div className={cn(ui.panelLarge, "grid min-h-[calc(100vh-132px)] content-start gap-5 p-6")}>
-            <header className="flex items-start justify-between gap-3">
-              <div className="space-y-2">
-                <p className={ui.eyebrow}>Conversation</p>
-                <h1>{activeConversation.title}</h1>
-                <p className={ui.muted}>
-                  当前会话持续沉淀在 {workspace.title} 里，引用会继续指向该空间下的资料
-                </p>
-              </div>
-            </header>
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[980px] flex-col">
+          <header className="grid shrink-0 gap-2 border-b border-app-border/70 pb-5">
+            <p className={ui.eyebrow}>Conversation</p>
+            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
+              {activeConversation.title}
+            </h1>
+            <p className={cn(ui.muted, "max-w-[62ch]")}>
+              保持当前会话上下文，继续围绕这组资料追问、整理结论或补充论证。
+            </p>
+          </header>
 
+          <div className="min-h-0 flex-1 overflow-y-auto py-6 pr-1 md:py-8">
             <ConversationSession
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
@@ -170,40 +170,48 @@ export default async function WorkspacePage({
                 label: citation.label,
               }))}
             />
+          </div>
 
-            <div className="mt-auto">
-              <Composer
-                conversationId={activeConversation.id}
-                workspaceId={workspaceId}
-                variant="stage"
-                rows={4}
-                title="继续提问"
-                description="上下文会沿用本轮会话，不需要重复描述已经上传的资料"
-                placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
-                submitLabel="发送"
-              />
-            </div>
+          <div className="shrink-0 border-t border-app-border/60 pb-2 pt-4 md:pb-3">
+            <Composer
+              conversationId={activeConversation.id}
+              workspaceId={workspaceId}
+              variant="stage"
+              rows={4}
+              title="继续提问"
+              description="上下文会沿用本轮会话，不需要重复描述已经上传的资料。"
+              placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
+              submitLabel="发送"
+              helperText="会沿用当前会话上下文，并继续记录工具时间线。"
+              className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
+              textareaClassName="min-h-[132px] bg-white/92"
+            />
           </div>
         </div>
       ) : (
-        <div className="grid min-h-[calc(100vh-158px)] place-items-center">
-          <div className={cn(ui.panelLarge, "w-full max-w-[820px] gap-5 px-8 py-8")}>
-            <div className="grid justify-items-center gap-3 text-center">
+        <div className="grid min-h-[calc(100vh-180px)] place-items-center px-2 py-8">
+          <div className="grid w-full max-w-[860px] gap-6 text-center">
+            <div className="grid justify-items-center gap-3">
               <p className={ui.eyebrow}>New Question</p>
-              <h1>{workspace.title}</h1>
+              <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-app-text md:text-[40px]">
+                {workspace.title}
+              </h1>
+              <p className={cn(ui.muted, "max-w-[58ch]")}>
+                从这里开始新的研究问题。首条消息发送后，系统会自动创建会话，并把后续记录沉淀到左侧历史中。
+              </p>
             </div>
 
-            <div className="new-question-stage-composer">
-              <Composer
-                workspaceId={workspaceId}
-                variant="stage"
-                rows={8}
-                title="输入 / 粘贴你的问题"
-                description="提交第一轮问题后，系统会自动创建会话，并把后续回答沉淀到左侧历史里"
-                placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
-                submitLabel="开始对话"
-              />
-            </div>
+            <Composer
+              workspaceId={workspaceId}
+              variant="stage"
+              rows={8}
+              title="输入 / 粘贴你的问题"
+              description="告诉助手你想分析什么、整理什么，或希望它基于当前空间资料完成什么任务。"
+              placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
+              submitLabel="开始对话"
+              className="text-left shadow-card"
+              textareaClassName="min-h-[220px] bg-white/90"
+            />
           </div>
         </div>
       )}

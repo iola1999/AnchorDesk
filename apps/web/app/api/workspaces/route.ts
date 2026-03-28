@@ -1,12 +1,11 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { conversations, getDb, workspaces } from "@knowledge-assistant/db";
+import { getDb, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
-import { slugify } from "@/lib/api/slug";
+import { createWorkspace } from "@/lib/api/workspace-creation";
 import {
-  normalizeWorkspacePrompt,
   WORKSPACE_PROMPT_MAX_LENGTH,
 } from "@/lib/api/workspace-prompt";
 
@@ -59,38 +58,30 @@ export async function POST(request: Request) {
   }
   const { title, workspacePrompt, industry } = parsed.data;
 
-  const baseSlug = slugify(title) || "workspace";
   const db = getDb();
-  let slug = baseSlug;
-  let suffix = 1;
-
-  while (true) {
-    const existing = await db
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(and(eq(workspaces.userId, userId), eq(workspaces.slug, slug)))
-      .limit(1);
-
-    if (!existing[0]) break;
-    suffix += 1;
-    slug = `${baseSlug}-${suffix}`;
-  }
-
-  const [workspace] = await db
-    .insert(workspaces)
-    .values({
+  const workspace = await createWorkspace(
+    {
       userId,
-      slug,
       title,
-      industry: industry?.trim() || null,
-      workspacePrompt: normalizeWorkspacePrompt(workspacePrompt),
-    })
-    .returning();
+      industry,
+      workspacePrompt,
+    },
+    {
+      slugExists: async (slug) => {
+        const existing = await db
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .where(and(eq(workspaces.userId, userId), eq(workspaces.slug, slug)))
+          .limit(1);
 
-  await db.insert(conversations).values({
-    workspaceId: workspace.id,
-    title: `${workspace.title} 默认对话`,
-  });
+        return Boolean(existing[0]);
+      },
+      insertWorkspace: async (values) => {
+        const [workspace] = await db.insert(workspaces).values(values).returning();
+        return workspace;
+      },
+    },
+  );
 
   return Response.json({ workspace }, { status: 201 });
 }

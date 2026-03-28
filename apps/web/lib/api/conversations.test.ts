@@ -3,6 +3,7 @@ import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   chooseWorkspaceConversation,
+  chooseWorkspaceConversationWithMeta,
   groupWorkspaceConversations,
   normalizeConversationTitle,
 } from "./conversations";
@@ -78,6 +79,44 @@ describe("conversation helpers", () => {
     expect(selected).toBeNull();
   });
 
+  test("keeps the workspace page in empty state when no conversation id is requested", () => {
+    const selected = chooseWorkspaceConversationWithMeta([
+      {
+        id: "active-older",
+        title: "较早",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: new Date("2026-03-28T09:00:00Z"),
+        createdAt: new Date("2026-03-28T08:00:00Z"),
+      },
+      {
+        id: "active-newer",
+        title: "较新",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: new Date("2026-03-28T11:00:00Z"),
+        createdAt: new Date("2026-03-28T10:30:00Z"),
+      },
+    ]);
+
+    expect(selected).toBeNull();
+  });
+
+  test("returns null for workspace page meta helper when the requested conversation does not exist", () => {
+    const selected = chooseWorkspaceConversationWithMeta(
+      [
+        {
+          id: "active-older",
+          title: "较早",
+          status: CONVERSATION_STATUS.ACTIVE,
+          updatedAt: new Date("2026-03-28T09:00:00Z"),
+          createdAt: new Date("2026-03-28T08:00:00Z"),
+        },
+      ],
+      "missing",
+    );
+
+    expect(selected).toBeNull();
+  });
+
   test("groups conversations by status while preserving recent-first order", () => {
     const grouped = groupWorkspaceConversations([
       {
@@ -104,3 +143,4 @@ describe("conversation helpers", () => {
     expect(grouped.archived.map((item) => item.id)).toEqual(["archived-1"]);
   });
 });
+
