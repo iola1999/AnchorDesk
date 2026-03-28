@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { buttonStyles, cn, ui } from "@/lib/ui";
+import { AccountDisplayNameForm } from "@/components/account/account-display-name-form";
 import { AccountPasswordForm } from "@/components/account/account-password-form";
 import { LogoutButton } from "@/components/account/logout-button";
 
@@ -34,6 +35,7 @@ export default async function AccountPage() {
         </div>
       </section>
 
+      <AccountDisplayNameForm initialDisplayName={user.name ?? user.username} />
       <AccountPasswordForm />
     </div>
   );

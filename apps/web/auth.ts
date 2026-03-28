@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { verifyPassword } from "@knowledge-assistant/auth";
 import { getDb, users } from "@knowledge-assistant/db";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   session: {
     strategy: "jwt",
   },
@@ -50,11 +50,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.sub = user.id;
         token.name = user.name;
         token.username = user.username;
+      }
+      if (trigger === "update" && typeof session?.user?.name === "string") {
+        token.name = session.user.name;
       }
       return token;
     },
@@ -62,6 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.username = typeof token.username === "string" ? token.username : "";
+        session.user.name = typeof token.name === "string" ? token.name : null;
       }
       return session;
     },

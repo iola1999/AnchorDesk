@@ -6,6 +6,7 @@ import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { workspaceBranding } from "@/lib/branding";
 import { cn, ui } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
+import { WorkspaceUserPanel } from "@/components/workspaces/workspace-user-panel";
 
 type WorkspaceListItem = {
   id: string;
@@ -59,8 +60,6 @@ export function WorkspaceShell({
     (item) => item.status === CONVERSATION_STATUS.ARCHIVED,
   );
   const canAccessSystemSettings = isSuperAdminUsername(currentUser.username);
-  const displayName = currentUser.name ?? currentUser.username;
-  const avatarLabel = displayName.slice(0, 1).toUpperCase();
   const workspaceNavLink = (selected: boolean) =>
     cn(
       "flex min-h-10 items-center justify-between rounded-xl px-3 text-sm transition",
@@ -158,25 +157,10 @@ export function WorkspaceShell({
           ) : null}
         </div>
 
-        <div className="mt-auto grid gap-3 rounded-[18px] border border-app-border bg-white/60 p-3 shadow-soft">
-          <div className="inline-flex size-10 items-center justify-center rounded-xl bg-app-surface-strong font-semibold text-app-accent">
-            {avatarLabel}
-          </div>
-          <div className="grid gap-1">
-            <strong className="text-sm">{displayName}</strong>
-            <span className={ui.muted}>@{currentUser.username}</span>
-          </div>
-          <div className="grid gap-2">
-            {canAccessSystemSettings ? (
-              <Link
-                href="/settings"
-                className="flex min-h-10 items-center justify-between rounded-xl bg-white/75 px-3 text-sm hover:bg-white"
-              >
-                系统设置
-              </Link>
-            ) : null}
-          </div>
-        </div>
+        <WorkspaceUserPanel
+          initialUser={currentUser}
+          canAccessSystemSettings={canAccessSystemSettings}
+        />
       </aside>
 
       <section className="grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3 px-6 py-5 md:px-8">
