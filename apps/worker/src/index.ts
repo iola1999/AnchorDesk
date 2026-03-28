@@ -21,6 +21,7 @@ import {
   upsertDocumentChunks,
 } from "@law-doc/retrieval";
 import { getJson, getObjectBytes, putJson } from "@law-doc/storage";
+import { buildChunkSeeds } from "./chunking";
 
 type ParseArtifact = {
   page_count: number;
@@ -268,28 +269,42 @@ async function chunkDocument(documentVersionId: string) {
       : [];
 
   if (insertedBlocks.length) {
+    const chunkSeeds = buildChunkSeeds(
+      insertedBlocks.map((block) => ({
+        id: block.id,
+        pageNo: block.pageNo,
+        orderIndex: block.orderIndex,
+        blockType: block.blockType,
+        sectionLabel: block.sectionLabel ?? null,
+        headingPath: block.headingPath ?? [],
+        text: block.text,
+      })),
+    );
+
     const insertedChunks = await db
       .insert(documentChunks)
       .values(
-        insertedBlocks.map((block) => ({
+        chunkSeeds.map((chunk) => ({
           workspaceId: version.workspaceId,
           documentId: version.documentId,
           documentVersionId,
-          sourceBlockId: block.id,
-          pageStart: block.pageNo,
-          pageEnd: block.pageNo,
-          sectionLabel: block.sectionLabel,
-          headingPath: block.headingPath,
-          chunkText: block.text,
-          plainText: block.text,
-          keywords: [],
-          tokenCount: block.text.length,
+          sourceBlockId: chunk.sourceBlockId,
+          pageStart: chunk.pageStart,
+          pageEnd: chunk.pageEnd,
+          sectionLabel: chunk.sectionLabel,
+          headingPath: chunk.headingPath,
+          chunkText: chunk.chunkText,
+          plainText: chunk.plainText,
+          keywords: chunk.keywords,
+          tokenCount: chunk.tokenCount,
         })),
       )
       .returning();
 
+    const blockById = new Map(insertedBlocks.map((block) => [block.id, block] as const));
+
     await db.insert(citationAnchors).values(
-      insertedChunks.map((chunk, index) => ({
+      insertedChunks.map((chunk) => ({
         workspaceId: version.workspaceId,
         documentId: version.documentId,
         documentVersionId,
@@ -299,7 +314,9 @@ async function chunkDocument(documentVersionId: string) {
         documentPath: version.documentPath,
         anchorLabel: `${version.documentTitle} · 第${chunk.pageStart}页`,
         anchorText: chunk.chunkText,
-        bboxJson: insertedBlocks[index]?.bboxJson ?? null,
+        bboxJson: chunk.sourceBlockId
+          ? blockById.get(chunk.sourceBlockId)?.bboxJson ?? null
+          : null,
       })),
     );
   }
