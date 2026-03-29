@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applySettingsToProcessEnv,
   _resetRuntimeSettingsForTest,
+  readConfiguredRuntimeValue,
 } from "./runtime-settings";
 
 afterEach(() => {
@@ -82,5 +83,27 @@ describe("applySettingsToProcessEnv", () => {
     ]);
 
     expect(process.env.S3_FORCE_PATH_STYLE).toBe("true");
+  });
+
+  it("skips placeholder example values", () => {
+    setEnv("ANTHROPIC_API_KEY", undefined);
+
+    applySettingsToProcessEnv([
+      { setting_key: "anthropic_api_key", value_text: "example-anthropic-api-key" },
+    ]);
+
+    expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+  });
+});
+
+describe("readConfiguredRuntimeValue", () => {
+  it("treats empty and example placeholders as unset", () => {
+    expect(readConfiguredRuntimeValue("")).toBeUndefined();
+    expect(readConfiguredRuntimeValue(" example-anthropic-api-key ")).toBeUndefined();
+    expect(readConfiguredRuntimeValue(null)).toBeUndefined();
+  });
+
+  it("returns non-placeholder values", () => {
+    expect(readConfiguredRuntimeValue("real-secret")).toBe("real-secret");
   });
 });

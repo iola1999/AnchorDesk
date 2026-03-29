@@ -19,11 +19,13 @@ describe("buildSystemSettingSeedRows", () => {
       settingKey: "redis_url",
       valueText: "redis://custom:6379",
       isSecret: false,
+      summary: "BullMQ 与会话 allowlist 使用的 Redis 地址。",
     });
     expect(rows.find((row) => row.settingKey === "anthropic_api_key")).toMatchObject({
       settingKey: "anthropic_api_key",
       valueText: "secret-key",
       isSecret: true,
+      summary: "Agent 规划与最终答案使用的 Anthropic 密钥。",
     });
     expect(rows.find((row) => row.settingKey === "brave_search_api_key")).toMatchObject({
       settingKey: "brave_search_api_key",
@@ -33,6 +35,14 @@ describe("buildSystemSettingSeedRows", () => {
     expect(rows.find((row) => row.settingKey === "qdrant_collection")).toMatchObject({
       settingKey: "qdrant_collection",
       valueText: "knowledge_chunks",
+    });
+    expect(rows.find((row) => row.settingKey === "anthropic_model")).toMatchObject({
+      settingKey: "anthropic_model",
+      valueText: "claude-sonnet-4-5",
+    });
+    expect(rows.find((row) => row.settingKey === "embedding_provider")).toMatchObject({
+      settingKey: "embedding_provider",
+      valueText: "local_hash",
     });
     expect(rows.find((row) => row.settingKey === "auth_allow_registration")).toMatchObject({
       settingKey: "auth_allow_registration",

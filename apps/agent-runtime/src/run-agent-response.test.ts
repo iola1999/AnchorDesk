@@ -93,4 +93,27 @@ describe("runAgentResponse", () => {
       expect(response.structured?.unsupported_reason).toContain("mock 会话链路");
     },
   );
+
+  test.sequential(
+    "treats example anthropic api keys as placeholders and stays on the mock path",
+    async () => {
+      process.env.ANTHROPIC_API_KEY = "example-anthropic-api-key";
+
+      const agentWorkdir = await fs.mkdtemp(
+        path.join(os.tmpdir(), "knowledge-assistant-agent-runtime-"),
+      );
+      temporaryDirs.push(agentWorkdir);
+
+      const response = await runAgentResponse({
+        prompt: "帮我总结当前空间里的资料",
+        workspaceId: "workspace-1",
+        conversationId: "conversation-2",
+        agentWorkdir,
+      });
+
+      expect(response.ok).toBe(true);
+      expect(response.text).toContain("mock 会话链路");
+      expect(response.structured?.unsupported_reason).toContain("mock 会话链路");
+    },
+  );
 });

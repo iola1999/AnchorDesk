@@ -2,6 +2,19 @@ import { getPool } from "./client";
 
 let initialized = false;
 
+export function readConfiguredRuntimeValue(value: string | null | undefined) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized.startsWith("example-")) {
+    return undefined;
+  }
+
+  return normalized;
+}
+
 /**
  * Given system_settings rows, inject non-empty values into process.env
  * for keys not already set.
@@ -13,7 +26,7 @@ export function applySettingsToProcessEnv(
 ): void {
   for (const row of rows) {
     const envName = row.setting_key.toUpperCase();
-    const value = row.value_text ?? "";
+    const value = readConfiguredRuntimeValue(row.value_text);
 
     // Only inject non-empty DB values when env is not already set
     if (value && process.env[envName] === undefined) {

@@ -14,6 +14,7 @@ import {
   normalizeAssistantToolName,
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
+import { readConfiguredRuntimeValue } from "@knowledge-assistant/db";
 
 import {
   extractAssistantTextDelta,
@@ -202,7 +203,7 @@ export async function runAgentResponse(
 
   await fs.mkdir(workdir, { recursive: true });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!readConfiguredRuntimeValue(process.env.ANTHROPIC_API_KEY)) {
     const mockToolName = ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE;
     const mockToolInput = {
       query: prompt,

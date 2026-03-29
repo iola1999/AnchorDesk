@@ -6,6 +6,7 @@ import {
   type GroundedAnswer,
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
+import { readConfiguredRuntimeValue } from "@knowledge-assistant/db";
 
 import {
   buildGroundedAnswerPrompt,
@@ -36,10 +37,14 @@ const FINAL_ANSWER_SYSTEM_PROMPT = [
 
 let anthropicClient: Anthropic | null = null;
 
+function getAnthropicApiKey() {
+  return readConfiguredRuntimeValue(process.env.ANTHROPIC_API_KEY);
+}
+
 function getAnthropicClient() {
   if (!anthropicClient) {
     anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      apiKey: getAnthropicApiKey(),
     });
   }
 
@@ -51,7 +56,7 @@ export async function renderGroundedAnswer(input: {
   draftText: string;
   evidence: GroundedEvidence[];
 }): Promise<GroundedAnswer> {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!getAnthropicApiKey()) {
     return normalizeGroundedAnswer({
       draftText: input.draftText,
       evidence: input.evidence,

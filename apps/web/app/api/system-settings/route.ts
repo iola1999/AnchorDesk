@@ -18,6 +18,7 @@ async function listSystemSettings() {
       settingKey: systemSettings.settingKey,
       valueText: systemSettings.valueText,
       isSecret: systemSettings.isSecret,
+      summary: systemSettings.summary,
       description: systemSettings.description,
     })
     .from(systemSettings)

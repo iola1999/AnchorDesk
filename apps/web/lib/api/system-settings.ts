@@ -4,6 +4,7 @@ export type SystemSettingRow = {
   settingKey: string;
   valueText: string | null;
   isSecret: boolean;
+  summary: string | null;
   description: string | null;
 };
 
@@ -189,6 +190,51 @@ export function buildSystemSettingSections(rows: SystemSettingRow[]) {
     description: section.description,
     items: itemsBySection.get(section.id) ?? [],
   })).filter((section) => section.items.length > 0);
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function matchesSearchTokens(haystack: string, query: string) {
+  const tokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return true;
+  }
+
+  const normalizedHaystack = normalizeSearchText(haystack);
+  return tokens.every((token) => normalizedHaystack.includes(token));
+}
+
+function buildSystemSettingSearchText(
+  section: Pick<SystemSettingSection, "title" | "description">,
+  setting: Pick<SystemSettingField, "settingKey" | "summary" | "description">,
+) {
+  return [
+    section.title,
+    section.description,
+    setting.settingKey,
+    setting.summary ?? "",
+    setting.description ?? "",
+  ].join("\n");
+}
+
+export function filterSystemSettingSections(
+  sections: SystemSettingSection[],
+  query: string,
+) {
+  if (!normalizeSearchText(query)) {
+    return sections;
+  }
+
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((setting) =>
+        matchesSearchTokens(buildSystemSettingSearchText(section, setting), query),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 }
 
 export const systemSettingsUpdateSchema = z.object({
