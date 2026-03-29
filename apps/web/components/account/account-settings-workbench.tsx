@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { AccountDisplayNameForm } from "@/components/account/account-display-name-form";
 import { AccountPasswordForm } from "@/components/account/account-password-form";
 import { AccountSettingsNav } from "@/components/account/account-settings-nav";
+import { ArrowLeftIcon } from "@/components/icons";
 import { LogoutButton } from "@/components/account/logout-button";
 import {
   SettingsShell,
@@ -69,7 +70,7 @@ export function AccountSettingsWorkbench({
             href="/workspaces"
             className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
           >
-            <BackIcon />
+            <ArrowLeftIcon />
             返回工作台
           </Link>
 
@@ -170,13 +171,5 @@ function AccountSettingsRow({
       </div>
       <div className="min-w-0">{children}</div>
     </div>
-  );
-}
-
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12.5 4.75 7.25 10l5.25 5.25" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

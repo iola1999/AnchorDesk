@@ -1,5 +1,6 @@
 "use client";
 
+import { ShieldCheckIcon, UserIcon } from "@/components/icons";
 import {
   type AccountSettingsNavGroup,
   type AccountSettingsSectionId,
@@ -66,25 +67,8 @@ function AccountSettingsNavIcon({
   icon: AccountSettingsNavGroup["items"][number]["icon"];
 }) {
   if (icon === "shield") {
-    return (
-      <svg viewBox="0 0 20 20" fill="none" className="size-3.5" stroke="currentColor" strokeWidth="1.7">
-        <path
-          d="M10 2.75c1.52 1.24 3.3 1.94 5.5 2.2v3.28c0 4.02-2.19 6.88-5.5 9.02C6.69 15.11 4.5 12.25 4.5 8.23V4.95c2.2-.26 3.98-.96 5.5-2.2Z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path d="m7.75 10.1 1.55 1.56 2.95-3.22" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
+    return <ShieldCheckIcon className="size-3.5" />;
   }
 
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-3.5" stroke="currentColor" strokeWidth="1.7">
-      <path
-        d="M10 10.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5ZM4.75 16.25a5.25 5.25 0 0 1 10.5 0"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <UserIcon className="size-3.5" />;
 }

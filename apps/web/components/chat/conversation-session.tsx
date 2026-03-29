@@ -12,6 +12,13 @@ import {
   type MessageStatus,
 } from "@knowledge-assistant/contracts";
 
+import {
+  AnswerIcon,
+  CopyIcon,
+  ExportIcon,
+  RegenerateIcon,
+  SourceIcon,
+} from "@/components/icons";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
 import { LinkifiedText } from "@/components/shared/linkified-text";
 import { canShowAssistantResultPanel } from "@/lib/api/conversation-process";
@@ -46,75 +53,6 @@ function flattenTimelineMessageIds(timelineByAssistant: TimelineMessagesByAssist
     Object.values(timelineByAssistant)
       .flat()
       .map((message) => message.id),
-  );
-}
-
-function AnswerIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M4.167 5.833h11.666M4.167 10h8.333M4.167 14.167H10"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SourceIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M8.125 6.667 5.833 8.96a2.357 2.357 0 0 0 3.334 3.334l2.083-2.084M11.875 13.333l2.292-2.293a2.357 2.357 0 1 0-3.334-3.334L8.75 9.79"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ExportIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M10 3.75v8.333m0 0 3.125-3.125M10 12.083 6.875 8.958M4.583 15.417h10.834"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <rect x="7.083" y="5.417" width="8.333" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M5.833 12.5h-.625A1.875 1.875 0 0 1 3.333 10.625V5.208c0-1.035.84-1.875 1.875-1.875h5.417c1.035 0 1.875.84 1.875 1.875v.625"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function RegenerateIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M15.208 8.333a5.417 5.417 0 1 0 1.042 3.125m0-3.125V4.583m0 3.75h-3.75"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 

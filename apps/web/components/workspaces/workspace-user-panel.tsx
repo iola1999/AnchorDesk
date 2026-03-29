@@ -5,6 +5,12 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import {
+  ChevronDownIcon,
+  LogoutIcon,
+  SlidersIcon,
+  UserIcon,
+} from "@/components/icons";
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
 import { buttonStyles, cn, menuItemStyles } from "@/lib/ui";
 
@@ -111,7 +117,7 @@ export function WorkspaceUserPanel({
                 )}
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-app-border bg-white text-app-muted-strong transition group-hover:border-app-border-strong group-hover:text-app-text">
-                  {action.key === "account" ? <UserIcon /> : <SettingsIcon />}
+                  {action.key === "account" ? <UserIcon /> : <SlidersIcon />}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-app-text">
                   {action.label}
@@ -171,55 +177,9 @@ export function WorkspaceUserPanel({
           )}
           aria-hidden="true"
         >
-          <ChevronIcon />
+          <ChevronDownIcon className="size-3.5" />
         </span>
       </button>
     </div>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-3.5" stroke="currentColor" strokeWidth="1.8">
-      <path d="M5.5 7.5 10 12l4.5-4.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-      <path
-        d="M10 10.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5ZM4.75 16.25a5.25 5.25 0 0 1 10.5 0"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.6">
-      <path
-        d="M7.25 4.25v11.5M12.75 4.25v11.5M4.25 7.25h6M9.75 12.75h6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="7.25" cy="7.25" r="1.75" fill="currentColor" stroke="none" />
-      <circle cx="12.75" cy="12.75" r="1.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-      <path
-        d="M8 4.75H6.75a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2H8M11.25 6.5 14.75 10m0 0-3.5 3.5M14.75 10H8.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

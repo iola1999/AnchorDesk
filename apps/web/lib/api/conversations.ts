@@ -76,6 +76,44 @@ export function formatConversationUpdatedAt(value: Date) {
   }).format(value);
 }
 
+export function formatConversationMetaTimestamp(
+  value: Date,
+  now = new Date(),
+) {
+  const timeLabel = new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+
+  const isSameDay =
+    value.getFullYear() === now.getFullYear() &&
+    value.getMonth() === now.getMonth() &&
+    value.getDate() === now.getDate();
+  if (isSameDay) {
+    return `今天 ${timeLabel}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setHours(0, 0, 0, 0);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    value.getFullYear() === yesterday.getFullYear() &&
+    value.getMonth() === yesterday.getMonth() &&
+    value.getDate() === yesterday.getDate();
+  if (isYesterday) {
+    return `昨天 ${timeLabel}`;
+  }
+
+  const dateLabel = new Intl.DateTimeFormat("zh-CN", {
+    year: value.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(value);
+
+  return `${dateLabel} ${timeLabel}`;
+}
+
 export function formatConversationSidebarUpdatedAt(
   value: Date,
   now = new Date(),

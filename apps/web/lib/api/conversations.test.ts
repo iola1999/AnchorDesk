@@ -4,6 +4,7 @@ import { CONVERSATION_STATUS } from "@knowledge-assistant/contracts";
 import {
   chooseWorkspaceConversation,
   chooseWorkspaceConversationWithMeta,
+  formatConversationMetaTimestamp,
   formatConversationSidebarUpdatedAt,
   groupWorkspaceConversations,
   normalizeConversationTitle,
@@ -179,6 +180,33 @@ describe("conversation helpers", () => {
         new Date("2026-03-29T12:00:00Z"),
       ),
     ).toBe("2025年12月31日");
+  });
+
+  test("formats same-day conversation metadata with today and time", () => {
+    expect(
+      formatConversationMetaTimestamp(
+        new Date("2026-03-29T14:05:00+08:00"),
+        new Date("2026-03-29T20:00:00+08:00"),
+      ),
+    ).toBe("今天 14:05");
+  });
+
+  test("formats previous-day conversation metadata with yesterday and time", () => {
+    expect(
+      formatConversationMetaTimestamp(
+        new Date("2026-03-28T23:15:00+08:00"),
+        new Date("2026-03-29T09:00:00+08:00"),
+      ),
+    ).toBe("昨天 23:15");
+  });
+
+  test("formats cross-year conversation metadata with full date and time", () => {
+    expect(
+      formatConversationMetaTimestamp(
+        new Date("2025-12-31T08:30:00+08:00"),
+        new Date("2026-03-29T09:00:00+08:00"),
+      ),
+    ).toBe("2025年12月31日 08:30");
   });
 
   test("redirects to workspace root after deleting the active conversation", () => {

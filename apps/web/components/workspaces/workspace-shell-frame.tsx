@@ -8,6 +8,7 @@ import {
   type ConversationStatus,
 } from "@knowledge-assistant/contracts";
 
+import { CloseIcon, MenuIcon, PlusIcon } from "@/components/icons";
 import { workspaceBranding } from "@/lib/branding";
 import { WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY } from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
@@ -325,21 +326,7 @@ function WorkspaceSidebarContent({
                 : "border-app-border-strong bg-white text-app-text shadow-sm hover:bg-app-surface-soft hover:shadow-soft",
             )}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="transition-transform group-hover:scale-110"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            <PlusIcon className="size-3.5 transition-transform group-hover:scale-110" strokeWidth={2.5} />
             新建会话
           </Link>
         </div>
@@ -437,21 +424,5 @@ function BreadcrumbTrail({
         );
       })}
     </div>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.8">
-      <path d="M3.75 5.5h12.5M3.75 10h12.5M3.75 14.5h12.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="1.8">
-      <path d="m5.5 5.5 9 9m0-9-9 9" strokeLinecap="round" />
-    </svg>
   );
 }

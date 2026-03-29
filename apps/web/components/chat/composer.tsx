@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import { ArrowUpIcon, PlusIcon } from "@/components/icons";
 import {
   COMPOSER_ATTACHMENT_STATUS,
   canSubmitWithAttachments,
@@ -556,14 +557,7 @@ export function Composer({
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="上传临时文件"
                   >
-                    <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
-                      <path
-                        d="M10 4.5v11M4.5 10h11"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                    <PlusIcon className="size-5" aria-hidden="true" />
                   </button>
                 ) : (
                   <div className="size-10 shrink-0" aria-hidden="true" />
@@ -578,15 +572,7 @@ export function Composer({
                 type="submit"
                 aria-label={submitLabel}
               >
-                <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
-                  <path
-                    d="M10 4.167v11.666m0-11.666 4.166 4.166M10 4.167 5.833 8.333"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <ArrowUpIcon className="size-5" aria-hidden="true" />
               </button>
             </div>
           </div>

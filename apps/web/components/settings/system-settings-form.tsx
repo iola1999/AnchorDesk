@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 
+import { ArrowLeftIcon } from "@/components/icons";
 import {
   SettingsShell,
   SettingsShellSidebar,
@@ -123,7 +124,7 @@ export function SystemSettingsForm({
               href="/workspaces"
               className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
             >
-              <BackIcon />
+              <ArrowLeftIcon />
               返回工作台
             </Link>
 
@@ -313,13 +314,5 @@ function SystemSettingInput({
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
-  );
-}
-
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12.5 4.75 7.25 10l5.25 5.25" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

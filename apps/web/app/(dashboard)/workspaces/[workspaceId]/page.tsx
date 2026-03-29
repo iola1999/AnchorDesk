@@ -152,6 +152,13 @@ export default async function WorkspacePage({
           <ConversationPageActions
             conversationId={activeConversation.id}
             workspaceId={workspaceId}
+            conversationTitle={activeConversation.title}
+            conversationStatus={activeConversation.status}
+            createdAt={activeConversation.createdAt}
+            updatedAt={activeConversation.updatedAt}
+            creatorLabel={`${user.username}（你）`}
+            messageCount={chatThread.length}
+            attachmentCount={attachmentRows.length}
           />
         ) : undefined
       }

@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { ShareIcon } from "@/components/icons";
 import {
   buildCopyShareNotice,
   buildEnableShareNotice,
   SHARE_NOTICE_AUTO_DISMISS_MS,
   type ShareNotice,
 } from "@/lib/api/conversation-share-feedback";
+import { formatConversationMetaTimestamp } from "@/lib/api/conversations";
 import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 type ShareState = {
@@ -254,6 +256,12 @@ export function ConversationSharePopover({
   const noticeClassName = notice?.tone === "error"
     ? "border-red-200 bg-red-50/80 text-red-700"
     : "border-emerald-200 bg-emerald-50/80 text-emerald-800";
+  const shareCreatedLabel = share?.createdAt
+    ? formatConversationMetaTimestamp(new Date(share.createdAt))
+    : null;
+  const shareUpdatedLabel = share?.updatedAt
+    ? formatConversationMetaTimestamp(new Date(share.updatedAt))
+    : null;
 
   return (
     <div ref={containerRef} className="relative">
@@ -261,13 +269,17 @@ export function ConversationSharePopover({
         aria-controls={panelId}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className={buttonStyles({ variant: "secondary", size: "sm" })}
+        className={cn(
+          buttonStyles({ size: "sm" }),
+          "gap-2.5 rounded-[18px] px-4 shadow-sm hover:bg-[#25211c]",
+        )}
         disabled={isSubmitting}
         onClick={() => {
           void handleToggleOpen();
         }}
         type="button"
       >
+        <ShareIcon aria-hidden="true" />
         分享
       </button>
 
@@ -302,6 +314,22 @@ export function ConversationSharePopover({
             <p className="text-[13px] leading-5 text-app-muted">
               持有链接的人可直接查看会话，资料引用不提供跳转
             </p>
+            {shareCreatedLabel || shareUpdatedLabel ? (
+              <dl className="grid gap-2 rounded-[18px] border border-app-border/70 bg-white/82 p-3 text-[12px] text-app-muted-strong">
+                {shareCreatedLabel ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt>创建分享</dt>
+                    <dd className="text-right text-app-text">{shareCreatedLabel}</dd>
+                  </div>
+                ) : null}
+                {shareUpdatedLabel ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt>最近变更</dt>
+                    <dd className="text-right text-app-text">{shareUpdatedLabel}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
           </div>
 
           {isLoading ? (
