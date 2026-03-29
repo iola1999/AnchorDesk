@@ -1,32 +1,42 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import {
+  buildStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   normalizeConversationFailureMessage,
 } from "@knowledge-assistant/contracts";
 import { conversations, getDb, messageCitations, messages } from "@knowledge-assistant/db";
+import { serializeErrorForLog } from "@knowledge-assistant/logging";
 import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
 import { findRegeneratableConversationTurn } from "@/lib/api/conversation-retry";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import { requireOwnedConversation } from "@/lib/guards/resources";
+import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   const { conversationId } = await params;
+  const requestId = resolveRequestId(request);
+  const requestLogger = logger.child({
+    ...buildRequestLogContext(request, requestId),
+    conversationId,
+  });
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
+    requestLogger.warn("unauthorized conversation retry request");
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const conversation = await requireOwnedConversation(conversationId, userId);
   if (!conversation) {
+    requestLogger.warn({ userId }, "conversation not found for retry request");
     return Response.json({ error: "Conversation not found" }, { status: 404 });
   }
 
@@ -47,6 +57,13 @@ export async function POST(
 
   const regeneratableTurn = findRegeneratableConversationTurn(recentChatMessages);
   if (!regeneratableTurn) {
+    requestLogger.warn(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+      },
+      "conversation retry requested without a failed assistant turn",
+    );
     return Response.json(
       { error: "当前没有可重新生成的回答。" },
       { status: 400 },
@@ -62,12 +79,12 @@ export async function POST(
     .set({
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
-      structuredJson: null,
+      structuredJson: buildStreamingAssistantRunState(),
     })
     .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 
   try {
-    await enqueueConversationResponse({
+    const queueJob = await enqueueConversationResponse({
       conversationId,
       userMessageId: regeneratableTurn.userMessageId,
       assistantMessageId: regeneratableTurn.assistantMessageId,
@@ -83,6 +100,18 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversationId));
+
+    requestLogger.info(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        userMessageId: regeneratableTurn.userMessageId,
+        assistantMessageId: regeneratableTurn.assistantMessageId,
+        queueJobId: queueJob.id ?? null,
+        contentLength: regeneratableTurn.promptContent.length,
+      },
+      "conversation retry enqueued",
+    );
 
     return Response.json(
       {
@@ -104,6 +133,18 @@ export async function POST(
         },
       })
       .where(eq(messages.id, regeneratableTurn.assistantMessageId));
+
+    requestLogger.error(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        userMessageId: regeneratableTurn.userMessageId,
+        assistantMessageId: regeneratableTurn.assistantMessageId,
+        errorMessage: message,
+        error: serializeErrorForLog(error),
+      },
+      "conversation retry enqueue failed",
+    );
 
     return Response.json(
       { error: `重新生成失败：${message}` },

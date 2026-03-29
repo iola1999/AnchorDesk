@@ -1,3 +1,5 @@
+export { serializeErrorForLog } from "@knowledge-assistant/logging";
+
 type RuntimeEnv = Record<string, string | undefined>;
 
 function normalizeRuntimeValue(value: string | undefined) {
@@ -22,8 +24,6 @@ export function buildClaudeAgentRuntimeLogContext(env: RuntimeEnv = process.env)
 
   return {
     hasApiKey: Boolean(apiKey),
-    apiKeyPrefix: apiKey ? apiKey.slice(0, 16) : null,
-    apiKeyLength: apiKey?.length ?? 0,
     baseUrl: baseUrl ?? null,
     sdkDebugEnabled: isClaudeAgentSdkDebugEnabled(env),
   };
@@ -34,36 +34,4 @@ export function splitClaudeAgentStderr(data: string) {
     .split(/\r?\n/u)
     .map((line) => line.trim())
     .filter(Boolean);
-}
-
-export function serializeErrorForLog(error: unknown) {
-  if (error instanceof Error) {
-    const extra = error as Error & {
-      code?: unknown;
-      cause?: unknown;
-    };
-
-    return {
-      name: error.name,
-      message: error.message,
-      code: typeof extra.code === "string" ? extra.code : null,
-      cause:
-        extra.cause instanceof Error
-          ? extra.cause.message
-          : typeof extra.cause === "string"
-            ? extra.cause
-            : null,
-      stack: error.stack ?? null,
-    };
-  }
-
-  if (error && typeof error === "object") {
-    return {
-      message: JSON.stringify(error),
-    };
-  }
-
-  return {
-    message: String(error),
-  };
 }

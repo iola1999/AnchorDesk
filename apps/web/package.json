@@ -14,6 +14,7 @@
     "@knowledge-assistant/auth": "workspace:*",
     "@knowledge-assistant/contracts": "workspace:*",
     "@knowledge-assistant/db": "workspace:*",
+    "@knowledge-assistant/logging": "workspace:*",
     "@knowledge-assistant/queue": "workspace:*",
     "@knowledge-assistant/retrieval": "workspace:*",
     "@knowledge-assistant/storage": "workspace:*",

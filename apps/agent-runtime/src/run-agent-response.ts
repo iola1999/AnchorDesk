@@ -24,6 +24,7 @@ import {
   serializeErrorForLog,
   splitClaudeAgentStderr,
 } from "./runtime-log";
+import { logger } from "./logger";
 
 const CLAUDE_AGENT_MESSAGE_TYPE = {
   RESULT: "result",
@@ -199,18 +200,23 @@ export async function runAgentResponse(
   const requestedWorkdir = input.agentWorkdir?.trim() || undefined;
   const workdir =
     requestedWorkdir || path.join(getAgentWorkdirRoot(), conversationId.replace(/[^a-zA-Z0-9-_]/g, "_"));
+  const requestLogger = logger.child({
+    conversationId,
+    workspaceId,
+    workdir,
+  });
 
   await fs.mkdir(workdir, { recursive: true });
 
   if (!getConfiguredAnthropicApiKey()) {
-    console.error(
-      "[agent-runtime] Anthropic API key missing for Claude Agent SDK query:",
-      JSON.stringify({
+    requestLogger.error(
+      {
         conversationId,
         workspaceId,
         workdir,
         ...buildClaudeAgentRuntimeLogContext(),
-      }),
+      },
+      "anthropic api key missing for Claude Agent SDK query",
     );
     throw new Error("Anthropic API key is not configured.");
   }
@@ -223,15 +229,15 @@ export async function runAgentResponse(
   let sessionId = input.agentSessionId ?? null;
   const citationMap = new Map<string, GroundedEvidence>();
 
-  console.log(
-    "[agent-runtime] Starting Claude Agent SDK query:",
-    JSON.stringify({
+  requestLogger.info(
+    {
       conversationId,
       workspaceId,
       workdir,
       requestedSessionId: input.agentSessionId ?? null,
       ...runtimeLogContext,
-    }),
+    },
+    "starting Claude Agent SDK query",
   );
 
   try {
@@ -248,14 +254,14 @@ export async function runAgentResponse(
         debug: isClaudeAgentSdkDebugEnabled(agentEnv),
         stderr: (data) => {
           for (const line of splitClaudeAgentStderr(data)) {
-            console.error(
-              "[agent-runtime] Claude Agent SDK stderr:",
-              JSON.stringify({
+            requestLogger.debug(
+              {
                 conversationId,
                 workspaceId,
                 workdir,
                 line,
-              }),
+              },
+              "Claude Agent SDK stderr",
             );
           }
         },
@@ -358,33 +364,64 @@ export async function runAgentResponse(
         finalResult = message.result || streamedDraft;
       }
     }
+
+    requestLogger.info(
+      {
+        sessionId,
+        finalResultLength: finalResult.length,
+        streamedDraftLength: streamedDraft.length,
+        workspaceEvidenceCount: citationMap.size,
+      },
+      "Claude Agent SDK query completed",
+    );
   } catch (error) {
-    console.error(
-      "[agent-runtime] Claude Agent SDK query failed:",
-      JSON.stringify({
+    requestLogger.error(
+      {
         conversationId,
         workspaceId,
         workdir,
         sessionId,
         ...runtimeLogContext,
         error: serializeErrorForLog(error),
-      }),
+      },
+      "Claude Agent SDK query failed",
     );
     throw error;
   }
 
-  const groundedAnswer = await renderGroundedAnswer({
-    prompt,
-    draftText:
-      finalResult || streamedDraft || "Agent completed without a final result payload.",
-    evidence: Array.from(citationMap.values()),
-  });
+  try {
+    const groundedAnswer = await renderGroundedAnswer({
+      prompt,
+      draftText:
+        finalResult || streamedDraft || "Agent completed without a final result payload.",
+      evidence: Array.from(citationMap.values()),
+    });
 
-  return {
-    ok: true as const,
-    text: groundedAnswer.answer_markdown,
-    sessionId,
-    workdir,
-    citations: groundedAnswer.citations,
-  };
+    requestLogger.info(
+      {
+        sessionId,
+        citationCount: groundedAnswer.citations.length,
+        answerLength: groundedAnswer.answer_markdown.length,
+      },
+      "grounded answer rendered",
+    );
+
+    return {
+      ok: true as const,
+      text: groundedAnswer.answer_markdown,
+      sessionId,
+      workdir,
+      citations: groundedAnswer.citations,
+    };
+  } catch (error) {
+    requestLogger.error(
+      {
+        sessionId,
+        workspaceEvidenceCount: citationMap.size,
+        error: serializeErrorForLog(error),
+      },
+      "grounded answer render failed",
+    );
+    throw error;
+  }
 }

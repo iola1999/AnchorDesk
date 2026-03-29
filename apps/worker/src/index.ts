@@ -25,6 +25,7 @@ import {
   initRuntimeSettings,
   parseArtifacts,
 } from "@knowledge-assistant/db";
+import { serializeErrorForLog } from "@knowledge-assistant/logging";
 import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
 import {
   deleteDocumentVersionPoints,
@@ -37,6 +38,7 @@ import {
   resolveDocumentIndexingMode,
   shouldSkipEmbeddingIndexing,
 } from "./ingest-mode";
+import { logger } from "./logger";
 
 type ParseArtifact = {
   page_count: number;
@@ -69,6 +71,13 @@ const BULLMQ_EVENT = {
   COMPLETED: "completed",
   FAILED: "failed",
 } as const;
+
+function createStageLogger(stage: string, documentVersionId: string) {
+  return logger.child({
+    stage,
+    documentVersionId,
+  });
+}
 
 function getParserServiceUrl() {
   return process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
@@ -195,8 +204,20 @@ async function ensureVersionFingerprint(documentVersionId: string) {
 }
 
 async function parseDocument(documentVersionId: string) {
+  const stageLogger = createStageLogger(PARSE_STATUS.PARSING_LAYOUT, documentVersionId);
+  stageLogger.info(
+    {
+      parserServiceUrl: getParserServiceUrl(),
+    },
+    "starting parse stage",
+  );
   await updateJob(documentVersionId, PARSE_STATUS.PARSING_LAYOUT, 20);
   const version = await ensureVersionFingerprint(documentVersionId);
+  const versionLogger = stageLogger.child({
+    workspaceId: version.workspaceId,
+    documentId: version.documentId,
+    documentPath: version.documentPath,
+  });
 
   const cached = await db
     .select()
@@ -205,6 +226,14 @@ async function parseDocument(documentVersionId: string) {
     .limit(1);
 
   if (cached[0]) {
+    versionLogger.info(
+      {
+        parseArtifactId: cached[0].id,
+        pageCount: cached[0].pageCount,
+        parseScoreBp: cached[0].parseScoreBp,
+      },
+      "reused cached parse artifact",
+    );
     await db
       .update(documentVersions)
       .set({
@@ -266,15 +295,32 @@ async function parseDocument(documentVersionId: string) {
     })
     .where(eq(documentVersions.id, documentVersionId));
 
+  versionLogger.info(
+    {
+      parseArtifactId: artifactRecord?.id ?? null,
+      pageCount: artifact.page_count,
+      blockCount: artifact.blocks.length,
+      parseScoreBp: artifact.parse_score_bp,
+    },
+    "parse stage completed",
+  );
+
   return artifactStorageKey;
 }
 
 async function chunkDocument(documentVersionId: string) {
+  const stageLogger = createStageLogger(PARSE_STATUS.CHUNKING, documentVersionId);
+  stageLogger.info("starting chunk stage");
   await updateJob(documentVersionId, PARSE_STATUS.CHUNKING, 45);
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
   }
+  const versionLogger = stageLogger.child({
+    workspaceId: version.workspaceId,
+    documentId: version.documentId,
+    documentPath: version.documentPath,
+  });
 
   const artifactRecord = await db
     .select()
@@ -393,7 +439,24 @@ async function chunkDocument(documentVersionId: string) {
         };
       }),
     );
+
+    versionLogger.info(
+      {
+        blockCount: insertedBlocks.length,
+        chunkCount: insertedChunks.length,
+      },
+      "chunk stage completed",
+    );
+    return;
   }
+
+  versionLogger.info(
+    {
+      blockCount: insertedBlocks.length,
+      chunkCount: 0,
+    },
+    "chunk stage completed with no chunks",
+  );
 }
 
 async function fetchChunksForIndex(documentVersionId: string) {
@@ -445,14 +508,22 @@ function getEmbeddingArtifactKey(documentVersionId: string) {
 }
 
 async function embedDocument(documentVersionId: string) {
+  const stageLogger = createStageLogger(PARSE_STATUS.EMBEDDING, documentVersionId);
+  stageLogger.info("starting embedding stage");
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
   }
+  const versionLogger = stageLogger.child({
+    workspaceId: version.workspaceId,
+    documentId: version.documentId,
+    documentPath: version.documentPath,
+  });
   const indexingMode = resolveDocumentIndexingMode({
     metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
   });
   if (shouldSkipEmbeddingIndexing(indexingMode)) {
+    versionLogger.info({ indexingMode }, "skipping embedding stage for parse-only document");
     return;
   }
 
@@ -468,13 +539,29 @@ async function embedDocument(documentVersionId: string) {
       vector: vectors[index] ?? [],
     })),
   } satisfies EmbeddingArtifact);
+
+  versionLogger.info(
+    {
+      indexingMode,
+      chunkCount: chunks.length,
+      vectorSize: vectors[0]?.length ?? 0,
+    },
+    "embedding stage completed",
+  );
 }
 
 async function indexDocument(documentVersionId: string) {
+  const stageLogger = createStageLogger(PARSE_STATUS.INDEXING, documentVersionId);
+  stageLogger.info("starting index stage");
   const version = await fetchVersion(documentVersionId);
   if (!version) {
     throw new Error(`Document version ${documentVersionId} not found`);
   }
+  const versionLogger = stageLogger.child({
+    workspaceId: version.workspaceId,
+    documentId: version.documentId,
+    documentPath: version.documentPath,
+  });
   const indexingMode = resolveDocumentIndexingMode({
     metadataJson: (version.metadataJson as Record<string, unknown> | null | undefined) ?? null,
   });
@@ -500,6 +587,12 @@ async function indexDocument(documentVersionId: string) {
       .where(eq(documents.id, version.documentId));
 
     await completeJob(documentVersionId);
+    versionLogger.info(
+      {
+        indexingMode,
+      },
+      "index stage skipped vector sync for parse-only document",
+    );
     return;
   }
 
@@ -537,16 +630,32 @@ async function indexDocument(documentVersionId: string) {
     .set({
       status: DOCUMENT_STATUS.READY,
       updatedAt: new Date(),
-    })
-    .where(eq(documents.id, version.documentId));
+      })
+      .where(eq(documents.id, version.documentId));
 
   await completeJob(documentVersionId);
+  versionLogger.info(
+    {
+      indexingMode,
+      chunkCount: chunks.length,
+      vectorCount: vectors?.length ?? 0,
+    },
+    "index stage completed",
+  );
 }
 
 async function main() {
   await initRuntimeSettings();
 
   const connection = getRedisConnection();
+  logger.info(
+    {
+      healthPort,
+      parserServiceUrl: getParserServiceUrl(),
+      redisConfigured: Boolean(connection.url),
+    },
+    "worker bootstrapped",
+  );
 
   const parseWorker = new Worker(
     QUEUE_NAMES.parse,
@@ -582,7 +691,13 @@ async function main() {
 
   const queueEvents = new QueueEvents(QUEUE_NAMES.index, { connection });
   queueEvents.on(BULLMQ_EVENT.COMPLETED, ({ jobId }) => {
-    console.log(`[worker] completed ${jobId}`);
+    logger.info(
+      {
+        queueName: QUEUE_NAMES.index,
+        jobId,
+      },
+      "worker queue job completed",
+    );
   });
 
   const healthServer = createServer((req, res) => {
@@ -597,10 +712,15 @@ async function main() {
   });
 
   healthServer.listen(healthPort, () => {
-    console.log(`[worker] health listening on ${healthPort}`);
+    logger.info({ healthPort }, "worker health endpoint listening");
   });
 
-  for (const worker of [parseWorker, chunkWorker, embedWorker, indexWorker]) {
+  for (const { queueName, worker } of [
+    { queueName: QUEUE_NAMES.parse, worker: parseWorker },
+    { queueName: QUEUE_NAMES.chunk, worker: chunkWorker },
+    { queueName: QUEUE_NAMES.embed, worker: embedWorker },
+    { queueName: QUEUE_NAMES.index, worker: indexWorker },
+  ]) {
     worker.on(BULLMQ_EVENT.FAILED, async (job, error) => {
       if (!job) return;
 
@@ -633,13 +753,29 @@ async function main() {
           })
           .where(eq(documents.id, version.documentId));
       }
+
+      logger.error(
+        {
+          queueName,
+          jobId: job.id ?? null,
+          documentVersionId:
+            job.data && typeof job.data.documentVersionId === "string"
+              ? job.data.documentVersionId
+              : null,
+          documentId: version?.documentId ?? null,
+          workspaceId: version?.workspaceId ?? null,
+          errorMessage: error.message,
+          error: serializeErrorForLog(error),
+        },
+        "worker stage failed",
+      );
     });
   }
 
-  console.log("[worker] ready");
+  logger.info("worker ready");
 }
 
 main().catch((error) => {
-  console.error("[worker] fatal", error);
+  logger.fatal({ error: serializeErrorForLog(error) }, "worker fatal error");
   process.exit(1);
 });

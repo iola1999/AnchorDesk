@@ -95,6 +95,8 @@ pnpm dev
 - 受管进程状态统一写到 `/tmp/knowledge-assistant-dev`：
   - 日志在 `/tmp/knowledge-assistant-dev/logs`
   - PID 文件在 `/tmp/knowledge-assistant-dev/pids`
+- 应用层日志当前统一走结构化 stdout/stderr；开发期由 `pnpm dev` 捕获到上述日志目录，生产环境默认输出 JSON 到容器 stdout。
+- 可选通过 `LOG_LEVEL` 调整日志级别；默认行为是开发期 `debug`、生产期 `info`、测试期 `silent`。
 - 这样可以避免在仓库内留下 `.dev` 状态目录，减少对前端 dev watch 的干扰。
 
 状态检查：

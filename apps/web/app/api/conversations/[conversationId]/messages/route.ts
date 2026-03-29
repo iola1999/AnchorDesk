@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import {
+  buildStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   normalizeConversationFailureMessage,
@@ -11,9 +12,11 @@ import {
   getDb,
   messages,
 } from "@knowledge-assistant/db";
+import { serializeErrorForLog } from "@knowledge-assistant/logging";
 import { enqueueConversationResponse } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
+import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
@@ -55,14 +58,21 @@ export async function POST(
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
   const { conversationId } = await params;
+  const requestId = resolveRequestId(request);
+  const requestLogger = logger.child({
+    ...buildRequestLogContext(request, requestId),
+    conversationId,
+  });
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
+    requestLogger.warn("unauthorized conversation message request");
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const conversation = await requireOwnedConversation(conversationId, userId);
   if (!conversation) {
+    requestLogger.warn({ userId }, "conversation not found for message request");
     return Response.json({ error: "Conversation not found" }, { status: 404 });
   }
 
@@ -73,6 +83,14 @@ export async function POST(
   const content = String(body.content ?? "").trim();
   const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
   if (!content) {
+    requestLogger.warn(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        hasDraftUploadId: Boolean(draftUploadId),
+      },
+      "conversation message request missing content",
+    );
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
@@ -111,6 +129,7 @@ export async function POST(
       role: MESSAGE_ROLE.ASSISTANT,
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
+      structuredJson: buildStreamingAssistantRunState(),
     })
     .returning();
 
@@ -132,7 +151,7 @@ export async function POST(
   }
 
   try {
-    await enqueueConversationResponse({
+    const queueJob = await enqueueConversationResponse({
       conversationId,
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
@@ -142,6 +161,20 @@ export async function POST(
         workspacePrompt: conversation.workspacePrompt,
       }),
     });
+
+    requestLogger.info(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        userMessageId: userMessage.id,
+        assistantMessageId: assistantMessage.id,
+        queueJobId: queueJob.id ?? null,
+        contentLength: content.length,
+        hasDraftUploadId: Boolean(draftUploadId),
+        hasWorkspacePrompt: Boolean(conversation.workspacePrompt),
+      },
+      "conversation response enqueued",
+    );
 
     return Response.json(
       {
@@ -163,6 +196,20 @@ export async function POST(
         },
       })
       .where(eq(messages.id, assistantMessage.id));
+
+    requestLogger.error(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        userMessageId: userMessage.id,
+        assistantMessageId: assistantMessage.id,
+        contentLength: content.length,
+        hasDraftUploadId: Boolean(draftUploadId),
+        errorMessage: message,
+        error: serializeErrorForLog(error),
+      },
+      "failed to enqueue conversation response",
+    );
 
     return Response.json(
       {

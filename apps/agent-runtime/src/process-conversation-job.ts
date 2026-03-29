@@ -3,8 +3,10 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS,
   TIMELINE_EVENT,
   TOOL_TIMELINE_STATE,
+  refreshStreamingAssistantRunState,
   normalizeConversationFailureMessage,
   type ToolTimelineState,
 } from "@knowledge-assistant/contracts";
@@ -15,8 +17,10 @@ import {
   messageCitations,
   messages,
 } from "@knowledge-assistant/db";
+import { serializeErrorForLog } from "@knowledge-assistant/logging";
 import type { ConversationResponseJobPayload } from "@knowledge-assistant/queue";
 
+import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";
 import { buildToolTimelineMessage } from "./timeline";
 
@@ -51,6 +55,18 @@ async function updateStreamingAssistantMessage(input: {
     .update(messages)
     .set({
       contentMarkdown: input.contentMarkdown,
+    })
+    .where(eq(messages.id, input.assistantMessageId));
+}
+
+async function updateStreamingAssistantRunState(input: {
+  assistantMessageId: string;
+  structuredJson: Record<string, unknown>;
+}) {
+  await db
+    .update(messages)
+    .set({
+      structuredJson: input.structuredJson,
     })
     .where(eq(messages.id, input.assistantMessageId));
 }
@@ -119,6 +135,13 @@ async function persistMessageCitations(input: {
 export async function processConversationResponseJob(
   payload: ConversationResponseJobPayload,
 ) {
+  const jobLogger = logger.child({
+    conversationId: payload.conversationId,
+    userMessageId: payload.userMessageId,
+    assistantMessageId: payload.assistantMessageId,
+    hasDraftUploadId: Boolean(payload.draftUploadId),
+    promptLength: payload.prompt.length,
+  });
   const [conversation] = await db
     .select()
     .from(conversations)
@@ -141,13 +164,34 @@ export async function processConversationResponseJob(
     !assistantMessage ||
     assistantMessage.status !== MESSAGE_STATUS.STREAMING
   ) {
+    jobLogger.debug(
+      {
+        conversationFound: Boolean(conversation),
+        assistantMessageFound: Boolean(assistantMessage),
+        assistantStatus: assistantMessage?.status ?? null,
+      },
+      "skipping conversation response job",
+    );
     return;
   }
+
+  jobLogger.info(
+    {
+      workspaceId: conversation.workspaceId,
+      hasAgentSessionId: Boolean(conversation.agentSessionId),
+      hasAgentWorkdir: Boolean(conversation.agentWorkdir),
+    },
+    "processing conversation response job",
+  );
 
   try {
     let streamedAssistantText = "";
     let lastPersistedAssistantText = assistantMessage.contentMarkdown;
     let lastPersistedAt = 0;
+    let currentRunState = refreshStreamingAssistantRunState(
+      (assistantMessage.structuredJson as Record<string, unknown> | null | undefined) ??
+        null,
+    );
 
     async function persistAssistantDelta(nextText: string, force = false) {
       if (nextText === lastPersistedAssistantText) {
@@ -176,69 +220,131 @@ export async function processConversationResponseJob(
       lastPersistedAt = now;
     }
 
-    const agentResponse = await runAgentResponse(
-      {
-        prompt: payload.prompt,
+    async function persistAssistantHeartbeat(now: Date = new Date()) {
+      currentRunState = refreshStreamingAssistantRunState(currentRunState, now);
+      await updateStreamingAssistantRunState({
+        assistantMessageId: payload.assistantMessageId,
+        structuredJson: currentRunState,
+      });
+    }
+
+    await persistAssistantHeartbeat();
+
+    const heartbeatTimer = setInterval(() => {
+      void persistAssistantHeartbeat().catch((heartbeatError) => {
+        jobLogger.warn(
+          {
+            error: serializeErrorForLog(heartbeatError),
+          },
+          "failed to persist assistant heartbeat",
+        );
+      });
+    }, STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS);
+    heartbeatTimer.unref?.();
+
+    try {
+      const agentResponse = await runAgentResponse(
+        {
+          prompt: payload.prompt,
+          workspaceId: conversation.workspaceId,
+          conversationId: payload.conversationId,
+          agentSessionId: conversation.agentSessionId,
+          agentWorkdir: conversation.agentWorkdir,
+        },
+        {
+          onToolStarted: async ({ toolName, toolUseId }) => {
+            jobLogger.debug(
+              {
+                toolName,
+                toolUseId,
+              },
+              "assistant tool started",
+            );
+            await insertToolMessage({
+              conversationId: payload.conversationId,
+              toolName,
+              state: TOOL_TIMELINE_STATE.STARTED,
+            });
+          },
+          onToolFinished: async ({ toolName, toolUseId }) => {
+            jobLogger.debug(
+              {
+                toolName,
+                toolUseId,
+              },
+              "assistant tool completed",
+            );
+            await insertToolMessage({
+              conversationId: payload.conversationId,
+              toolName,
+              state: TOOL_TIMELINE_STATE.COMPLETED,
+            });
+          },
+          onToolFailed: async ({ toolName, toolUseId, error }) => {
+            jobLogger.warn(
+              {
+                toolName,
+                toolUseId,
+                error,
+              },
+              "assistant tool failed",
+            );
+            await insertToolMessage({
+              conversationId: payload.conversationId,
+              toolName,
+              state: TOOL_TIMELINE_STATE.FAILED,
+              error: normalizeConversationFailureMessage(error),
+            });
+          },
+          onAssistantDelta: async ({ fullText }) => {
+            streamedAssistantText = fullText;
+            await persistAssistantDelta(fullText);
+          },
+        },
+      );
+
+      clearInterval(heartbeatTimer);
+      await persistAssistantDelta(streamedAssistantText, true);
+
+      await db
+        .update(conversations)
+        .set({
+          agentSessionId: agentResponse.sessionId ?? conversation.agentSessionId,
+          agentWorkdir: agentResponse.workdir ?? conversation.agentWorkdir,
+          updatedAt: new Date(),
+        })
+        .where(eq(conversations.id, payload.conversationId));
+
+      await db
+        .update(messages)
+        .set({
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: agentResponse.text,
+          structuredJson: null,
+        })
+        .where(eq(messages.id, payload.assistantMessageId));
+
+      await persistMessageCitations({
+        assistantMessageId: payload.assistantMessageId,
         workspaceId: conversation.workspaceId,
-        conversationId: payload.conversationId,
-        agentSessionId: conversation.agentSessionId,
-        agentWorkdir: conversation.agentWorkdir,
-      },
-      {
-        onToolStarted: async ({ toolName }) => {
-          await insertToolMessage({
-            conversationId: payload.conversationId,
-            toolName,
-            state: TOOL_TIMELINE_STATE.STARTED,
-          });
-        },
-        onToolFinished: async ({ toolName }) => {
-          await insertToolMessage({
-            conversationId: payload.conversationId,
-            toolName,
-            state: TOOL_TIMELINE_STATE.COMPLETED,
-          });
-        },
-        onToolFailed: async ({ toolName, error }) => {
-          await insertToolMessage({
-            conversationId: payload.conversationId,
-            toolName,
-            state: TOOL_TIMELINE_STATE.FAILED,
-            error: normalizeConversationFailureMessage(error),
-          });
-        },
-        onAssistantDelta: async ({ fullText }) => {
-          streamedAssistantText = fullText;
-          await persistAssistantDelta(fullText);
-        },
-      },
-    );
+        citations: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
+      });
 
-    await persistAssistantDelta(streamedAssistantText, true);
-
-    await db
-      .update(conversations)
-      .set({
-        agentSessionId: agentResponse.sessionId ?? conversation.agentSessionId,
-        agentWorkdir: agentResponse.workdir ?? conversation.agentWorkdir,
-        updatedAt: new Date(),
-      })
-      .where(eq(conversations.id, payload.conversationId));
-
-    await db
-      .update(messages)
-      .set({
-        status: MESSAGE_STATUS.COMPLETED,
-        contentMarkdown: agentResponse.text,
-        structuredJson: null,
-      })
-      .where(eq(messages.id, payload.assistantMessageId));
-
-    await persistMessageCitations({
-      assistantMessageId: payload.assistantMessageId,
-      workspaceId: conversation.workspaceId,
-      citations: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
-    });
+      jobLogger.info(
+        {
+          workspaceId: conversation.workspaceId,
+          sessionId: agentResponse.sessionId ?? null,
+          citationCount: Array.isArray(agentResponse.citations)
+            ? agentResponse.citations.length
+            : 0,
+          outputLength: agentResponse.text.length,
+        },
+        "conversation response job completed",
+      );
+    } catch (error) {
+      clearInterval(heartbeatTimer);
+      throw error;
+    }
   } catch (error) {
     const message = normalizeConversationFailureMessage(error);
 
@@ -263,5 +369,14 @@ export async function processConversationResponseJob(
         },
       })
       .where(eq(messages.id, payload.assistantMessageId));
+
+    jobLogger.error(
+      {
+        workspaceId: conversation.workspaceId,
+        errorMessage: message,
+        error: serializeErrorForLog(error),
+      },
+      "conversation response job failed",
+    );
   }
 }

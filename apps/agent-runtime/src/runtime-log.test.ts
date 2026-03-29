@@ -17,8 +17,6 @@ describe("buildClaudeAgentRuntimeLogContext", () => {
       }),
     ).toEqual({
       hasApiKey: true,
-      apiKeyPrefix: "sk-ant-api-key-1",
-      apiKeyLength: 21,
       baseUrl: "http://localhost:8080",
       sdkDebugEnabled: true,
     });
@@ -32,8 +30,6 @@ describe("buildClaudeAgentRuntimeLogContext", () => {
       }),
     ).toEqual({
       hasApiKey: false,
-      apiKeyPrefix: null,
-      apiKeyLength: 0,
       baseUrl: null,
       sdkDebugEnabled: false,
     });
