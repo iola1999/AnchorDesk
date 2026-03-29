@@ -38,7 +38,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Product/runtime constraints
 - OCR is intentionally disabled by default. Do not enable or extend OCR flows unless the task explicitly covers the approved provider plan.
 - The answer strategy is fixed: workspace knowledge first, web search as a supplement. Do not reintroduce `kb_only` / `kb_plus_web` modes.
-- If `ANTHROPIC_API_KEY` is absent locally, the agent runtime may use the documented mock fallback for local demo/development flows.
+- If `ANTHROPIC_API_KEY` is absent locally, the agent runtime should fail explicitly; do not reintroduce local mock fallback for conversation generation.
 - Current streaming is database-polling plus persisted assistant draft, not direct provider token streaming.
 
 ## Search hygiene

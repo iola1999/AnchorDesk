@@ -18,7 +18,6 @@ import {
   findRegeneratableConversationTurn,
   type RetryableConversationMessage,
 } from "@/lib/api/conversation-retry";
-import { readGroundedAnswerStatus } from "@/lib/api/grounded-answer-status";
 import {
   applyAssistantTerminalEvent,
   type ConversationChatMessage,
@@ -477,11 +476,6 @@ export function ConversationSession({
           const isAssistant = message.role === MESSAGE_ROLE.ASSISTANT;
           const isCurrentAssistant = assistantMessageId === message.id;
           const isStreamingAssistant = isAssistant && message.status === MESSAGE_STATUS.STREAMING;
-          const groundedStatus = isAssistant
-            ? readGroundedAnswerStatus(
-                (message.structuredJson ?? null) as Record<string, unknown> | null,
-              )
-            : null;
           const citations = citationsByMessage.get(message.id) ?? [];
           const hasSources = citations.length > 0;
           const processMessages = timelineMessagesByAssistant[message.id] ?? [];
@@ -583,25 +577,6 @@ export function ConversationSession({
                       text={answerText}
                       className="max-w-none text-[15px] leading-[2] text-app-text md:text-[16px]"
                     />
-
-                    {groundedStatus?.unsupportedReason ? (
-                      <p className="text-[13px] leading-6 text-app-muted-strong">
-                        {groundedStatus.unsupportedReason}
-                      </p>
-                    ) : null}
-
-                    {groundedStatus && groundedStatus.missingInformation.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {groundedStatus.missingInformation.map((item) => (
-                          <span
-                            key={item}
-                            className="inline-flex items-center rounded-full border border-app-border/60 bg-app-surface-soft/72 px-3 py-1 text-[12px] text-app-muted-strong"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                 )}
 

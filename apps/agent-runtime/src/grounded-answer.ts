@@ -1,13 +1,9 @@
 import {
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-  GROUNDED_ANSWER_CONFIDENCE,
   groundedAnswerSchema,
   type GroundedAnswer,
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
 
-const DEFAULT_UNSUPPORTED_REASON =
-  "No supporting evidence was retrieved from the workspace or external tools.";
 const DEFAULT_UNSUPPORTED_ANSWER =
   "当前没有足够依据支持直接回答，请补充资料或调整检索范围。";
 
@@ -59,25 +55,14 @@ export function normalizeGroundedAnswer(input: {
         quote_text: citation.quote_text,
       })) ?? [];
 
-  const unsupportedReason =
-    citations.length > 0
-      ? parsedData?.unsupported_reason ?? null
-      : (parsedData?.unsupported_reason?.trim() || DEFAULT_UNSUPPORTED_REASON);
-
   const answerMarkdown = uniqueStrings([
     parsedData?.answer_markdown ?? "",
     input.draftText,
-    unsupportedReason ? DEFAULT_UNSUPPORTED_ANSWER : "",
+    DEFAULT_UNSUPPORTED_ANSWER,
   ])[0];
 
   return {
     answer_markdown: answerMarkdown || DEFAULT_UNSUPPORTED_ANSWER,
-    confidence:
-      citations.length > 0
-        ? (parsedData?.confidence ?? GROUNDED_ANSWER_CONFIDENCE.MEDIUM)
-        : DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-    unsupported_reason: unsupportedReason,
     citations,
-    missing_information: uniqueStrings(parsedData?.missing_information ?? []),
   };
 }

@@ -85,25 +85,27 @@ describe("applySettingsToProcessEnv", () => {
     expect(process.env.S3_FORCE_PATH_STYLE).toBe("true");
   });
 
-  it("skips placeholder example values", () => {
+  it("keeps non-empty placeholder-like values because runtime no longer special-cases them", () => {
     setEnv("ANTHROPIC_API_KEY", undefined);
 
     applySettingsToProcessEnv([
       { setting_key: "anthropic_api_key", value_text: "example-anthropic-api-key" },
     ]);
 
-    expect(process.env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(process.env.ANTHROPIC_API_KEY).toBe("example-anthropic-api-key");
   });
 });
 
 describe("readConfiguredRuntimeValue", () => {
-  it("treats empty and example placeholders as unset", () => {
+  it("treats only empty values as unset", () => {
     expect(readConfiguredRuntimeValue("")).toBeUndefined();
-    expect(readConfiguredRuntimeValue(" example-anthropic-api-key ")).toBeUndefined();
+    expect(readConfiguredRuntimeValue(" example-anthropic-api-key ")).toBe(
+      "example-anthropic-api-key",
+    );
     expect(readConfiguredRuntimeValue(null)).toBeUndefined();
   });
 
-  it("returns non-placeholder values", () => {
+  it("returns non-empty values", () => {
     expect(readConfiguredRuntimeValue("real-secret")).toBe("real-secret");
   });
 });

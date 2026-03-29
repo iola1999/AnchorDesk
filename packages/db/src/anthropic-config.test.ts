@@ -20,13 +20,13 @@ describe("Anthropic runtime config helpers", () => {
     );
   });
 
-  test("treats empty and example placeholder values as unset", () => {
+  test("treats empty values as unset and preserves non-empty configured values", () => {
     const env = {
       ANTHROPIC_API_KEY: " example-anthropic-api-key ",
       ANTHROPIC_BASE_URL: " ",
     };
 
-    expect(getConfiguredAnthropicApiKey(env)).toBeUndefined();
+    expect(getConfiguredAnthropicApiKey(env)).toBe("example-anthropic-api-key");
     expect(getConfiguredAnthropicBaseUrl(env)).toBeUndefined();
   });
 
@@ -50,7 +50,7 @@ describe("Anthropic runtime config helpers", () => {
     });
   });
 
-  test("builds agent sdk env with sanitized anthropic credentials", () => {
+  test("builds agent sdk env with trimmed anthropic credentials", () => {
     expect(
       buildClaudeAgentEnv({
         PATH: "/usr/bin",
@@ -69,7 +69,7 @@ describe("Anthropic runtime config helpers", () => {
         ANTHROPIC_BASE_URL: "",
       }),
     ).toMatchObject({
-      ANTHROPIC_API_KEY: undefined,
+      ANTHROPIC_API_KEY: "example-anthropic-api-key",
       ANTHROPIC_BASE_URL: undefined,
     });
   });

@@ -1,11 +1,12 @@
 import express from "express";
 import { Worker } from "bullmq";
 
-import { initRuntimeSettings } from "@knowledge-assistant/db";
+import { buildClaudeAgentEnv, initRuntimeSettings } from "@knowledge-assistant/db";
 import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
 
 import { processConversationResponseJob } from "./process-conversation-job";
 import { runAgentResponse } from "./run-agent-response";
+import { buildClaudeAgentRuntimeLogContext } from "./runtime-log";
 
 const BULLMQ_WORKER_EVENT = {
   FAILED: "failed",
@@ -13,6 +14,11 @@ const BULLMQ_WORKER_EVENT = {
 
 async function main() {
   await initRuntimeSettings();
+
+  console.log(
+    "[agent-runtime] Anthropic runtime config:",
+    JSON.stringify(buildClaudeAgentRuntimeLogContext(buildClaudeAgentEnv())),
+  );
 
   const app = express();
   app.use(express.json());

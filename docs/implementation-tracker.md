@@ -16,7 +16,7 @@
 阶段目标：
 
 - 先把“工作空间 -> 创建对话 -> 消息入队 -> agent-runtime -> tool timeline -> assistant streaming -> grounded final answer -> citations -> 分享/回访”做顺。
-- 当前阶段允许可用工具先返回明确标注的 mock 结果，只要不破坏消息结构、SSE 事件、失败语义和 citation 契约。
+- 当前阶段要求主会话链路按真实 provider 行为运行；缺少关键配置或 provider 不可用时应走明确失败语义，而不是回退本地 mock。
 - 资料解析、切块质量、OCR 和更深的 retrieval 优化暂缓；除非它们直接阻断对话链路联调，否则不优先推进。
 
 当前结论：
@@ -25,7 +25,7 @@
 - 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
 - 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
-- 当前阶段接受“工具先 mock，链路先跑通”的策略；本地 fallback 已切到正式工具名和稳定返回结构，但 mock 输出仍必须显式标识，不能伪造引用或外部证据。
+- 当前阶段不再接受本地 mock 会话回退；链路联调应直接暴露真实 provider 缺失或调用失败，并保持错误语义稳定。
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
@@ -43,8 +43,7 @@
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
-- 本地缺少真实 provider 时，主会话链路已经允许回退到 mock tool / mock assistant chunk，用于验证队列、事件流、前端状态切换和错误处理。
-- 本地 mock fallback 现在会复用正式工具名和基础成功结构，不再依赖专用假工具名来驱动主链路联调。
+- 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
@@ -55,7 +54,7 @@
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL`、`AUTH_SECRET`、`SUPER_ADMIN_USERNAMES` 继续保持 env-only。
 - web / worker / agent-runtime 启动时通过 `initRuntimeSettings()` 从 DB 加载运行时配置到 `process.env`；Docker 生产部署中这三个服务只需 bootstrap env。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
-- parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅有 `disabled/mock` 级别能力。
+- parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅保持 `disabled`。
 - OCR 下一步不再尝试本地 provider；待商业 API 方案确定后再接入，当前继续保持默认关闭。
 - retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版；后续深化在当前阶段降级为非阻塞项。
 - 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
@@ -90,7 +89,7 @@
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
-- `working tree` Surface grounded answer confidence / unsupported reason / missing information in workspace conversation UI
+- `working tree` Remove grounded answer confidence / unsupported metadata from conversation answers
 - `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
 - `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain
@@ -104,11 +103,10 @@
   - assistant placeholder 到 completed/failed 的本地状态切换已补齐，最新失败回答也已支持直接重试
   - 仍需继续收口页面刷新后的其余 UI 一致性，以及更完整的失败恢复体验
   - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
-- 工具契约与 mock 策略
-  - 当前阶段允许 `search_web_general` / `search_statutes` / 报告生成等工具先返回明确标识的 mock 或基础结果
-  - 本地 fallback 已改为使用正式工具名和稳定输出结构；后续仍需继续把更多 mock / 基础实现收敛到统一契约
+- 工具契约与真实 provider 对齐
+  - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示
-  - mock 结果不得伪造 citation、置信度覆盖度或外部来源
+  - 不得伪造 citation、置信度覆盖度或外部来源
 - grounded answer 证据 dossier 与更清晰的证据展示
   - 继续补 evidence dossier、引用说明和完成态切换体验
   - 收口 citation 刷新、阅读器联动和分享页最终态一致性
@@ -128,7 +126,7 @@
 默认按以下顺序推进：
 
 1. 稳定主会话链路的完成态与失败态体验
-2. 固化 tool timeline、mock tool contract 和前端状态切换
+2. 固化 tool timeline、真实 provider 失败语义和前端状态切换
 3. 收口 grounded answer 证据展示、citation 刷新和阅读器/分享页联动
 4. 只修阻断主链路的会话级临时资料问题
 5. 主链路稳定后，再恢复 retrieval 深化、真实工具 provider 和 OCR 方案评估
@@ -146,5 +144,5 @@
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
 - 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库，前端依赖刷新后显示最终版本。
-- 当前阶段允许工具 mock，但 mock 输出必须显式可识别，且不能伪造 workspace 证据、citation 或外部来源。
+- 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

@@ -1,8 +1,3 @@
-import {
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-  type GroundedAnswerConfidence,
-} from "@knowledge-assistant/contracts";
-
 export async function requestAgentResponse(input: {
   prompt: string;
   workspaceId: string;
@@ -20,12 +15,6 @@ export async function requestAgentResponse(input: {
         label: string;
         quote_text: string;
       }>,
-      structured: {
-        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-        unsupported_reason:
-          "Agent runtime is not configured. Message saved, but no automated answer was generated.",
-        missing_information: [] as string[],
-      },
       sessionId: input.agentSessionId ?? null,
       workdir: input.agentWorkdir ?? null,
     };
@@ -54,10 +43,5 @@ export async function requestAgentResponse(input: {
       label: string;
       quote_text: string;
     }>;
-    structured?: {
-      confidence: GroundedAnswerConfidence;
-      unsupported_reason: string | null;
-      missing_information: string[];
-    };
   };
 }

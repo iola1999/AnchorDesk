@@ -18,7 +18,7 @@
 - Web 框架使用 Next.js。
 - 文档解析允许使用 Python。
 - Agent 决策与规划固定使用 `@anthropic-ai/claude-agent-sdk`。
-- 当前阶段执行策略是“先收口对话链路，再补真实工具能力”；非核心工具允许先返回明确标识的 mock 结果。
+- 当前阶段执行策略是“先收口对话链路，并按真实 provider 行为开发”；缺少关键配置时应显式失败，而不是回退本地 mock。
 - 文档解析、切块质量、OCR 和更深的 retrieval 优化当前默认暂缓，除非它们直接阻断对话链路联调。
 
 第一版产品核心：
@@ -52,8 +52,7 @@
 
 - Agent 规划固定 Anthropic
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
-- 当前阶段若工具 provider 未就绪，可先返回显式 mock 结果以维持 tool contract、SSE 事件和前端完成态联调
-- 本地 mock fallback 当前优先复用正式工具名和稳定输出结构，而不是额外引入只用于联调的假工具名
+- 工具 provider 未就绪时，应保持稳定契约并返回明确失败，不再提供本地 mock fallback
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
 - OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
 
@@ -102,8 +101,7 @@ flowchart LR
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - `Agent Runtime` 现在会抽取 Claude Agent SDK 的 assistant text delta，并把 assistant draft 持久化回 `messages`，供前端会话气泡实时更新。
-- 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会回退到 mock tool + mock assistant chunk，保证主会话链路、SSE 和 UI 可以本地演示与联调。
-- 本地 mock fallback 现在会复用正式工具名和基础成功结构，减少主链路对专用联调分支的依赖。
+- 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答。
@@ -117,8 +115,8 @@ flowchart LR
 
 - 当前回答流式仍是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 最新失败回答可直接重试”，但页面其余部分的一致性和更完整的失败恢复路径仍需要继续收口。
-- 当前允许部分工具继续使用 mock 或基础结果；这些工具当前的主要要求是稳定契约、显式标注和不伪造引用，而不是立刻接齐真实 provider。
-- OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
+- 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
+- OCR 真实 provider 尚未接入；当前仅支持关闭，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。
 - 前端与文案仍存在少量去法律化未收口残留。
 - 会话级临时资料当前只做 parse-only 本地检索，不进入工作空间全局检索，也还没有后台清理任务。
@@ -276,14 +274,14 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `search_statutes` 是保留的专项工具，用于法律条文或法规引用场景。
 - 其他工具和主流程都以通用知识库助手为中心组织。
-- 当前阶段允许 `search_web_general`、`search_statutes`、报告生成相关工具先返回 mock 或基础结果，只要输出契约稳定、mock 身份明确、且不伪造 citation。
+- 当前阶段要求 `search_web_general`、`search_statutes`、报告生成相关工具按真实 provider 或明确失败语义运行；输出契约必须稳定，且不得伪造 citation。
 
 ## 8. 当前阶段关注点
 
 优先级统一以 [implementation-tracker.md](./implementation-tracker.md) 为准。当前重点调整为：
 
 1. 基于已打通的主会话链路，先稳住回答完成态、失败态和前端收尾体验
-2. 固化 tool timeline、mock tool contract、assistant streaming 和 completed/failed 事件
+2. 固化 tool timeline、assistant streaming 和 completed/failed 事件，并继续对齐真实 provider 失败语义
 3. grounded answer 与证据展示 / citation 联动
 4. 只处理阻断会话链路的临时附件、解析和检索问题
 5. 主链路稳定后，再恢复真实工具 provider、retrieval 深化和 OCR 接入评估

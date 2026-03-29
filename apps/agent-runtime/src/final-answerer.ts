@@ -33,7 +33,6 @@ const FINAL_ANSWER_SYSTEM_PROMPT = [
   "You render the final answer for a grounded workspace assistant.",
   "Use only the validated evidence supplied by the application.",
   "Never invent anchor IDs, directory paths, quotes, or citations.",
-  "If the evidence is insufficient, set unsupported_reason to a concrete explanation.",
   "If a citation is not supported by the provided evidence list, omit it.",
   "Keep the answer concise, professional, and explicit about uncertainty.",
 ].join("\n");

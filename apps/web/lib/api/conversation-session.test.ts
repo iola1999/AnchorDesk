@@ -30,9 +30,7 @@ describe("applyAssistantTerminalEvent", () => {
         message_id: "assistant-1",
         status: MESSAGE_STATUS.COMPLETED,
         content_markdown: "最终回答",
-        structured: {
-          confidence: "high",
-        },
+        structured: null,
         citations: [
           {
             id: "new-citation",
@@ -49,9 +47,7 @@ describe("applyAssistantTerminalEvent", () => {
         id: "assistant-1",
         status: MESSAGE_STATUS.COMPLETED,
         contentMarkdown: "最终回答",
-        structuredJson: {
-          confidence: "high",
-        },
+        structuredJson: null,
       }),
     ]);
     expect(result.citations).toEqual([

@@ -6,8 +6,8 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
-  ASSISTANT_TOOL,
 } from "@knowledge-assistant/contracts";
+import { getConfiguredAnthropicApiKey } from "@knowledge-assistant/db";
 
 import { getAllowedTools, runAgentResponse } from "./run-agent-response";
 
@@ -36,7 +36,7 @@ describe("getAllowedTools", () => {
 
 describe("runAgentResponse", () => {
   test.sequential(
-    "streams local mock tool events and answer deltas when anthropic api key is missing",
+    "fails fast when anthropic api key is missing",
     async () => {
       delete process.env.ANTHROPIC_API_KEY;
 
@@ -45,75 +45,33 @@ describe("runAgentResponse", () => {
       );
       temporaryDirs.push(agentWorkdir);
 
-      const toolEvents: string[] = [];
-      const toolResponses: Array<{ toolName: string; toolResponse: unknown }> = [];
-      const textDeltas: string[] = [];
-      const fullTexts: string[] = [];
-
-      const response = await runAgentResponse(
-        {
-          prompt: "帮我总结当前空间里的资料",
-          workspaceId: "workspace-1",
-          conversationId: "conversation-1",
-          agentWorkdir,
-        },
-        {
-          onToolStarted: ({ toolName }) => {
-            toolEvents.push(`started:${toolName}`);
+      await expect(
+        runAgentResponse(
+          {
+            prompt: "帮我总结当前空间里的资料",
+            workspaceId: "workspace-1",
+            conversationId: "conversation-1",
+            agentWorkdir,
           },
-          onToolFinished: ({ toolName, toolResponse }) => {
-            toolEvents.push(`finished:${toolName}`);
-            toolResponses.push({ toolName, toolResponse });
+          {
+            onToolStarted: () => {
+              throw new Error("should not emit tool events");
+            },
+            onAssistantDelta: () => {
+              throw new Error("should not emit assistant deltas");
+            },
           },
-          onAssistantDelta: ({ textDelta, fullText }) => {
-            textDeltas.push(textDelta);
-            fullTexts.push(fullText);
-          },
-        },
-      );
-
-      expect(toolEvents).toEqual([
-        `started:${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
-        `finished:${ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE}`,
-      ]);
-      expect(toolResponses).toEqual([
-        {
-          toolName: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
-          toolResponse: {
-            ok: true,
-            results: [],
-            mock: true,
-          },
-        },
-      ]);
-      expect(textDeltas.length).toBeGreaterThan(0);
-      expect(textDeltas.join("")).toBe(response.text);
-      expect(fullTexts.at(-1)).toBe(response.text);
-      expect(response.text).toContain("mock 会话链路");
-      expect(response.structured?.unsupported_reason).toContain("mock 会话链路");
+        ),
+      ).rejects.toThrow("Anthropic API key is not configured");
     },
   );
 
   test.sequential(
-    "treats example anthropic api keys as placeholders and stays on the mock path",
+    "does not special-case example anthropic api keys",
     async () => {
       process.env.ANTHROPIC_API_KEY = "example-anthropic-api-key";
 
-      const agentWorkdir = await fs.mkdtemp(
-        path.join(os.tmpdir(), "knowledge-assistant-agent-runtime-"),
-      );
-      temporaryDirs.push(agentWorkdir);
-
-      const response = await runAgentResponse({
-        prompt: "帮我总结当前空间里的资料",
-        workspaceId: "workspace-1",
-        conversationId: "conversation-2",
-        agentWorkdir,
-      });
-
-      expect(response.ok).toBe(true);
-      expect(response.text).toContain("mock 会话链路");
-      expect(response.structured?.unsupported_reason).toContain("mock 会话链路");
+      expect(getConfiguredAnthropicApiKey()).toBe("example-anthropic-api-key");
     },
   );
 });

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getManagedServices } from "./lib/dev-common.mjs";
+import {
+  getManagedServices,
+  loadResolvedSystemEnvironment,
+} from "./lib/dev-common.mjs";
 
 describe("getManagedServices", () => {
   it("configures the parser service with a stable health-checked command", () => {
@@ -44,5 +47,58 @@ describe("getManagedServices", () => {
       .toBe(3000);
     expect(services.find((service) => service.id === "worker")?.healthUrl)
       .toBeUndefined();
+  });
+});
+
+describe("loadResolvedSystemEnvironment", () => {
+  it("queries system settings without pre-seeding module defaults into the child env", async () => {
+    const baseEnv = {
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      PATH: "/usr/bin",
+    };
+
+    let capturedEnv;
+
+    const resolved = await loadResolvedSystemEnvironment(baseEnv, {
+      runCommandCapture: async (input) => {
+        capturedEnv = input.env;
+        return JSON.stringify({
+          ...input.env,
+          ANTHROPIC_API_KEY: "db-secret-key",
+          ANTHROPIC_BASE_URL: "http://localhost:8080",
+        });
+      },
+      pnpmBinary: "pnpm",
+    });
+
+    expect(capturedEnv).toMatchObject({
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      PATH: "/usr/bin",
+    });
+    expect(capturedEnv).not.toHaveProperty("ANTHROPIC_API_KEY");
+    expect(capturedEnv).not.toHaveProperty("ANTHROPIC_BASE_URL");
+    expect(resolved).toMatchObject({
+      ANTHROPIC_API_KEY: "db-secret-key",
+      ANTHROPIC_BASE_URL: "http://localhost:8080",
+    });
+  });
+
+  it("falls back to the default-composed runtime environment when DB resolution fails", async () => {
+    const resolved = await loadResolvedSystemEnvironment(
+      {
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      },
+      {
+        runCommandCapture: async () => {
+          throw new Error("db unavailable");
+        },
+        pnpmBinary: "pnpm",
+      },
+    );
+
+    expect(resolved).toMatchObject({
+      ANTHROPIC_API_KEY: "example-anthropic-api-key",
+      ANTHROPIC_BASE_URL: "https://api.anthropic.com",
+    });
   });
 });

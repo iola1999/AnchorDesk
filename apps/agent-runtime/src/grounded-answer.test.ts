@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-  GROUNDED_ANSWER_CONFIDENCE,
-} from "@knowledge-assistant/contracts";
+import { groundedAnswerSchema } from "@knowledge-assistant/contracts";
 
 import { normalizeGroundedAnswer } from "./grounded-answer";
 
@@ -23,8 +20,6 @@ describe("normalizeGroundedAnswer", () => {
       evidence,
       parsed: {
         answer_markdown: "依据发布手册，上线前需要先完成回归测试。",
-        confidence: GROUNDED_ANSWER_CONFIDENCE.HIGH,
-        unsupported_reason: null,
         citations: [
           {
             anchor_id: "550e8400-e29b-41d4-a716-446655440000",
@@ -37,7 +32,6 @@ describe("normalizeGroundedAnswer", () => {
             quote_text: "不应保留",
           },
         ],
-        missing_information: [],
       },
     });
 
@@ -50,14 +44,12 @@ describe("normalizeGroundedAnswer", () => {
     ]);
   });
 
-  it("marks the answer unsupported when no validated citation survives", () => {
+  it("keeps the answer text when no validated citation survives", () => {
     const result = normalizeGroundedAnswer({
       draftText: "目前资料不足，无法直接确认上线检查项。",
       evidence: [],
       parsed: {
         answer_markdown: "目前资料不足，无法直接确认上线检查项。",
-        confidence: GROUNDED_ANSWER_CONFIDENCE.MEDIUM,
-        unsupported_reason: null,
         citations: [
           {
             anchor_id: "550e8400-e29b-41d4-a716-446655440001",
@@ -65,15 +57,22 @@ describe("normalizeGroundedAnswer", () => {
             quote_text: "不应保留",
           },
         ],
-        missing_information: ["需要补充更完整的发布资料"],
       },
     });
 
     expect(result.citations).toEqual([]);
-    expect(result.unsupported_reason).toBe(
-      "No supporting evidence was retrieved from the workspace or external tools.",
-    );
-    expect(result.confidence).toBe(DEFAULT_GROUNDED_ANSWER_CONFIDENCE);
-    expect(result.missing_information).toEqual(["需要补充更完整的发布资料"]);
+    expect(result.answer_markdown).toBe("目前资料不足，无法直接确认上线检查项。");
+  });
+
+  it("accepts grounded answers without confidence metadata", () => {
+    expect(
+      groundedAnswerSchema.parse({
+        answer_markdown: "你好，有什么我直接帮你处理的？",
+        citations: [],
+      }),
+    ).toEqual({
+      answer_markdown: "你好，有什么我直接帮你处理的？",
+      citations: [],
+    });
   });
 });

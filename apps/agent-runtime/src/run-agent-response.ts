@@ -8,9 +8,7 @@ import {
   ASSISTANT_MCP_SERVER_NAME,
   ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
-  DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
   DEFAULT_AGENT_MAX_TURNS,
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
   normalizeAssistantToolName,
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
@@ -18,12 +16,14 @@ import {
   buildClaudeAgentEnv,
   getConfiguredAnthropicApiKey,
 } from "@knowledge-assistant/db";
-
-import {
-  extractAssistantTextDelta,
-  splitMockAssistantText,
-} from "./assistant-stream";
+import { extractAssistantTextDelta } from "./assistant-stream";
 import { renderGroundedAnswer } from "./final-answerer";
+import {
+  buildClaudeAgentRuntimeLogContext,
+  isClaudeAgentSdkDebugEnabled,
+  serializeErrorForLog,
+  splitClaudeAgentStderr,
+} from "./runtime-log";
 
 const CLAUDE_AGENT_MESSAGE_TYPE = {
   RESULT: "result",
@@ -189,10 +189,6 @@ export type RunAgentResponseHooks = {
   }) => Promise<void> | void;
 };
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function runAgentResponse(
   input: RunAgentResponseInput,
   hooks: RunAgentResponseHooks = {},
@@ -207,173 +203,174 @@ export async function runAgentResponse(
   await fs.mkdir(workdir, { recursive: true });
 
   if (!getConfiguredAnthropicApiKey()) {
-    const mockToolName = ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE;
-    const mockToolInput = {
-      query: prompt,
-      workspace_id: workspaceId,
-      top_k: DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
-    };
-    const mockToolUseId = `mock-${conversationId}`;
-    const mockAnswer = [
-      "当前正在使用本地 mock 会话链路。",
-      "正式工具还可以后接，但消息入队、工具时间线、回答增量和最终完成事件已经会按真实链路工作。",
-      "下一步可以继续把检索和 grounded answer 的真实能力逐步替换进去。",
-    ].join("");
-
-    await hooks.onToolStarted?.({
-      toolName: mockToolName,
-      toolInput: mockToolInput,
-      toolUseId: mockToolUseId,
-    });
-    await sleep(120);
-    await hooks.onToolFinished?.({
-      toolName: mockToolName,
-      toolInput: mockToolInput,
-      toolResponse: {
-        ok: true,
-        results: [],
-        mock: true,
-      },
-      toolUseId: mockToolUseId,
-    });
-
-    let streamedText = "";
-    for (const chunk of splitMockAssistantText(mockAnswer, 1)) {
-      streamedText += chunk;
-      await hooks.onAssistantDelta?.({
-        textDelta: chunk,
-        fullText: streamedText,
-      });
-      await sleep(180);
-    }
-
-    return {
-      ok: true as const,
-      text: mockAnswer,
-      sessionId: input.agentSessionId ?? null,
-      workdir,
-      citations: [],
-      structured: {
-        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-        unsupported_reason:
-          "当前是本地 mock 会话链路，尚未接入真实 Anthropic Agent 调用。",
-        missing_information: [],
-      },
-    };
+    console.error(
+      "[agent-runtime] Anthropic API key missing for Claude Agent SDK query:",
+      JSON.stringify({
+        conversationId,
+        workspaceId,
+        workdir,
+        ...buildClaudeAgentRuntimeLogContext(),
+      }),
+    );
+    throw new Error("Anthropic API key is not configured.");
   }
 
   const assistantServer = createAssistantMcpServer();
+  const agentEnv = buildClaudeAgentEnv();
+  const runtimeLogContext = buildClaudeAgentRuntimeLogContext(agentEnv);
   let finalResult = "";
   let streamedDraft = "";
   let sessionId = input.agentSessionId ?? null;
   const citationMap = new Map<string, GroundedEvidence>();
 
-  for await (const message of query({
-    prompt,
-    options: {
-      tools: [],
-      mcpServers: {
-        [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
+  console.log(
+    "[agent-runtime] Starting Claude Agent SDK query:",
+    JSON.stringify({
+      conversationId,
+      workspaceId,
+      workdir,
+      requestedSessionId: input.agentSessionId ?? null,
+      ...runtimeLogContext,
+    }),
+  );
+
+  try {
+    for await (const message of query({
+      prompt,
+      options: {
+        tools: [],
+        mcpServers: {
+          [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
+        },
+        allowedTools: getAllowedTools(),
+        cwd: workdir,
+        env: agentEnv,
+        debug: isClaudeAgentSdkDebugEnabled(agentEnv),
+        stderr: (data) => {
+          for (const line of splitClaudeAgentStderr(data)) {
+            console.error(
+              "[agent-runtime] Claude Agent SDK stderr:",
+              JSON.stringify({
+                conversationId,
+                workspaceId,
+                workdir,
+                line,
+              }),
+            );
+          }
+        },
+        resume: input.agentSessionId ?? undefined,
+        maxTurns: DEFAULT_AGENT_MAX_TURNS,
+        systemPrompt: {
+          type: "preset",
+          preset: "claude_code",
+          append: buildAgentSystemPrompt({ workspaceId, conversationId }),
+        },
+        hooks: {
+          PreToolUse: [
+            {
+              hooks: [
+                async (hookInput) => {
+                  await hooks.onToolStarted?.({
+                    toolName: String((hookInput as { tool_name?: string }).tool_name ?? ""),
+                    toolInput: (hookInput as { tool_input?: unknown }).tool_input,
+                    toolUseId: String(
+                      (hookInput as { tool_use_id?: string }).tool_use_id ?? "",
+                    ),
+                  });
+
+                  return { continue: true };
+                },
+              ],
+            },
+          ],
+          PostToolUse: [
+            {
+              hooks: [
+                async (hookInput) => {
+                  const toolCall = hookInput as {
+                    tool_name: string;
+                    tool_input: unknown;
+                    tool_response: unknown;
+                    tool_use_id: string;
+                  };
+                  const payload = parseToolPayload(toolCall.tool_response);
+
+                  if (payload) {
+                    collectWorkspaceEvidence(toolCall.tool_name, payload, citationMap);
+                  }
+
+                  await hooks.onToolFinished?.({
+                    toolName: toolCall.tool_name,
+                    toolInput: toolCall.tool_input,
+                    toolResponse: toolCall.tool_response,
+                    toolUseId: toolCall.tool_use_id,
+                  });
+
+                  return { continue: true };
+                },
+              ],
+            },
+          ],
+          PostToolUseFailure: [
+            {
+              hooks: [
+                async (hookInput) => {
+                  const failedTool = hookInput as {
+                    tool_name: string;
+                    tool_input: unknown;
+                    tool_use_id: string;
+                    error: string;
+                  };
+
+                  await hooks.onToolFailed?.({
+                    toolName: failedTool.tool_name,
+                    toolInput: failedTool.tool_input,
+                    toolUseId: failedTool.tool_use_id,
+                    error: failedTool.error,
+                  });
+
+                  return { continue: true };
+                },
+              ],
+            },
+          ],
+        },
       },
-      allowedTools: getAllowedTools(),
-      cwd: workdir,
-      env: buildClaudeAgentEnv(),
-      resume: input.agentSessionId ?? undefined,
-      maxTurns: DEFAULT_AGENT_MAX_TURNS,
-      systemPrompt: {
-        type: "preset",
-        preset: "claude_code",
-        append: buildAgentSystemPrompt({ workspaceId, conversationId }),
-      },
-      hooks: {
-        PreToolUse: [
-          {
-            hooks: [
-              async (hookInput) => {
-                await hooks.onToolStarted?.({
-                  toolName: String((hookInput as { tool_name?: string }).tool_name ?? ""),
-                  toolInput: (hookInput as { tool_input?: unknown }).tool_input,
-                  toolUseId: String((hookInput as { tool_use_id?: string }).tool_use_id ?? ""),
-                });
+    })) {
+      if ("session_id" in message && typeof message.session_id === "string") {
+        sessionId = message.session_id;
+      }
 
-                return { continue: true };
-              },
-            ],
-          },
-        ],
-        PostToolUse: [
-          {
-            hooks: [
-              async (hookInput) => {
-                const toolCall = hookInput as {
-                  tool_name: string;
-                  tool_input: unknown;
-                  tool_response: unknown;
-                  tool_use_id: string;
-                };
-                const payload = parseToolPayload(toolCall.tool_response);
+      const textDelta = extractAssistantTextDelta(message);
+      if (textDelta) {
+        streamedDraft += textDelta;
+        await hooks.onAssistantDelta?.({
+          textDelta,
+          fullText: streamedDraft,
+        });
+      }
 
-                if (payload) {
-                  collectWorkspaceEvidence(toolCall.tool_name, payload, citationMap);
-                }
-
-                await hooks.onToolFinished?.({
-                  toolName: toolCall.tool_name,
-                  toolInput: toolCall.tool_input,
-                  toolResponse: toolCall.tool_response,
-                  toolUseId: toolCall.tool_use_id,
-                });
-
-                return { continue: true };
-              },
-            ],
-          },
-        ],
-        PostToolUseFailure: [
-          {
-            hooks: [
-              async (hookInput) => {
-                const failedTool = hookInput as {
-                  tool_name: string;
-                  tool_input: unknown;
-                  tool_use_id: string;
-                  error: string;
-                };
-
-                await hooks.onToolFailed?.({
-                  toolName: failedTool.tool_name,
-                  toolInput: failedTool.tool_input,
-                  toolUseId: failedTool.tool_use_id,
-                  error: failedTool.error,
-                });
-
-                return { continue: true };
-              },
-            ],
-          },
-        ],
-      },
-    },
-  })) {
-    if ("session_id" in message && typeof message.session_id === "string") {
-      sessionId = message.session_id;
+      if (
+        message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
+        message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
+      ) {
+        finalResult = message.result || streamedDraft;
+      }
     }
-
-    const textDelta = extractAssistantTextDelta(message);
-    if (textDelta) {
-      streamedDraft += textDelta;
-      await hooks.onAssistantDelta?.({
-        textDelta,
-        fullText: streamedDraft,
-      });
-    }
-
-    if (
-      message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
-      message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
-    ) {
-      finalResult = message.result || streamedDraft;
-    }
+  } catch (error) {
+    console.error(
+      "[agent-runtime] Claude Agent SDK query failed:",
+      JSON.stringify({
+        conversationId,
+        workspaceId,
+        workdir,
+        sessionId,
+        ...runtimeLogContext,
+        error: serializeErrorForLog(error),
+      }),
+    );
+    throw error;
   }
 
   const groundedAnswer = await renderGroundedAnswer({
@@ -389,10 +386,5 @@ export async function runAgentResponse(
     sessionId,
     workdir,
     citations: groundedAnswer.citations,
-    structured: {
-      confidence: groundedAnswer.confidence,
-      unsupported_reason: groundedAnswer.unsupported_reason,
-      missing_information: groundedAnswer.missing_information,
-    },
   };
 }

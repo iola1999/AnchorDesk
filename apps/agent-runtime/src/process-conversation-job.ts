@@ -1,7 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
@@ -149,8 +148,6 @@ export async function processConversationResponseJob(
     let streamedAssistantText = "";
     let lastPersistedAssistantText = assistantMessage.contentMarkdown;
     let lastPersistedAt = 0;
-    let sawToolEvent = false;
-    let emittedFallbackTool = false;
 
     async function persistAssistantDelta(nextText: string, force = false) {
       if (nextText === lastPersistedAssistantText) {
@@ -179,24 +176,6 @@ export async function processConversationResponseJob(
       lastPersistedAt = now;
     }
 
-    async function ensureFallbackToolTimeline() {
-      if (sawToolEvent || emittedFallbackTool) {
-        return;
-      }
-
-      emittedFallbackTool = true;
-      await insertToolMessage({
-        conversationId: payload.conversationId,
-        toolName: "mock_workspace_probe",
-        state: TOOL_TIMELINE_STATE.STARTED,
-      });
-      await insertToolMessage({
-        conversationId: payload.conversationId,
-        toolName: "mock_workspace_probe",
-        state: TOOL_TIMELINE_STATE.COMPLETED,
-      });
-    }
-
     const agentResponse = await runAgentResponse(
       {
         prompt: payload.prompt,
@@ -207,7 +186,6 @@ export async function processConversationResponseJob(
       },
       {
         onToolStarted: async ({ toolName }) => {
-          sawToolEvent = true;
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
@@ -215,7 +193,6 @@ export async function processConversationResponseJob(
           });
         },
         onToolFinished: async ({ toolName }) => {
-          sawToolEvent = true;
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
@@ -223,7 +200,6 @@ export async function processConversationResponseJob(
           });
         },
         onToolFailed: async ({ toolName, error }) => {
-          sawToolEvent = true;
           await insertToolMessage({
             conversationId: payload.conversationId,
             toolName,
@@ -232,14 +208,12 @@ export async function processConversationResponseJob(
           });
         },
         onAssistantDelta: async ({ fullText }) => {
-          await ensureFallbackToolTimeline();
           streamedAssistantText = fullText;
           await persistAssistantDelta(fullText);
         },
       },
     );
 
-    await ensureFallbackToolTimeline();
     await persistAssistantDelta(streamedAssistantText, true);
 
     await db
@@ -256,12 +230,7 @@ export async function processConversationResponseJob(
       .set({
         status: MESSAGE_STATUS.COMPLETED,
         contentMarkdown: agentResponse.text,
-        structuredJson: {
-          confidence:
-            agentResponse.structured?.confidence ?? DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-          unsupported_reason: agentResponse.structured?.unsupported_reason ?? null,
-          missing_information: agentResponse.structured?.missing_information ?? [],
-        },
+        structuredJson: null,
       })
       .where(eq(messages.id, payload.assistantMessageId));
 

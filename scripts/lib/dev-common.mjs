@@ -361,12 +361,19 @@ export async function ensureDevDatabase(env) {
   await runDbUpgradeCommand(["--mode=apply-safe-blocking"], { env });
 }
 
-export async function loadResolvedSystemEnvironment(env) {
-  const fallbackEnv = buildRuntimeEnvironment(env);
+export async function loadResolvedSystemEnvironment(
+  env,
+  options = {},
+) {
+  const buildRuntimeEnvironmentFn =
+    options.buildRuntimeEnvironment ?? buildRuntimeEnvironment;
+  const runCommandCaptureFn = options.runCommandCapture ?? runCommandCapture;
+  const pnpmBinary = options.pnpmBinary ?? resolvePnpmBinary();
+  const fallbackEnv = buildRuntimeEnvironmentFn(env);
 
   try {
-    const output = await runCommandCapture({
-      command: resolvePnpmBinary(),
+    const output = await runCommandCaptureFn({
+      command: pnpmBinary,
       args: [
         "--filter",
         "@knowledge-assistant/db",
@@ -375,7 +382,10 @@ export async function loadResolvedSystemEnvironment(env) {
         "scripts/print-system-env.mjs",
       ],
       cwd: repoRoot,
-      env: fallbackEnv,
+      // Important: do not prefill module defaults here. Otherwise
+      // print-system-env will treat those defaults as explicit env vars
+      // and DB-backed settings will never win.
+      env,
     });
 
     if (!output) {

@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  extractAssistantTextDelta,
-  splitMockAssistantText,
-} from "./assistant-stream";
+import { extractAssistantTextDelta } from "./assistant-stream";
 
 describe("extractAssistantTextDelta", () => {
   test("reads text deltas from Claude Agent SDK stream events", () => {
@@ -33,15 +30,5 @@ describe("extractAssistantTextDelta", () => {
         },
       }),
     ).toBeNull();
-  });
-});
-
-describe("splitMockAssistantText", () => {
-  test("splits mock answers into small streaming-friendly chunks", () => {
-    expect(splitMockAssistantText("第一句。第二句。第三句。", 1)).toEqual([
-      "第一句。",
-      "第二句。",
-      "第三句。",
-    ]);
   });
 });

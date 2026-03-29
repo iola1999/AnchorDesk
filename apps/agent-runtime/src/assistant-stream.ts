@@ -26,23 +26,3 @@ export function extractAssistantTextDelta(message: unknown) {
     ? streamMessage.event.delta.text
     : null;
 }
-
-export function splitMockAssistantText(text: string, maxSentencesPerChunk = 2) {
-  const sentences = text
-    .split(/(?<=[。！？.!?])/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (sentences.length === 0) {
-    return [];
-  }
-
-  const chunkSize = Math.max(1, maxSentencesPerChunk);
-  const chunks: string[] = [];
-
-  for (let index = 0; index < sentences.length; index += chunkSize) {
-    chunks.push(sentences.slice(index, index + chunkSize).join(""));
-  }
-
-  return chunks;
-}

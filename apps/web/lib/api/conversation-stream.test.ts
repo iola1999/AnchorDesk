@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 import {
   ASSISTANT_TOOL,
   CONVERSATION_STREAM_EVENT,
-  DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
@@ -60,7 +59,7 @@ describe("readAssistantRunError", () => {
       readAssistantRunError({
         contentMarkdown: "Agent 处理失败：fallback",
         structuredJson: {
-          confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+          timeline_event: TIMELINE_EVENT.RUN_FAILED,
         },
       }),
     ).toBe("Agent 处理失败：fallback");
@@ -106,9 +105,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
           id: "assistant-1",
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "final answer",
-          structuredJson: {
-            confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-          },
+          structuredJson: null,
         },
         citations: [
           {
@@ -125,9 +122,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
       message_id: "assistant-1",
       status: MESSAGE_STATUS.COMPLETED,
       content_markdown: "final answer",
-      structured: {
-        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
-      },
+      structured: null,
       citations: [
         {
           id: "citation-1",
