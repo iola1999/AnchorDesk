@@ -987,9 +987,19 @@ export function KnowledgeBaseExplorer({
           {uploadFiles.length > 0 ? (
             <div className="grid gap-2 rounded-[22px] border border-app-border bg-white p-4">
               {uploadFiles.map((file) => (
-                <div key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="truncate text-app-text">{file.name}</span>
-                  <span className="text-app-muted">{formatFileSize(file.size)}</span>
+                <div
+                  key={`${file.name}-${file.lastModified}`}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm"
+                >
+                  <span
+                    className="min-w-0 truncate text-app-text"
+                    title={file.name}
+                  >
+                    {file.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-app-muted">
+                    {formatFileSize(file.size)}
+                  </span>
                 </div>
               ))}
             </div>
