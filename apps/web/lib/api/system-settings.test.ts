@@ -194,6 +194,39 @@ describe("filterSystemSettingSections", () => {
     ]);
   });
 
+  test("does not keep unrelated settings only because the section description matches", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: "redis_url",
+        valueText: "redis://localhost:6379",
+        isSecret: false,
+        summary: "队列与缓存地址",
+        description: "Redis connection URL.",
+      },
+      {
+        settingKey: "qdrant_url",
+        valueText: "http://localhost:6333",
+        isSecret: false,
+        summary: "向量检索地址",
+        description: "Qdrant base URL.",
+      },
+      {
+        settingKey: "s3_bucket",
+        valueText: "knowledge-assistant",
+        isSecret: false,
+        summary: "对象存储桶",
+        description: "Primary object storage bucket.",
+      },
+    ]);
+
+    expect(filterSystemSettingSections(sections, "redis")).toEqual([
+      expect.objectContaining({
+        id: "storage",
+        items: [expect.objectContaining({ settingKey: "redis_url" })],
+      }),
+    ]);
+  });
+
   test("keeps only sections with matched settings", () => {
     const sections = buildSystemSettingSections([
       {

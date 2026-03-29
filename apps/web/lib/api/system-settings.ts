@@ -208,12 +208,9 @@ function matchesSearchTokens(haystack: string, query: string) {
 }
 
 function buildSystemSettingSearchText(
-  section: Pick<SystemSettingSection, "title" | "description">,
   setting: Pick<SystemSettingField, "settingKey" | "summary" | "description">,
 ) {
   return [
-    section.title,
-    section.description,
     setting.settingKey,
     setting.summary ?? "",
     setting.description ?? "",
@@ -232,7 +229,7 @@ export function filterSystemSettingSections(
     .map((section) => ({
       ...section,
       items: section.items.filter((setting) =>
-        matchesSearchTokens(buildSystemSettingSearchText(section, setting), query),
+        matchesSearchTokens(buildSystemSettingSearchText(setting), query),
       ),
     }))
     .filter((section) => section.items.length > 0);

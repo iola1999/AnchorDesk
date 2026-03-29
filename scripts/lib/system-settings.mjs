@@ -161,7 +161,7 @@ const SYSTEM_SETTING_DEFINITIONS = [
   {
     settingKey: "anthropic_base_url",
     envName: "ANTHROPIC_BASE_URL",
-    defaultValue: "",
+    defaultValue: "https://api.anthropic.com",
     summary: "Anthropic API 的基础地址覆盖值。",
     description: "Anthropic API base URL override.",
   },
