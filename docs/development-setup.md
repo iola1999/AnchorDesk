@@ -84,12 +84,14 @@ pnpm dev
 2. 执行 SQL migrations + safe blocking app upgrades
 3. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
 4. 自动确保 S3 bucket 存在
-5. 拉起 `web` / `worker` / `agent-runtime` / `parser`
+5. 在启动受管进程前重建 `/tmp/knowledge-assistant-dev/logs`
+6. 拉起 `web` / `worker` / `agent-runtime` / `parser`
 
 补充说明：
 
 - parser 现在走受管稳定启动模式，优先保证 `pnpm dev` / `pnpm dev:status` 可可靠接管。
 - 如果你改了 `services/parser/**` 里的代码，当前建议手动重启一次 `pnpm dev`。
+- 如果检测到已有受管进程仍在运行，`pnpm dev` 会保留现有日志目录，避免删除正在写入的日志句柄。
 - 受管进程状态统一写到 `/tmp/knowledge-assistant-dev`：
   - 日志在 `/tmp/knowledge-assistant-dev/logs`
   - PID 文件在 `/tmp/knowledge-assistant-dev/pids`

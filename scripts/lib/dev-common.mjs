@@ -151,6 +151,11 @@ export async function ensureDevDirectories() {
   await fsp.mkdir(pidDir, { recursive: true });
 }
 
+export async function resetDevLogDirectory(targetLogDir = logDir) {
+  await fsp.rm(targetLogDir, { recursive: true, force: true });
+  await fsp.mkdir(targetLogDir, { recursive: true });
+}
+
 export async function pathExists(targetPath) {
   try {
     await fsp.access(targetPath);

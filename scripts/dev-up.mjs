@@ -6,14 +6,28 @@ import {
   ensureToolingInstalled,
   formatError,
   getManagedServices,
+  isProcessRunning,
   logDir,
   loadDevEnvironment,
   loadResolvedSystemEnvironment,
+  readPidRecord,
+  resetDevLogDirectory,
   stopManagedService,
   verifyInfrastructure,
   startManagedService,
 } from "./lib/dev-common.mjs";
 import { parseRuntimeEndpoints } from "./lib/dev-env.mjs";
+
+async function hasRunningManagedServices(services) {
+  for (const service of services) {
+    const record = await readPidRecord(service.id);
+    if (record?.pid && isProcessRunning(record.pid)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 async function main() {
   await ensureDevDirectories();
@@ -39,6 +53,13 @@ async function main() {
   await ensureDevBucket(runtimeEnv);
 
   const services = getManagedServices(runtimeEnv);
+  if (await hasRunningManagedServices(services)) {
+    console.log(`Keeping existing logs in ${logDir} because managed services are already running.`);
+  } else {
+    await resetDevLogDirectory();
+    console.log(`Prepared fresh log directory: ${logDir}`);
+  }
+
   const startedNow = [];
 
   try {
