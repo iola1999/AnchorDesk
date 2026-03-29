@@ -106,6 +106,7 @@ flowchart LR
 - 本地 mock fallback 现在会复用正式工具名和基础成功结构，减少主链路对专用联调分支的依赖。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
@@ -115,7 +116,7 @@ flowchart LR
 当前已知缺口：
 
 - 当前回答流式仍是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport。
-- 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态”，但页面其余部分的一致性和失败后的可恢复路径仍需要继续收口。
+- 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 最新失败回答可直接重试”，但页面其余部分的一致性和更完整的失败恢复路径仍需要继续收口。
 - 当前允许部分工具继续使用 mock 或基础结果；这些工具当前的主要要求是稳定契约、显式标注和不伪造引用，而不是立刻接齐真实 provider。
 - OCR 真实 provider 尚未接入；当前仅支持关闭或 mock，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。

@@ -44,6 +44,7 @@
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 本地缺少真实 provider 时，主会话链路已经允许回退到 mock tool / mock assistant chunk，用于验证队列、事件流、前端状态切换和错误处理。
 - 本地 mock fallback 现在会复用正式工具名和基础成功结构，不再依赖专用假工具名来驱动主链路联调。
+- 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
@@ -60,6 +61,7 @@
 ## 2. 最近完成
 
 - `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
+- `working tree` Add retry entry for the latest failed assistant turn in workspace conversations
 - `working tree` Align local mock agent fallback with real tool names and stable output structure
 - `working tree` Hydrate conversation terminal SSE events with final assistant payload and citations before refresh
 - `working tree` Reprioritize roadmap around conversation-chain-first delivery and explicit mock-tool allowance
@@ -96,7 +98,8 @@
 
 - 主会话链路完成态收口
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，但仍需继续收口页面刷新后的其余 UI 一致性，以及失败后的可恢复路径
+  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，最新失败回答也已支持直接重试
+  - 仍需继续收口页面刷新后的其余 UI 一致性，以及更完整的失败恢复体验
   - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
 - 工具契约与 mock 策略
   - 当前阶段允许 `search_web_general` / `search_statutes` / 报告生成等工具先返回明确标识的 mock 或基础结果

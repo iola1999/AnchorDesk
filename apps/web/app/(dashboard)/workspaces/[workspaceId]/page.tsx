@@ -21,6 +21,7 @@ import { ConversationSession } from "@/components/chat/conversation-session";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
+import { findRetryableConversationTurn } from "@/lib/api/conversation-retry";
 import { cn, ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
@@ -93,6 +94,14 @@ export default async function WorkspacePage({
     [...chatThread]
       .reverse()
       .find((message) => message.role === MESSAGE_ROLE.ASSISTANT) ?? null;
+  const retryableTurn = findRetryableConversationTurn(
+    chatThread.map((message) => ({
+      id: message.id,
+      role: message.role,
+      status: message.status,
+      contentMarkdown: message.contentMarkdown,
+    })),
+  );
 
   const citations =
     chatThread.length > 0
@@ -152,6 +161,7 @@ export default async function WorkspacePage({
           <ConversationPageActions
             conversationId={activeConversation.id}
             workspaceId={workspaceId}
+            canRetry={retryableTurn !== null}
           />
         ) : undefined
       }
