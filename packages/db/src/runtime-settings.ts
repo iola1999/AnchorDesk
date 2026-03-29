@@ -8,10 +8,6 @@ export function readConfiguredRuntimeValue(value: string | null | undefined) {
     return undefined;
   }
 
-  if (normalized.startsWith("example-")) {
-    return undefined;
-  }
-
   return normalized;
 }
 

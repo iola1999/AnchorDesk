@@ -159,6 +159,13 @@ const SYSTEM_SETTING_DEFINITIONS = [
     description: "Anthropic API key.",
   },
   {
+    settingKey: "anthropic_base_url",
+    envName: "ANTHROPIC_BASE_URL",
+    defaultValue: "",
+    summary: "Anthropic API 的基础地址覆盖值。",
+    description: "Anthropic API base URL override.",
+  },
+  {
     settingKey: "anthropic_model",
     envName: "ANTHROPIC_MODEL",
     defaultValue: "claude-sonnet-4-5",

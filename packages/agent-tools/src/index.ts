@@ -19,13 +19,14 @@ import {
   writeReportSectionInputSchema,
 } from "@knowledge-assistant/contracts";
 import {
+  buildAnthropicClientConfig,
   citationAnchors,
   conversationAttachments,
   documentBlocks,
   documentChunks,
   documents,
   getDb,
-  readConfiguredRuntimeValue,
+  getConfiguredAnthropicApiKey,
   retrievalResults,
   retrievalRuns,
   reports,
@@ -54,10 +55,6 @@ import {
 
 function getReportModel() {
   return process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5";
-}
-
-function getAnthropicApiKey() {
-  return readConfiguredRuntimeValue(process.env.ANTHROPIC_API_KEY);
 }
 
 const DEFAULT_REPORT_OUTLINE_MAX_TOKENS = 900;
@@ -100,9 +97,7 @@ let anthropicClient: Anthropic | null = null;
 
 function getAnthropicClient() {
   if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: getAnthropicApiKey(),
-    });
+    anthropicClient = new Anthropic(buildAnthropicClientConfig());
   }
 
   return anthropicClient;
@@ -614,7 +609,7 @@ export async function fetchSourceHandler(input: unknown) {
 export async function createReportOutlineHandler(input: unknown) {
   const args = createReportOutlineInputSchema.parse(input);
 
-  if (!getAnthropicApiKey()) {
+  if (!getConfiguredAnthropicApiKey()) {
     return buildToolFailure(
       "REPORT_OUTLINE_NOT_CONFIGURED",
       "Anthropic API key is not configured for report generation.",
@@ -696,7 +691,7 @@ export async function writeReportSectionHandler(input: unknown) {
     return buildToolFailure("REPORT_SECTION_NOT_FOUND", "Report section not found.", false);
   }
 
-  if (!getAnthropicApiKey()) {
+  if (!getConfiguredAnthropicApiKey()) {
     return buildToolFailure(
       "REPORT_SECTION_NOT_CONFIGURED",
       "Anthropic API key is not configured for report generation.",

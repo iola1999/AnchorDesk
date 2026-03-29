@@ -43,6 +43,7 @@ cp .env.production.example .env.production
 - `QDRANT_URL` / `QDRANT_COLLECTION`
 - `S3_*`
 - `ANTHROPIC_API_KEY`
+- `ANTHROPIC_BASE_URL`
 - 其他 provider 配置
 
 ## 3. 构建镜像

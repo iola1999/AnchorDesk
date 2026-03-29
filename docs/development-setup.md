@@ -225,6 +225,10 @@ set value_text = 'your-anthropic-key', updated_at = now()
 where setting_key = 'anthropic_api_key';
 
 update system_settings
+set value_text = 'https://anthropic-proxy.example.com', updated_at = now()
+where setting_key = 'anthropic_base_url';
+
+update system_settings
 set value_text = 'http://localhost:9000', updated_at = now()
 where setting_key = 's3_endpoint';
 ```
@@ -233,7 +237,7 @@ where setting_key = 's3_endpoint';
 
 - S3 / MinIO endpoint、bucket、凭证
 - Qdrant endpoint / collection / api key
-- Anthropic API key / model
+- Anthropic API key / base URL / model
 - embedding / rerank provider 参数
 - Agent / Parser / Web 的基础地址
 

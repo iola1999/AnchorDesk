@@ -14,7 +14,10 @@ import {
   normalizeAssistantToolName,
   type GroundedEvidence,
 } from "@knowledge-assistant/contracts";
-import { readConfiguredRuntimeValue } from "@knowledge-assistant/db";
+import {
+  buildClaudeAgentEnv,
+  getConfiguredAnthropicApiKey,
+} from "@knowledge-assistant/db";
 
 import {
   extractAssistantTextDelta,
@@ -203,7 +206,7 @@ export async function runAgentResponse(
 
   await fs.mkdir(workdir, { recursive: true });
 
-  if (!readConfiguredRuntimeValue(process.env.ANTHROPIC_API_KEY)) {
+  if (!getConfiguredAnthropicApiKey()) {
     const mockToolName = ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE;
     const mockToolInput = {
       query: prompt,
@@ -274,6 +277,7 @@ export async function runAgentResponse(
       },
       allowedTools: getAllowedTools(),
       cwd: workdir,
+      env: buildClaudeAgentEnv(),
       resume: input.agentSessionId ?? undefined,
       maxTurns: DEFAULT_AGENT_MAX_TURNS,
       systemPrompt: {

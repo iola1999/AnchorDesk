@@ -112,6 +112,39 @@ describe("buildSystemSettingSections", () => {
     ]);
   });
 
+  test("keeps anthropic base url next to other anthropic model settings", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: "anthropic_model",
+        valueText: "claude-sonnet-4-5",
+        isSecret: false,
+        summary: "Anthropic 模型",
+        description: "Anthropic model override.",
+      },
+      {
+        settingKey: "anthropic_base_url",
+        valueText: "https://anthropic-proxy.example.com",
+        isSecret: false,
+        summary: "Anthropic 基础地址",
+        description: "Anthropic API base URL override.",
+      },
+      {
+        settingKey: "anthropic_api_key",
+        valueText: "secret",
+        isSecret: true,
+        summary: "Anthropic 密钥",
+        description: "Anthropic API key.",
+      },
+    ]);
+
+    expect(sections.map((section) => section.id)).toEqual(["model"]);
+    expect(sections[0]?.items.map((item) => item.settingKey)).toEqual([
+      "anthropic_api_key",
+      "anthropic_base_url",
+      "anthropic_model",
+    ]);
+  });
+
   test("treats registration gate as an application boolean setting", () => {
     const sections = buildSystemSettingSections([
       {

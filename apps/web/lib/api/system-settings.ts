@@ -87,6 +87,7 @@ const KNOWN_SETTING_ORDER = [
   "s3_secret_access_key",
   "s3_force_path_style",
   "anthropic_api_key",
+  "anthropic_base_url",
   "anthropic_model",
   "anthropic_final_answer_model",
   "anthropic_final_answer_max_tokens",
