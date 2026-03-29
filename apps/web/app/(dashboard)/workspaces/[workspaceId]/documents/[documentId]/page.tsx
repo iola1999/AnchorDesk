@@ -10,6 +10,7 @@ import {
   documents,
   documentVersions,
   getDb,
+  workspaceDirectories,
   workspaces,
 } from "@knowledge-assistant/db";
 
@@ -61,6 +62,12 @@ export default async function DocumentPage({
   if (!doc[0]) {
     notFound();
   }
+
+  const directories = await db
+    .select()
+    .from(workspaceDirectories)
+    .where(and(eq(workspaceDirectories.workspaceId, workspaceId), isNull(workspaceDirectories.deletedAt)))
+    .orderBy(workspaceDirectories.path);
 
   const versions = await db
     .select()
@@ -347,9 +354,11 @@ export default async function DocumentPage({
                 id: documentId,
                 title: doc[0].title,
                 directoryPath: doc[0].directoryPath,
-                docType: doc[0].docType,
-                tags,
               }}
+              directories={directories.map(d => ({
+                id: d.id,
+                path: d.path,
+              }))}
             />
             
             <div className="grid gap-3 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">

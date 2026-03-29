@@ -3,32 +3,26 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import {
-  documentTypeOptions,
-  parseTagsInput,
-} from "@/lib/api/document-metadata";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 type DocumentMetadataFormProps = {
   workspaceId: string;
+  directories: Array<{ id: string; path: string }>;
   document: {
     id: string;
     title: string;
     directoryPath: string;
-    docType: string;
-    tags: string[];
   };
 };
 
 export function DocumentMetadataForm({
   workspaceId,
+  directories,
   document,
 }: DocumentMetadataFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(document.title);
   const [directoryPath, setDirectoryPath] = useState(document.directoryPath);
-  const [docType, setDocType] = useState(document.docType);
-  const [tagsInput, setTagsInput] = useState(document.tags.join(", "));
   const [status, setStatus] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -46,8 +40,6 @@ export function DocumentMetadataForm({
         body: JSON.stringify({
           title,
           directoryPath,
-          docType,
-          tags: parseTagsInput(tagsInput),
         }),
       },
     );
@@ -58,8 +50,6 @@ export function DocumentMetadataForm({
           document?: {
             title: string;
             directoryPath: string;
-            docType: string;
-            tagsJson?: string[];
           };
         }
       | null;
@@ -71,8 +61,6 @@ export function DocumentMetadataForm({
 
     setTitle(body.document.title);
     setDirectoryPath(body.document.directoryPath);
-    setDocType(body.document.docType);
-    setTagsInput((body.document.tagsJson ?? []).join(", "));
     setStatus("文档信息已保存。");
     startTransition(() => {
       router.refresh();
@@ -97,35 +85,17 @@ export function DocumentMetadataForm({
         </label>
         <label className={ui.label}>
           <span className="text-[13px]">目录路径</span>
-          <input
-            className={ui.input}
-            value={directoryPath}
-            onChange={(event) => setDirectoryPath(event.target.value)}
-            placeholder="例如：资料库/项目A/产品文档"
-          />
-        </label>
-        <label className={ui.label}>
-          <span className="text-[13px]">文档类型</span>
           <select
             className={ui.select}
-            value={docType}
-            onChange={(event) => setDocType(event.target.value)}
+            value={directoryPath}
+            onChange={(event) => setDirectoryPath(event.target.value)}
           >
-            {documentTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {directories.map((directory) => (
+              <option key={directory.id} value={directory.path}>
+                {directory.path}
               </option>
             ))}
           </select>
-        </label>
-        <label className={ui.label}>
-          <span className="text-[13px]">标签</span>
-          <input
-            className={ui.input}
-            value={tagsInput}
-            onChange={(event) => setTagsInput(event.target.value)}
-            placeholder="多个标签用逗号分隔"
-          />
         </label>
       </div>
       <div className="pt-2">
