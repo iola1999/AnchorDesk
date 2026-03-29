@@ -18,6 +18,7 @@ import { runDbUpgradeCommand } from "./upgrade-common.mjs";
 import { buildRuntimeEnvironment } from "./system-settings.mjs";
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
+const MANAGED_DEV_ROOT_NAME = "anchordesk-dev";
 
 export const repoRoot = path.resolve(libDir, "../..");
 
@@ -30,9 +31,8 @@ export function resolveTmpRoot({
 
 export function resolveDevLogRoot({
   tmpRoot = resolveTmpRoot(),
-  projectName = path.basename(repoRoot),
 } = {}) {
-  return path.join(tmpRoot, `${projectName}-dev`);
+  return path.join(tmpRoot, MANAGED_DEV_ROOT_NAME);
 }
 
 export function resolvePidRoot(options = {}) {

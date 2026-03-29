@@ -11,7 +11,7 @@ import {
   resolveTmpRoot,
 } from "./dev-common.mjs";
 
-const tempDirs = [];
+const tempDirs: string[] = [];
 
 afterEach(async () => {
   await Promise.all(
@@ -39,11 +39,18 @@ describe("resolveTmpRoot", () => {
 });
 
 describe("resolveDevLogRoot", () => {
-  it("stores managed service logs under a project-specific tmp directory", () => {
+  it("stores managed service logs under the stable anchordesk tmp directory", () => {
     expect(
       resolveDevLogRoot({
         tmpRoot: "/tmp",
-        projectName: "anchordesk",
+      }),
+    ).toBe("/tmp/anchordesk-dev");
+  });
+
+  it("does not derive the managed service log root from the caller project name", () => {
+    expect(
+      resolveDevLogRoot({
+        tmpRoot: "/tmp",
       }),
     ).toBe("/tmp/anchordesk-dev");
   });
