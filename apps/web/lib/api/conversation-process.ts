@@ -84,3 +84,14 @@ export function canShowAssistantProcess(input: {
 }) {
   return input.stepCount > 0 || input.isStreaming;
 }
+
+export function canShowAssistantResultPanel(input: {
+  status: MessageStatus;
+  contentMarkdown: string;
+}) {
+  if (input.status !== MESSAGE_STATUS.STREAMING) {
+    return true;
+  }
+
+  return input.contentMarkdown.trim().length > 0;
+}

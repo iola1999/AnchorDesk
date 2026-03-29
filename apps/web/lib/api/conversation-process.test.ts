@@ -3,6 +3,7 @@ import { MESSAGE_ROLE, MESSAGE_STATUS } from "@knowledge-assistant/contracts";
 
 import {
   canShowAssistantProcess,
+  canShowAssistantResultPanel,
   describeAssistantProcessSummary,
   groupAssistantProcessMessages,
 } from "./conversation-process";
@@ -110,5 +111,43 @@ describe("canShowAssistantProcess", () => {
     expect(canShowAssistantProcess({ stepCount: 2, isStreaming: false })).toBe(true);
     expect(canShowAssistantProcess({ stepCount: 0, isStreaming: true })).toBe(true);
     expect(canShowAssistantProcess({ stepCount: 0, isStreaming: false })).toBe(false);
+  });
+});
+
+describe("canShowAssistantResultPanel", () => {
+  test("hides the result panel while the assistant is still thinking", () => {
+    expect(
+      canShowAssistantResultPanel({
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+      }),
+    ).toBe(false);
+    expect(
+      canShowAssistantResultPanel({
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "   ",
+      }),
+    ).toBe(false);
+  });
+
+  test("shows the result panel after answer streaming starts or the turn reaches a terminal state", () => {
+    expect(
+      canShowAssistantResultPanel({
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "第一段回答",
+      }),
+    ).toBe(true);
+    expect(
+      canShowAssistantResultPanel({
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "",
+      }),
+    ).toBe(true);
+    expect(
+      canShowAssistantResultPanel({
+        status: MESSAGE_STATUS.FAILED,
+        contentMarkdown: "",
+      }),
+    ).toBe(true);
   });
 });

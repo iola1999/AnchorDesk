@@ -82,14 +82,11 @@ export function ConversationTimeline({
         setOpen(event.currentTarget.open);
       }}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm text-app-muted-strong">
+      <summary className="flex cursor-pointer list-none items-center gap-3 text-sm text-app-muted-strong">
         <span className="inline-flex items-center gap-2 font-medium text-app-text">
           <span className="text-base leading-none transition group-open:rotate-90">›</span>
           {summary}
         </span>
-        {runtimeStatus && open ? (
-          <span className="text-[12px] text-app-muted">{runtimeStatus}</span>
-        ) : null}
       </summary>
 
       {timelineMessages.length > 0 ? (

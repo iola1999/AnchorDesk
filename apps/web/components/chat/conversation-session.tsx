@@ -14,6 +14,7 @@ import {
 
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { canShowAssistantResultPanel } from "@/lib/api/conversation-process";
 import {
   findRegeneratableConversationTurn,
   type RetryableConversationMessage,
@@ -479,13 +480,19 @@ export function ConversationSession({
           const citations = citationsByMessage.get(message.id) ?? [];
           const hasSources = citations.length > 0;
           const processMessages = timelineMessagesByAssistant[message.id] ?? [];
+          const showResultPanel =
+            isAssistant &&
+            canShowAssistantResultPanel({
+              status: message.status,
+              contentMarkdown: message.contentMarkdown,
+            });
           const selectedView =
-            hasSources && isAssistant
+            hasSources && showResultPanel
               ? (messageViewModes[message.id] ?? "answer")
               : "answer";
           const answerText =
             message.contentMarkdown ||
-            (isStreamingAssistant ? "助手正在生成回答..." : "");
+            (isStreamingAssistant && showResultPanel ? "助手正在生成回答..." : "");
           const canRegenerate =
             regeneratableTurn?.assistantMessageId === message.id &&
             !isStreamingAssistant;
@@ -515,117 +522,123 @@ export function ConversationSession({
                 defaultOpen={isStreamingAssistant}
               />
 
-              <div className="grid gap-5">
-                <div className="flex flex-wrap items-center gap-5 border-b border-app-border/60 pb-2">
-                  <TabButton
-                    active={selectedView === "answer"}
-                    onClick={() => setMessageView(message.id, "answer")}
-                  >
-                    <AnswerIcon />
-                    结果
-                  </TabButton>
-                  <TabButton
-                    active={selectedView === "sources"}
-                    disabled={!hasSources}
-                    onClick={() => setMessageView(message.id, "sources")}
-                  >
-                    <SourceIcon />
-                    参考资料
-                    {hasSources ? (
-                      <span className="rounded-full bg-app-surface-strong/72 px-2 py-0.5 text-[11px] text-app-muted-strong">
-                        {citations.length}
-                      </span>
-                    ) : null}
-                  </TabButton>
-                </div>
-
-                {selectedView === "sources" ? (
-                  <div className="grid gap-2.5">
-                    {citations.map((citation, index) => (
-                      sourceLinksEnabled &&
-                      workspaceId &&
-                      citation.documentId &&
-                      citation.anchorId ? (
-                        <Link
-                          key={citation.id}
-                          href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                          className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
-                        >
-                          <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                            资料 {index + 1}
-                          </span>
-                          <span className="text-[14px] leading-6 text-app-text">{citation.label}</span>
-                        </Link>
-                      ) : (
-                        <div
-                          key={citation.id}
-                          aria-disabled="true"
-                          title={sourceLinksEnabled ? undefined : "公开页不提供资料跳转"}
-                          className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 text-left"
-                        >
-                          <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                            资料 {index + 1}
-                          </span>
-                          <span className="text-[14px] leading-6 text-app-text">{citation.label}</span>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    <LinkifiedText
-                      text={answerText}
-                      className="max-w-none text-[15px] leading-[2] text-app-text md:text-[16px]"
-                    />
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-1.5 border-t border-app-border/55 pt-3">
-                  {canExportOrCopy ? (
-                    <>
-                      <ActionButton onClick={() => handleExportMessage(message.id, answerText)}>
-                        <ExportIcon />
-                        导出
-                      </ActionButton>
-                      <ActionButton onClick={() => handleCopyMessage(message.id, answerText)}>
-                        <CopyIcon />
-                        {copiedMessageId === message.id ? "已复制" : "复制"}
-                      </ActionButton>
-                    </>
-                  ) : null}
-
-                  {canRegenerate ? (
-                    <ActionButton
-                      disabled={regeneratingMessageId === message.id}
-                      onClick={() => handleRegenerateMessage(message.id)}
+              {showResultPanel ? (
+                <div className="grid gap-5">
+                  <div className="flex flex-wrap items-center gap-5 border-b border-app-border/60 pb-2">
+                    <TabButton
+                      active={selectedView === "answer"}
+                      onClick={() => setMessageView(message.id, "answer")}
                     >
-                      <RegenerateIcon />
-                      {regeneratingMessageId === message.id ? "重新生成中" : "重新生成"}
-                    </ActionButton>
-                  ) : null}
-
-                  {hasSources ? (
-                    <ActionButton
+                      <AnswerIcon />
+                      结果
+                    </TabButton>
+                    <TabButton
                       active={selectedView === "sources"}
-                      onClick={() =>
-                        setMessageView(
-                          message.id,
-                          selectedView === "sources" ? "answer" : "sources",
-                        )
-                      }
+                      disabled={!hasSources}
+                      onClick={() => setMessageView(message.id, "sources")}
                     >
                       <SourceIcon />
-                      {citations.length} 条资料
-                    </ActionButton>
+                      参考资料
+                      {hasSources ? (
+                        <span className="rounded-full bg-app-surface-strong/72 px-2 py-0.5 text-[11px] text-app-muted-strong">
+                          {citations.length}
+                        </span>
+                      ) : null}
+                    </TabButton>
+                  </div>
+
+                  {selectedView === "sources" ? (
+                    <div className="grid gap-2.5">
+                      {citations.map((citation, index) => (
+                        sourceLinksEnabled &&
+                        workspaceId &&
+                        citation.documentId &&
+                        citation.anchorId ? (
+                          <Link
+                            key={citation.id}
+                            href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
+                            className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
+                          >
+                            <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+                              资料 {index + 1}
+                            </span>
+                            <span className="text-[14px] leading-6 text-app-text">
+                              {citation.label}
+                            </span>
+                          </Link>
+                        ) : (
+                          <div
+                            key={citation.id}
+                            aria-disabled="true"
+                            title={sourceLinksEnabled ? undefined : "公开页不提供资料跳转"}
+                            className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 text-left"
+                          >
+                            <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+                              资料 {index + 1}
+                            </span>
+                            <span className="text-[14px] leading-6 text-app-text">
+                              {citation.label}
+                            </span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      <LinkifiedText
+                        text={answerText}
+                        className="max-w-none text-[15px] leading-[2] text-app-text md:text-[16px]"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-app-border/55 pt-3">
+                    {canExportOrCopy ? (
+                      <>
+                        <ActionButton onClick={() => handleExportMessage(message.id, answerText)}>
+                          <ExportIcon />
+                          导出
+                        </ActionButton>
+                        <ActionButton onClick={() => handleCopyMessage(message.id, answerText)}>
+                          <CopyIcon />
+                          {copiedMessageId === message.id ? "已复制" : "复制"}
+                        </ActionButton>
+                      </>
+                    ) : null}
+
+                    {canRegenerate ? (
+                      <ActionButton
+                        disabled={regeneratingMessageId === message.id}
+                        onClick={() => handleRegenerateMessage(message.id)}
+                      >
+                        <RegenerateIcon />
+                        {regeneratingMessageId === message.id ? "重新生成中" : "重新生成"}
+                      </ActionButton>
+                    ) : null}
+
+                    {hasSources ? (
+                      <ActionButton
+                        active={selectedView === "sources"}
+                        onClick={() =>
+                          setMessageView(
+                            message.id,
+                            selectedView === "sources" ? "answer" : "sources",
+                          )
+                        }
+                      >
+                        <SourceIcon />
+                        {citations.length} 条资料
+                      </ActionButton>
+                    ) : null}
+                  </div>
+
+                  {actionStatusByMessage[message.id] ? (
+                    <p className="text-[13px] leading-6 text-app-muted">
+                      {actionStatusByMessage[message.id]}
+                    </p>
                   ) : null}
                 </div>
-
-                {actionStatusByMessage[message.id] ? (
-                  <p className="text-[13px] leading-6 text-app-muted">
-                    {actionStatusByMessage[message.id]}
-                  </p>
-                ) : null}
-              </div>
+              ) : null}
             </article>
           );
         })
