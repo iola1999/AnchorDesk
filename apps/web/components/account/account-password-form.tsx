@@ -1,5 +1,6 @@
 "use client";
 
+import { signOut } from "next-auth/react";
 import { useState, useTransition } from "react";
 
 import { buttonStyles, cn, ui } from "@/lib/ui";
@@ -43,12 +44,15 @@ export function AccountPasswordForm() {
 
     setStatus({
       tone: "muted",
-      message: "密码已更新。",
+      message: "密码已更新，正在退出所有登录会话...",
     });
     startTransition(() => {
       setCurrentPassword("");
       setNextPassword("");
       setConfirmPassword("");
+    });
+    await signOut({
+      callbackUrl: "/login",
     });
   }
 
@@ -57,7 +61,7 @@ export function AccountPasswordForm() {
       <div className="grid gap-2">
         <p className={ui.eyebrow}>Security</p>
         <h2>修改密码</h2>
-        <p className={ui.muted}>使用当前密码确认身份，再设置新的登录密码</p>
+        <p className={ui.muted}>使用当前密码确认身份，再设置新的登录密码。更新后会撤销所有已登录会话。</p>
       </div>
 
       <label className={ui.label}>

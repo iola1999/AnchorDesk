@@ -5,6 +5,7 @@ import { getDb, users } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { validateChangePasswordInput } from "@/lib/auth/password-change";
+import { revokeUserSessions } from "@/lib/auth/session-registry";
 
 export const runtime = "nodejs";
 
@@ -56,5 +57,7 @@ export async function POST(request: Request) {
     })
     .where(eq(users.id, userId));
 
-  return Response.json({ ok: true });
+  const revokedSessionCount = await revokeUserSessions({ userId });
+
+  return Response.json({ ok: true, revokedSessionCount });
 }

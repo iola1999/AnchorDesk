@@ -5,9 +5,15 @@ import { eq } from "drizzle-orm";
 import { verifyPassword } from "@knowledge-assistant/auth";
 import { getDb, users } from "@knowledge-assistant/db";
 
+import { syncAuthSessionToken } from "@/lib/auth/jwt-session";
+import { revokeAuthSession } from "@/lib/auth/session-registry";
+
+export const AUTH_SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   session: {
     strategy: "jwt",
+    maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
   },
   trustHost: process.env.AUTH_TRUST_HOST !== "false",
   secret: process.env.AUTH_SECRET,
@@ -51,15 +57,26 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (user) {
-        token.sub = user.id;
-        token.name = user.name;
-        token.username = user.username;
-      }
-      if (trigger === "update" && typeof session?.user?.name === "string") {
-        token.name = session.user.name;
-      }
-      return token;
+      const sessionUser =
+        user &&
+        typeof user.id === "string" &&
+        user.id.length > 0 &&
+        typeof user.username === "string" &&
+        user.username.length > 0
+          ? {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+            }
+          : undefined;
+
+      return syncAuthSessionToken({
+        token,
+        user: sessionUser,
+        trigger,
+        session,
+        maxAgeSeconds: AUTH_SESSION_MAX_AGE_SECONDS,
+      });
     },
     async session({ session, token }) {
       if (session.user) {
@@ -68,6 +85,28 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         session.user.name = typeof token.name === "string" ? token.name : null;
       }
       return session;
+    },
+  },
+  events: {
+    async signOut(message) {
+      if (!("token" in message)) {
+        return;
+      }
+
+      const token = message.token;
+      const sessionId =
+        token && typeof token === "object" && "sessionId" in token
+          ? token.sessionId
+          : undefined;
+      const userId = token && typeof token.sub === "string" ? token.sub : undefined;
+      if (typeof sessionId !== "string" || sessionId.length === 0) {
+        return;
+      }
+
+      await revokeAuthSession({
+        sessionId,
+        userId,
+      });
     },
   },
 });

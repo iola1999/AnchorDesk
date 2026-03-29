@@ -90,6 +90,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
+      ioredis:
+        specifier: ^5.7.0
+        version: 5.10.1
       next:
         specifier: ^16.2.1
         version: 16.2.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
