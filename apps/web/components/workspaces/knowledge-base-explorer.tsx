@@ -6,6 +6,7 @@ import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "r
 import { DndContext, type DragEndEvent, type DragStartEvent, useDraggable, useDroppable } from "@dnd-kit/core";
 import { flexRender, getCoreRowModel, getSortedRowModel, type SortingState, useReactTable, type ColumnDef, type Row } from "@tanstack/react-table";
 import { useDropzone } from "react-dropzone";
+import useSWR from "swr";
 
 import { RUN_STATUS } from "@knowledge-assistant/contracts";
 
@@ -13,7 +14,11 @@ import { RetryDocumentJobButton } from "@/components/workspaces/retry-document-j
 import { ModalShell } from "@/components/shared/modal-shell";
 import { describeDocumentJobFailure } from "@/lib/api/document-jobs";
 import { computeFileSha256 } from "@/lib/api/file-digests";
-import { validateUploadSupport } from "@/lib/api/upload-policy";
+import {
+  SUPPORTED_UPLOAD_ACCEPT,
+  SUPPORTED_UPLOAD_TYPES_LABEL,
+  collectUnsupportedUploads,
+} from "@/lib/api/upload-policy";
 import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 type DirectoryRecord = {
@@ -90,6 +95,12 @@ type DragPayload = {
   directoryIds: string[];
   documentIds: string[];
   label: string;
+};
+
+type UploadFileIssue = {
+  file: File;
+  code: "image_requires_ocr" | "unsupported_type";
+  message: string;
 };
 
 function formatFileSize(value: number | null) {
@@ -248,6 +259,7 @@ function TableRow({
                     <Link
                       href={`/workspaces/${workspaceId}/documents/${entry.id}`}
                       className="truncate font-medium text-app-text hover:text-app-accent"
+                      target="_blank"
                     >
                       {entry.name}
                     </Link>
@@ -303,6 +315,7 @@ export function KnowledgeBaseExplorer({
   const [operationError, setOperationError] = useState<string | null>(null);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [activeDragPayload, setActiveDragPayload] = useState<DragPayload | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -311,6 +324,21 @@ export function KnowledgeBaseExplorer({
     setCurrentDirectory(currentDirectoryId);
     setTargetDirectoryId(currentDirectoryId);
   }, [currentDirectoryId, initialCurrentPath]);
+
+  // Use SWR to handle automatic polling and revalidate-on-focus for RSC payload.
+  useSWR(
+    `/workspaces/${workspaceId}/knowledge-base?path=${encodeURIComponent(currentPath)}`,
+    () => {
+      startTransition(() => {
+        router.refresh();
+      });
+      return Date.now();
+    },
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+    }
+  );
 
   const directoryByPath = useMemo(
     () => new Map(directories.map((directory) => [directory.path, directory] as const)),
@@ -334,6 +362,38 @@ export function KnowledgeBaseExplorer({
       ),
     [documents],
   );
+  const invalidUploadFiles = useMemo<UploadFileIssue[]>(
+    () =>
+      collectUnsupportedUploads(
+        uploadFiles.map((file) => ({
+          file,
+          filename: file.name,
+          contentType: file.type,
+        })),
+      ).map(({ input, code, message }) => ({
+        file: input.file,
+        code,
+        message,
+      })),
+    [uploadFiles],
+  );
+  const validUploadFiles = useMemo(() => {
+    const invalidFiles = new Set(invalidUploadFiles.map((issue) => issue.file));
+
+    return uploadFiles.filter((file) => !invalidFiles.has(file));
+  }, [invalidUploadFiles, uploadFiles]);
+  const uploadValidationMessage = useMemo(() => {
+    if (invalidUploadFiles.length === 0) {
+      return null;
+    }
+
+    const names = invalidUploadFiles.map(({ file }) => file.name);
+    const preview = names.slice(0, 2).join("、");
+    const suffix = names.length > 2 ? ` 等 ${names.length} 个文件` : "";
+    const reasons = Array.from(new Set(invalidUploadFiles.map(({ message }) => message)));
+
+    return `所选文件包含不支持的格式：${preview}${suffix}。${reasons.join(" ")}`;
+  }, [invalidUploadFiles]);
 
   const entries = useMemo(() => {
     const nextEntries = [
@@ -568,6 +628,18 @@ export function KnowledgeBaseExplorer({
     }
   }
 
+  async function handleDeleteSingleDocument(documentId: string) {
+    try {
+      await runJsonOperation({
+        action: "delete",
+        directoryIds: [],
+        documentIds: [documentId],
+      });
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : "删除任务失败");
+    }
+  }
+
   async function handleMoveSelection(directoryId: string) {
     if (selectedEntries.length === 0) {
       return;
@@ -666,100 +738,101 @@ export function KnowledgeBaseExplorer({
   }
 
   async function handleUpload() {
-    if (uploadFiles.length === 0) {
+    if (uploadFiles.length === 0 || isUploading) {
       return;
     }
 
-    setUploadStatus("正在上传...");
-
-    for (const file of uploadFiles) {
-      const support = validateUploadSupport({
-        filename: file.name,
-        contentType: file.type,
-      });
-      if (!support.ok) {
-        setUploadStatus(support.message);
-        return;
-      }
-
-      setUploadStatus(`正在计算 ${file.name} 的指纹...`);
-      const sha256 = await computeFileSha256(file).catch((error: unknown) => {
-        setUploadStatus(error instanceof Error ? error.message : `计算 ${file.name} 指纹失败`);
-        return null;
-      });
-      if (!sha256) {
-        return;
-      }
-
-      const presignResponse = await fetch(`/api/workspaces/${workspaceId}/uploads/presign`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-          directoryPath: currentPath,
-          sha256,
-        }),
-      });
-      const presignBody = (await presignResponse.json().catch(() => null)) as
-        | {
-            uploadUrl: string | null;
-            key: string;
-            alreadyExists?: boolean;
-            error?: string;
-          }
-        | null;
-
-      if (!presignResponse.ok || !presignBody?.key) {
-        setUploadStatus(presignBody?.error ?? "申请上传地址失败");
-        return;
-      }
-
-      if (!presignBody.alreadyExists) {
-        if (!presignBody.uploadUrl) {
-          setUploadStatus("申请上传地址失败");
-          return;
-        }
-
-        const uploadResponse = await fetch(presignBody.uploadUrl, {
-          method: "PUT",
-          headers: {
-            "content-type": file.type || "application/octet-stream",
-          },
-          body: file,
-        });
-
-        if (!uploadResponse.ok) {
-          setUploadStatus(`上传文件失败：${file.name}`);
-          return;
-        }
-      }
-
-      const documentResponse = await fetch(`/api/workspaces/${workspaceId}/documents`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          storageKey: presignBody.key,
-          sha256,
-          sourceFilename: file.name,
-          mimeType: file.type || "application/octet-stream",
-          directoryPath: currentPath,
-        }),
-      });
-      const documentBody = (await documentResponse.json().catch(() => null)) as
-        | { error?: string }
-        | null;
-
-      if (!documentResponse.ok) {
-        setUploadStatus(documentBody?.error ?? `创建任务失败：${file.name}`);
-        return;
-      }
+    if (invalidUploadFiles.length > 0 || validUploadFiles.length === 0) {
+      setUploadStatus(uploadValidationMessage ?? `当前仅支持 ${SUPPORTED_UPLOAD_TYPES_LABEL} 上传。`);
+      return;
     }
 
-    setUploadStatus(`已提交 ${uploadFiles.length} 个文件`);
-    setUploadFiles([]);
-    setIsUploadOpen(false);
-    await refreshPage();
+    setIsUploading(true);
+    setUploadStatus("正在上传...");
+
+    try {
+      for (const file of validUploadFiles) {
+        setUploadStatus(`正在计算 ${file.name} 的指纹...`);
+        const sha256 = await computeFileSha256(file).catch((error: unknown) => {
+          setUploadStatus(error instanceof Error ? error.message : `计算 ${file.name} 指纹失败`);
+          return null;
+        });
+        if (!sha256) {
+          return;
+        }
+
+        const presignResponse = await fetch(`/api/workspaces/${workspaceId}/uploads/presign`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type || "application/octet-stream",
+            directoryPath: currentPath,
+            sha256,
+          }),
+        });
+        const presignBody = (await presignResponse.json().catch(() => null)) as
+          | {
+              uploadUrl: string | null;
+              key: string;
+              alreadyExists?: boolean;
+              error?: string;
+            }
+          | null;
+
+        if (!presignResponse.ok || !presignBody?.key) {
+          setUploadStatus(presignBody?.error ?? "申请上传地址失败");
+          return;
+        }
+
+        if (!presignBody.alreadyExists) {
+          if (!presignBody.uploadUrl) {
+            setUploadStatus("申请上传地址失败");
+            return;
+          }
+
+          const uploadResponse = await fetch(presignBody.uploadUrl, {
+            method: "PUT",
+            headers: {
+              "content-type": file.type || "application/octet-stream",
+            },
+            body: file,
+          });
+
+          if (!uploadResponse.ok) {
+            setUploadStatus(`上传文件失败：${file.name}`);
+            return;
+          }
+        }
+
+        const documentResponse = await fetch(`/api/workspaces/${workspaceId}/documents`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            storageKey: presignBody.key,
+            sha256,
+            sourceFilename: file.name,
+            mimeType: file.type || "application/octet-stream",
+            directoryPath: currentPath,
+          }),
+        });
+        const documentBody = (await documentResponse.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+
+        if (!documentResponse.ok) {
+          setUploadStatus(documentBody?.error ?? `创建任务失败：${file.name}`);
+          return;
+        }
+      }
+
+      setUploadStatus(`已提交 ${validUploadFiles.length} 个文件`);
+      setUploadFiles([]);
+      setIsUploadOpen(false);
+      await refreshPage();
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -829,6 +902,7 @@ export function KnowledgeBaseExplorer({
               onClick={() => {
                 setUploadStatus(null);
                 setUploadFiles([]);
+                setIsUploading(false);
                 setIsUploadOpen(true);
               }}
             >
@@ -976,17 +1050,17 @@ export function KnowledgeBaseExplorer({
             {...dropzone.getRootProps()}
             className="grid min-h-[180px] place-items-center rounded-[24px] border border-dashed border-app-border bg-app-surface-soft/55 px-6 py-8 text-center"
           >
-            <input {...dropzone.getInputProps()} />
+            <input {...dropzone.getInputProps({ accept: SUPPORTED_UPLOAD_ACCEPT })} />
             <div className="grid gap-2">
               <strong className="text-base">拖入文件，或点击选择文件</strong>
               <span className={ui.muted}>
-                支持 PDF、DOCX、TXT、Markdown。图片和扫描件暂不开放上传。
+                支持 {SUPPORTED_UPLOAD_TYPES_LABEL}。图片和扫描件暂不开放上传。
               </span>
             </div>
           </button>
-          {uploadFiles.length > 0 ? (
+          {validUploadFiles.length > 0 ? (
             <div className="grid gap-2 rounded-[22px] border border-app-border bg-white p-4">
-              {uploadFiles.map((file) => (
+              {validUploadFiles.map((file) => (
                 <div
                   key={`${file.name}-${file.lastModified}`}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm"
@@ -1004,11 +1078,33 @@ export function KnowledgeBaseExplorer({
               ))}
             </div>
           ) : null}
-          {uploadStatus ? <p className={ui.muted}>{uploadStatus}</p> : null}
+          {invalidUploadFiles.length > 0 ? (
+            <div className="grid gap-2 rounded-[22px] border border-red-200 bg-red-50/70 p-4">
+              {invalidUploadFiles.map(({ file, message }) => (
+                <div
+                  key={`${file.name}-${file.lastModified}`}
+                  className="grid gap-1 rounded-[18px] border border-red-200 bg-white px-3 py-2"
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm">
+                    <span className="min-w-0 truncate text-app-text" title={file.name}>
+                      {file.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-app-muted">
+                      {formatFileSize(file.size)}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-5 text-red-600">{message}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {uploadValidationMessage ? <p className={ui.error}>{uploadValidationMessage}</p> : null}
+          {uploadStatus && !uploadValidationMessage ? <p className={ui.muted}>{uploadStatus}</p> : null}
           <div className="flex justify-end gap-2">
             <button
               type="button"
               className={buttonStyles({ variant: "secondary" })}
+              disabled={isUploading}
               onClick={() => setIsUploadOpen(false)}
             >
               取消
@@ -1016,10 +1112,10 @@ export function KnowledgeBaseExplorer({
             <button
               type="button"
               className={buttonStyles()}
-              disabled={uploadFiles.length === 0}
+              disabled={uploadFiles.length === 0 || invalidUploadFiles.length > 0 || isUploading}
               onClick={() => void handleUpload()}
             >
-              提交上传
+              {isUploading ? "上传中..." : "提交上传"}
             </button>
           </div>
         </div>
@@ -1121,6 +1217,7 @@ export function KnowledgeBaseExplorer({
                     <Link
                       href={`/workspaces/${workspaceId}/documents/${document.id}`}
                       className="font-medium text-app-text hover:text-app-accent"
+                      target="_blank"
                     >
                       {document.sourceFilename}
                     </Link>
@@ -1135,17 +1232,38 @@ export function KnowledgeBaseExplorer({
                   </span>
                 </div>
                 {document.latestJob?.status === RUN_STATUS.FAILED ? (
-                  <p className={ui.error}>
-                    {describeDocumentJobFailure({
-                      stage: document.latestJob.stage,
-                      errorCode: document.latestJob.errorCode,
-                      errorMessage: document.latestJob.errorMessage,
-                    })}
-                  </p>
-                ) : null}
-                {document.latestJob?.status === RUN_STATUS.FAILED ? (
-                  <RetryDocumentJobButton jobId={document.latestJob.id} />
-                ) : null}
+                  <div className="grid gap-3">
+                    <div className="rounded-xl border border-red-200/60 bg-red-50/50 p-3 text-red-600/90 shadow-sm">
+                      <div className="max-h-32 overflow-y-auto pr-2 text-[12px] font-mono leading-relaxed custom-scrollbar">
+                        {describeDocumentJobFailure({
+                          stage: document.latestJob.stage,
+                          errorCode: document.latestJob.errorCode,
+                          errorMessage: document.latestJob.errorMessage,
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <RetryDocumentJobButton jobId={document.latestJob.id} />
+                       <button
+                         type="button"
+                         className={buttonStyles({ variant: "dangerGhost", size: "sm" })}
+                         onClick={() => void handleDeleteSingleDocument(document.id)}
+                       >
+                         删除并放弃任务
+                       </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                     <button
+                       type="button"
+                       className={buttonStyles({ variant: "dangerGhost", size: "sm" })}
+                       onClick={() => void handleDeleteSingleDocument(document.id)}
+                     >
+                       取消任务并删除
+                     </button>
+                  </div>
+                )}
               </div>
             ))
           ) : (

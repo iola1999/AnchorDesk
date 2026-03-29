@@ -210,18 +210,18 @@ export function PdfViewer({
   );
 
   return (
-    <div className={cn(ui.panel, "grid gap-4")}>
-      <div className={ui.toolbar}>
-        <div className="space-y-1">
-          <h3>PDF 阅读器</h3>
-          <p className={ui.muted}>
+    <div className="grid gap-5 rounded-2xl border border-app-border/60 bg-white/40 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-app-border/40 pb-3">
+        <div className="grid gap-1">
+          <h3 className="text-[15px] font-semibold text-app-text">PDF 阅读器</h3>
+          <p className="text-[12px] text-app-muted truncate max-w-[300px]" title={title}>
             {title}
             {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0 bg-app-surface-soft/50 p-1 rounded-xl border border-app-border/40">
           <button
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
+            className={buttonStyles({ variant: "ghost", size: "sm" })}
             disabled={currentPage <= 1}
             onClick={() => jumpToPage(currentPage - 1)}
             type="button"
@@ -229,22 +229,23 @@ export function PdfViewer({
             上一页
           </button>
           <input
-            className={cn(ui.input, "h-9 w-[88px] rounded-xl px-3 py-0 text-center")}
+            className="h-8 w-[60px] rounded-lg border border-app-border/60 bg-white px-2 py-0 text-center text-[13px] outline-none focus:border-app-border-strong focus:ring-2 focus:ring-app-accent/10"
             inputMode="numeric"
             value={currentPageInput}
             onChange={(event) => setCurrentPageInput(event.target.value)}
             onBlur={() => jumpToPage(Number(currentPageInput))}
           />
           <button
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
+            className={buttonStyles({ variant: "ghost", size: "sm" })}
             disabled={pageCount > 0 ? currentPage >= pageCount : true}
             onClick={() => jumpToPage(currentPage + 1)}
             type="button"
           >
             下一页
           </button>
+          <div className="w-px h-4 bg-app-border/60 mx-1" />
           <button
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
+            className={buttonStyles({ variant: "ghost", size: "sm" })}
             disabled={scale <= 0.8}
             onClick={() => setScale((value) => Math.max(0.8, value - 0.2))}
             type="button"
@@ -252,7 +253,7 @@ export function PdfViewer({
             缩小
           </button>
           <button
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
+            className={buttonStyles({ variant: "ghost", size: "sm" })}
             onClick={() => setScale((value) => Math.min(2, value + 0.2))}
             type="button"
           >
@@ -261,10 +262,10 @@ export function PdfViewer({
         </div>
       </div>
 
-      <label className={ui.label}>
-        页内搜索
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-medium text-app-muted-strong px-1">页内搜索</span>
         <input
-          className={ui.input}
+          className={cn(ui.input, "bg-white/60")}
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="搜索当前 PDF 中的关键词"
@@ -286,20 +287,21 @@ export function PdfViewer({
         </div>
       ) : null}
 
-      {status ? <p className={ui.muted}>{status}</p> : null}
-      <div className="overflow-auto rounded-3xl border border-app-border bg-white/78 p-4">
-        <canvas ref={canvasRef} className="block h-auto w-full" />
+      {status ? <p className="text-[13px] text-app-muted px-1">{status}</p> : null}
+      
+      <div className="overflow-auto rounded-xl border border-app-border/50 bg-white p-2 shadow-sm">
+        <canvas ref={canvasRef} className="block h-auto w-full max-w-none" />
       </div>
 
-      <div className="grid gap-3">
-        <div className={ui.toolbar}>
-          <strong>第 {currentPage} 页文本</strong>
-          {highlightedText ? <span className={ui.muted}>已按引用内容高亮</span> : null}
+      <div className="grid gap-2.5">
+        <div className="flex items-center justify-between px-1">
+          <strong className="text-[13px] font-medium text-app-text">第 {currentPage} 页文本</strong>
+          {highlightedText ? <span className="text-[12px] text-app-muted">已按引用内容高亮</span> : null}
         </div>
-        <div className="rounded-3xl border border-app-border bg-white/78 p-4 leading-7">
+        <div className="rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm">
           {highlightedSegments.map((segment, index) =>
             segment.highlighted ? (
-              <mark key={`${segment.text}-${index}`}>{segment.text}</mark>
+              <mark key={`${segment.text}-${index}`} className="bg-app-accent/20 text-app-text rounded-sm px-0.5">{segment.text}</mark>
             ) : (
               <span key={`${segment.text}-${index}`}>{segment.text}</span>
             ),
