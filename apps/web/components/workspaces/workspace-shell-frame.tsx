@@ -8,7 +8,7 @@ import {
   type ConversationStatus,
 } from "@knowledge-assistant/contracts";
 
-import { CloseIcon, MenuIcon, PlusIcon } from "@/components/icons";
+import { CloseIcon, MenuIcon, PlusIcon, SlidersIcon, SourceIcon } from "@/components/icons";
 import { workspaceBranding } from "@/lib/branding";
 import { WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY } from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
@@ -289,10 +289,10 @@ function WorkspaceSidebarContent({
   );
   const workspaceNavLink = (selected: boolean) =>
     cn(
-      "flex min-h-10 items-center justify-between rounded-xl px-3 text-sm transition",
+      "group flex min-h-[36px] w-full items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-colors",
       selected
         ? navItemStyles({ selected: true })
-        : "bg-white/68 text-app-muted-strong hover:bg-white hover:text-app-text",
+        : "text-app-muted-strong hover:bg-black/5 hover:text-app-text",
     );
 
   return (
@@ -358,25 +358,27 @@ function WorkspaceSidebarContent({
         </div>
       </div>
 
-      <div className="grid gap-2 rounded-[18px] border border-app-border bg-white/58 p-2 shadow-soft">
-        <nav className="grid gap-1">
+      <div className="grid gap-1 border-t border-app-border/60 pt-4 px-1.5 pb-2">
+        <nav className="grid gap-0.5">
           <Link
             href={`/workspaces/${workspace.id}/settings`}
             onClick={onNavigate}
             className={workspaceNavLink(activeView === "settings")}
           >
-            空间设置
+            <SlidersIcon className="size-4 shrink-0 opacity-70 group-hover:opacity-100" />
+            <span>空间设置</span>
           </Link>
           <Link
             href={`/workspaces/${workspace.id}/knowledge-base`}
             onClick={onNavigate}
             className={workspaceNavLink(activeView === "knowledge-base")}
           >
-            资料库
+            <SourceIcon className="size-4 shrink-0 opacity-70 group-hover:opacity-100" />
+            <span>资料库</span>
           </Link>
         </nav>
         {archivedConversations.length > 0 ? (
-          <div className="px-3 pt-1 text-[11px] text-app-muted">
+          <div className="px-2.5 pt-1 text-[11px] text-app-muted">
             已归档 {archivedConversations.length}
           </div>
         ) : null}
