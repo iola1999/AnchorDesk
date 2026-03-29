@@ -22,7 +22,7 @@ import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
-import { cn, ui } from "@/lib/ui";
+import { ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
   params,
@@ -158,7 +158,7 @@ export default async function WorkspacePage({
     >
       {activeConversation ? (
         <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-visible">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1 md:py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 pr-1 min-[720px]:py-5">
             <ConversationSession
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
@@ -197,7 +197,7 @@ export default async function WorkspacePage({
             />
           </div>
 
-          <div className="shrink-0 border-app-border/60 pb-5 pt-4 md:pb-6">
+          <div className="shrink-0 border-app-border/60 pb-4 pt-3 min-[720px]:pb-6 min-[720px]:pt-4">
             <Composer
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
@@ -226,7 +226,7 @@ export default async function WorkspacePage({
           </div>
         </div>
       ) : (
-        <div className="grid min-h-[calc(100vh-180px)] place-items-center px-2 py-8">
+        <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-6 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-2 min-[720px]:py-8">
           <div className="grid w-full max-w-[860px] gap-6 text-center">
             <div className="grid justify-items-center gap-3">
               <p className={ui.eyebrow}>New Question</p>

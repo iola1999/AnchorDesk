@@ -470,7 +470,7 @@ export function ConversationSession({
   }
 
   return (
-    <div className="grid gap-10 pb-6 md:gap-12 md:pb-8">
+    <div className="grid gap-7 pb-4 min-[720px]:gap-10 min-[720px]:pb-6 md:gap-12 md:pb-8">
       {chatMessages.length > 0 ? (
         chatMessages.map((message) => {
           const isUser = message.role === MESSAGE_ROLE.USER;
@@ -504,7 +504,7 @@ export function ConversationSession({
           if (isUser) {
             return (
               <article key={message.id} className="ml-auto w-full max-w-[720px]">
-                <div className="rounded-[28px] border border-app-border/60 bg-app-surface-strong/58 px-5 py-4 shadow-[0_14px_36px_rgba(23,22,18,0.035)]">
+                <div className="rounded-[24px] border border-app-border/60 bg-app-surface-strong/58 px-4 py-3.5 shadow-[0_14px_36px_rgba(23,22,18,0.035)] min-[720px]:rounded-[28px] min-[720px]:px-5 min-[720px]:py-4">
                   <LinkifiedText
                     text={message.contentMarkdown}
                     className="text-[15px] leading-8 text-app-text md:text-[16px]"
@@ -523,8 +523,8 @@ export function ConversationSession({
               />
 
               {showResultPanel ? (
-                <div className="grid gap-5">
-                  <div className="flex flex-wrap items-center gap-5 border-b border-app-border/60 pb-2">
+                <div className="grid gap-4 min-[720px]:gap-5">
+                  <div className="flex flex-wrap items-center gap-4 border-b border-app-border/60 pb-2 min-[720px]:gap-5">
                     <TabButton
                       active={selectedView === "answer"}
                       onClick={() => setMessageView(message.id, "answer")}

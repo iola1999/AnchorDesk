@@ -24,12 +24,16 @@ type WorkspaceConversationSidebarItemProps = {
     updatedAt: Date;
   };
   activeConversationId?: string;
+  onNavigate?: () => void;
+  alwaysShowMenu?: boolean;
 };
 
 export function WorkspaceConversationSidebarItem({
   workspaceId,
   conversation,
   activeConversationId,
+  onNavigate,
+  alwaysShowMenu = false,
 }: WorkspaceConversationSidebarItemProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -142,6 +146,7 @@ export function WorkspaceConversationSidebarItem({
         }
         router.refresh();
       });
+      onNavigate?.();
     } finally {
       setIsSubmitting(false);
     }
@@ -152,6 +157,7 @@ export function WorkspaceConversationSidebarItem({
       <div ref={containerRef} className="group relative">
         <Link
           href={`/workspaces/${workspaceId}?conversationId=${conversation.id}`}
+          onClick={onNavigate}
           className={cn(
             "block rounded-2xl px-4 py-3 text-sm transition",
             isActive
@@ -167,7 +173,7 @@ export function WorkspaceConversationSidebarItem({
         <span
           className={cn(
             "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-right text-[11px] text-app-muted transition duration-150",
-            isMenuOpen
+            isMenuOpen || alwaysShowMenu
               ? "opacity-0"
               : "opacity-100 group-hover:opacity-0 group-focus-within:opacity-0",
           )}
@@ -183,9 +189,10 @@ export function WorkspaceConversationSidebarItem({
           aria-label={`打开「${conversation.title}」操作菜单`}
           className={cn(
             "absolute right-2 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-app-muted-strong transition focus:outline-none focus:ring-4 focus:ring-app-accent/10",
-            isMenuOpen
+            isMenuOpen || alwaysShowMenu
               ? "bg-white text-app-text shadow-soft"
               : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-white/92 hover:text-app-text",
+            alwaysShowMenu && "pointer-events-auto opacity-100",
           )}
           onClick={(event) => {
             event.preventDefault();
