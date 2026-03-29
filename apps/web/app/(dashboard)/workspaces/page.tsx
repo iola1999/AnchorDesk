@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
-import { conversations, documents, getDb, workspaces } from "@knowledge-assistant/db";
+import {
+  conversations,
+  documents,
+  getDb,
+  workspaces,
+} from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
@@ -22,7 +27,9 @@ export default async function WorkspacesPage() {
     ? await db
         .select()
         .from(workspaces)
-        .where(and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)))
+        .where(
+          and(eq(workspaces.userId, userId), isNull(workspaces.archivedAt)),
+        )
         .orderBy(desc(workspaces.updatedAt), desc(workspaces.createdAt))
     : [];
   const workspaceIds = workspaceList.map((workspace) => workspace.id);
@@ -61,9 +68,14 @@ export default async function WorkspacesPage() {
       (conversationCountByWorkspace.get(conversation.workspaceId) ?? 0) + 1,
     );
 
-    const latestActivity = latestActivityByWorkspace.get(conversation.workspaceId);
+    const latestActivity = latestActivityByWorkspace.get(
+      conversation.workspaceId,
+    );
     if (!latestActivity || conversation.updatedAt > latestActivity) {
-      latestActivityByWorkspace.set(conversation.workspaceId, conversation.updatedAt);
+      latestActivityByWorkspace.set(
+        conversation.workspaceId,
+        conversation.updatedAt,
+      );
     }
   }
 
@@ -85,14 +97,20 @@ export default async function WorkspacesPage() {
         <p className={ui.eyebrow}>Spaces</p>
 
         <div className={ui.actions}>
-          <Link href="/account" className={buttonStyles({ variant: "secondary" })}>
+          <Link
+            href="/account"
+            className={buttonStyles({ variant: "secondary" })}
+          >
             账号与安全
           </Link>
           <Link href="/workspaces/new" className={buttonStyles()}>
             新建工作空间
           </Link>
           {canAccessSystemSettings ? (
-            <Link href="/settings" className={buttonStyles({ variant: "secondary" })}>
+            <Link
+              href="/settings"
+              className={buttonStyles({ variant: "secondary" })}
+            >
               系统设置
             </Link>
           ) : null}
@@ -100,43 +118,40 @@ export default async function WorkspacesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {workspaceList.length ? (
-          workspaceList.map((workspace) => {
-            const badgeLabel = getWorkspaceBadgeLabel(workspace.title);
-            const conversationCount = conversationCountByWorkspace.get(workspace.id) ?? 0;
-            const documentCount = documentCountByWorkspace.get(workspace.id) ?? 0;
-            const latestActivity =
-              latestActivityByWorkspace.get(workspace.id) ?? workspace.updatedAt;
+        {workspaceList.map((workspace) => {
+          const badgeLabel = getWorkspaceBadgeLabel(workspace.title);
+          const conversationCount =
+            conversationCountByWorkspace.get(workspace.id) ?? 0;
+          const documentCount = documentCountByWorkspace.get(workspace.id) ?? 0;
+          const latestActivity =
+            latestActivityByWorkspace.get(workspace.id) ?? workspace.updatedAt;
 
-            return (
-              <Link
-                key={workspace.id}
-                href={`/workspaces/${workspace.id}`}
-                className={workspaceTileStyles()}
-              >
+          return (
+            <Link
+              key={workspace.id}
+              href={`/workspaces/${workspace.id}`}
+              className={workspaceTileStyles()}
+            >
+              <div>
+                <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
+                  {badgeLabel}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <strong>{workspace.title}</strong>
+              </div>
+              <div className="grid gap-3 border-t border-app-border pt-4 text-sm text-app-muted">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span>{conversationCount} 条会话</span>
+                  <span>{documentCount} 份资料</span>
+                </div>
                 <div>
-                  <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
-                    {badgeLabel}
-                  </span>
+                  最后活跃 {formatRelativeWorkspaceActivity(latestActivity)}
                 </div>
-                <div className="space-y-2">
-                  <strong>{workspace.title}</strong>
-                </div>
-                <div className="grid gap-3 border-t border-app-border pt-4 text-sm text-app-muted">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span>{conversationCount} 条会话</span>
-                    <span>{documentCount} 份资料</span>
-                  </div>
-                  <div>最后活跃 {formatRelativeWorkspaceActivity(latestActivity)}</div>
-                </div>
-              </Link>
-            );
-          })
-        ) : (
-          <div className={cn(ui.panel, "grid min-h-[220px] content-center rounded-[24px] p-6")}>
-            <p>还没有工作空间，先创建一个空间再开始问答。</p>
-          </div>
-        )}
+              </div>
+            </Link>
+          );
+        })}
 
         <Link
           href="/workspaces/new"
