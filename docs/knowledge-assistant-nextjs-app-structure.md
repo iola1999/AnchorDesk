@@ -54,6 +54,7 @@
 - `/api/conversations/[conversationId]/stream`
   - 轮询数据库里的 `tool` 消息和 assistant draft
   - 推送 `answer_delta` / `answer_done` / `run_failed`
+  - `answer_done` / `run_failed` 终态事件会附带最终 assistant 内容、structured state 和当前 message citations，供前端先切到本地最终态再刷新
 - `/api/conversations/[conversationId]/share`
   - 查询当前会话分享状态
   - 创建或撤销公开分享链接

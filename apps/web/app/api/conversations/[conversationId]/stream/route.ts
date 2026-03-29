@@ -7,7 +7,7 @@ import {
   MESSAGE_STATUS,
   type ConversationStreamEvent,
 } from "@knowledge-assistant/contracts";
-import { getDb, messages } from "@knowledge-assistant/db";
+import { getDb, messageCitations, messages } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import {
@@ -107,6 +107,22 @@ export async function GET(
           )
           .limit(1);
 
+        const assistantCitations =
+          assistantMessage &&
+          (assistantMessage.status === MESSAGE_STATUS.COMPLETED ||
+            assistantMessage.status === MESSAGE_STATUS.FAILED)
+            ? await db
+                .select({
+                  id: messageCitations.id,
+                  anchorId: messageCitations.anchorId,
+                  documentId: messageCitations.documentId,
+                  label: messageCitations.label,
+                })
+                .from(messageCitations)
+                .where(eq(messageCitations.messageId, assistantMessage.id))
+                .orderBy(asc(messageCitations.ordinal))
+            : [];
+
         const terminalEvent = buildAssistantTerminalStreamEvent({
           conversationId,
           assistantMessage: assistantMessage
@@ -119,6 +135,7 @@ export async function GET(
                   null,
               }
             : null,
+          citations: assistantCitations,
         });
 
         if (

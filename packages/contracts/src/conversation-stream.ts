@@ -3,8 +3,16 @@ import { z } from "zod";
 import {
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
+  MESSAGE_STATUS,
   MESSAGE_STATUS_VALUES,
 } from "./constants";
+
+const conversationStreamCitationSchema = z.object({
+  id: z.string().uuid(),
+  anchor_id: z.string().uuid(),
+  document_id: z.string().uuid(),
+  label: z.string().min(1),
+});
 
 export const conversationStreamEventSchema = z.discriminatedUnion("type", [
   z.object({
@@ -27,11 +35,19 @@ export const conversationStreamEventSchema = z.discriminatedUnion("type", [
     type: z.literal(CONVERSATION_STREAM_EVENT.ANSWER_DONE),
     conversation_id: z.string().uuid(),
     message_id: z.string().uuid().nullable(),
+    status: z.literal(MESSAGE_STATUS.COMPLETED),
+    content_markdown: z.string().nullable(),
+    structured: z.record(z.string(), z.unknown()).nullable().optional(),
+    citations: z.array(conversationStreamCitationSchema),
   }),
   z.object({
     type: z.literal(CONVERSATION_STREAM_EVENT.RUN_FAILED),
     conversation_id: z.string().uuid(),
     message_id: z.string().uuid().nullable(),
+    status: z.literal(MESSAGE_STATUS.FAILED),
+    content_markdown: z.string().nullable(),
+    structured: z.record(z.string(), z.unknown()).nullable().optional(),
+    citations: z.array(conversationStreamCitationSchema),
     error: z.string(),
   }),
 ]);

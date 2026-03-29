@@ -21,6 +21,13 @@ type AssistantMessageRow = {
   structuredJson?: Record<string, unknown> | null;
 };
 
+type AssistantCitationRow = {
+  id: string;
+  anchorId: string;
+  documentId: string;
+  label: string;
+};
+
 type ToolMessageEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.TOOL_MESSAGE }
@@ -77,12 +84,17 @@ export function readAssistantRunError(message: Pick<
 export function buildAssistantTerminalStreamEvent(input: {
   conversationId: string;
   assistantMessage: AssistantMessageRow | null;
+  citations?: AssistantCitationRow[];
 }): AnswerDoneEvent | RunFailedEvent | null {
   if (!input.assistantMessage) {
     return {
       type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: input.conversationId,
       message_id: null,
+      status: MESSAGE_STATUS.FAILED,
+      content_markdown: null,
+      structured: null,
+      citations: [],
       error: "Assistant message not found.",
     };
   }
@@ -92,6 +104,15 @@ export function buildAssistantTerminalStreamEvent(input: {
       type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
       conversation_id: input.conversationId,
       message_id: input.assistantMessage.id,
+      status: MESSAGE_STATUS.COMPLETED,
+      content_markdown: input.assistantMessage.contentMarkdown,
+      structured: input.assistantMessage.structuredJson ?? null,
+      citations: (input.citations ?? []).map((citation) => ({
+        id: citation.id,
+        anchor_id: citation.anchorId,
+        document_id: citation.documentId,
+        label: citation.label,
+      })),
     };
   }
 
@@ -100,6 +121,10 @@ export function buildAssistantTerminalStreamEvent(input: {
       type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: input.conversationId,
       message_id: input.assistantMessage.id,
+      status: MESSAGE_STATUS.FAILED,
+      content_markdown: input.assistantMessage.contentMarkdown,
+      structured: input.assistantMessage.structuredJson ?? null,
+      citations: [],
       error: readAssistantRunError(input.assistantMessage),
     };
   }

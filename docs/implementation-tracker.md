@@ -40,7 +40,8 @@
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
-- 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport，最终 grounded answer 与 citations 仍在完成态统一落库。
+- 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
+- `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
 - 本地缺少真实 provider 时，主会话链路已经允许回退到 mock tool / mock assistant chunk，用于验证队列、事件流、前端状态切换和错误处理。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
@@ -58,6 +59,7 @@
 ## 2. 最近完成
 
 - `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
+- `working tree` Hydrate conversation terminal SSE events with final assistant payload and citations before refresh
 - `working tree` Reprioritize roadmap around conversation-chain-first delivery and explicit mock-tool allowance
 - `working tree` Remove workspace archive controls and switch workspace delete to soft delete
 - `working tree` Add account security page with password change and logout
@@ -92,8 +94,8 @@
 
 - 主会话链路完成态收口
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - 仍需收口 assistant placeholder 到 completed/failed 的状态切换、页面刷新后的最终态一致性，以及失败后的可恢复路径
-  - grounded final answer、citations 和引用跳转仍在完成态刷新后统一呈现，需要继续减少切换断层
+  - assistant placeholder 到 completed/failed 的本地状态切换已补齐，但仍需继续收口页面刷新后的其余 UI 一致性，以及失败后的可恢复路径
+  - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
 - 工具契约与 mock 策略
   - 当前阶段允许 `search_web_general` / `search_statutes` / 报告生成等工具先返回明确标识的 mock 或基础结果
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示

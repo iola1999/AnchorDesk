@@ -97,13 +97,36 @@ describe("buildAssistantTerminalStreamEvent", () => {
           id: "assistant-1",
           status: MESSAGE_STATUS.COMPLETED,
           contentMarkdown: "final answer",
-          structuredJson: null,
+          structuredJson: {
+            confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+          },
         },
+        citations: [
+          {
+            id: "citation-1",
+            anchorId: "45abfef3-61d9-4933-a551-d58b3d6f9f61",
+            documentId: "f3e3b2c9-91aa-48a2-9b5c-b5ff4d19bc61",
+            label: "产品说明 · 第2页",
+          },
+        ],
       }),
     ).toEqual({
       type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
       conversation_id: "conversation-1",
       message_id: "assistant-1",
+      status: MESSAGE_STATUS.COMPLETED,
+      content_markdown: "final answer",
+      structured: {
+        confidence: DEFAULT_GROUNDED_ANSWER_CONFIDENCE,
+      },
+      citations: [
+        {
+          id: "citation-1",
+          anchor_id: "45abfef3-61d9-4933-a551-d58b3d6f9f61",
+          document_id: "f3e3b2c9-91aa-48a2-9b5c-b5ff4d19bc61",
+          label: "产品说明 · 第2页",
+        },
+      ],
     });
   });
 
@@ -124,6 +147,12 @@ describe("buildAssistantTerminalStreamEvent", () => {
       type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: "conversation-1",
       message_id: "assistant-1",
+      status: MESSAGE_STATUS.FAILED,
+      content_markdown: "Agent 处理失败：fallback",
+      structured: {
+        agent_error: "grounded answer render failed",
+      },
+      citations: [],
       error: "grounded answer render failed",
     });
   });
@@ -138,6 +167,10 @@ describe("buildAssistantTerminalStreamEvent", () => {
       type: CONVERSATION_STREAM_EVENT.RUN_FAILED,
       conversation_id: "conversation-1",
       message_id: null,
+      status: MESSAGE_STATUS.FAILED,
+      content_markdown: null,
+      structured: null,
+      citations: [],
       error: "Assistant message not found.",
     });
   });

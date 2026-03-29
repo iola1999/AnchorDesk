@@ -10,7 +10,6 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   type ConversationStreamEvent,
-  type MessageRole,
   type MessageStatus,
 } from "@knowledge-assistant/contracts";
 
@@ -19,15 +18,14 @@ import {
   describeGroundedAnswerConfidence,
   readGroundedAnswerStatus,
 } from "@/lib/api/grounded-answer-status";
+import {
+  applyAssistantTerminalEvent,
+  type ConversationChatMessage,
+  type ConversationMessageCitation,
+} from "@/lib/api/conversation-session";
 import { cn, ui } from "@/lib/ui";
 
-type ChatMessage = {
-  id: string;
-  role: MessageRole;
-  status: MessageStatus;
-  contentMarkdown: string;
-  structuredJson?: Record<string, unknown> | null;
-};
+type ChatMessage = ConversationChatMessage;
 
 type TimelineMessage = {
   id: string;
@@ -37,13 +35,7 @@ type TimelineMessage = {
   structuredJson?: Record<string, unknown> | null;
 };
 
-type MessageCitation = {
-  id: string;
-  messageId: string;
-  anchorId: string;
-  documentId: string;
-  label: string;
-};
+type MessageCitation = ConversationMessageCitation;
 
 export function ConversationSession({
   conversationId,
@@ -66,9 +58,12 @@ export function ConversationSession({
   const [, startTransition] = useTransition();
   const [chatMessages, setChatMessages] = useState(initialMessages);
   const [timelineMessages, setTimelineMessages] = useState(initialTimelineMessages);
+  const [messageCitations, setMessageCitations] = useState(initialCitations);
   const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
     assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
   );
+  const chatMessagesRef = useRef(initialMessages);
+  const messageCitationsRef = useRef(initialCitations);
   const seenTimelineIdsRef = useRef(
     new Set(initialTimelineMessages.map((message) => message.id)),
   );
@@ -76,11 +71,22 @@ export function ConversationSession({
   useEffect(() => {
     setChatMessages(initialMessages);
     setTimelineMessages(initialTimelineMessages);
+    setMessageCitations(initialCitations);
+    chatMessagesRef.current = initialMessages;
+    messageCitationsRef.current = initialCitations;
     setRuntimeStatus(
       assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
     );
     seenTimelineIdsRef.current = new Set(initialTimelineMessages.map((message) => message.id));
   }, [assistantStatus, initialCitations, initialMessages, initialTimelineMessages]);
+
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
+  useEffect(() => {
+    messageCitationsRef.current = messageCitations;
+  }, [messageCitations]);
 
   useEffect(() => {
     if (!assistantMessageId || assistantStatus !== MESSAGE_STATUS.STREAMING) {
@@ -134,8 +140,20 @@ export function ConversationSession({
       );
     };
 
-    const handleAnswerDone = () => {
-      setRuntimeStatus("回答已生成，正在刷新对话...");
+    const handleAnswerDone = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as ConversationStreamEvent;
+      if (payload.type !== CONVERSATION_STREAM_EVENT.ANSWER_DONE) {
+        return;
+      }
+
+      const nextState = applyAssistantTerminalEvent({
+        messages: chatMessagesRef.current,
+        citations: messageCitationsRef.current,
+        event: payload,
+      });
+      setChatMessages(nextState.messages);
+      setMessageCitations(nextState.citations);
+      setRuntimeStatus("回答已生成。");
       source.close();
       startTransition(() => {
         router.refresh();
@@ -144,10 +162,19 @@ export function ConversationSession({
 
     const handleRunFailed = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ConversationStreamEvent;
+      if (payload.type !== CONVERSATION_STREAM_EVENT.RUN_FAILED) {
+        return;
+      }
+
+      const nextState = applyAssistantTerminalEvent({
+        messages: chatMessagesRef.current,
+        citations: messageCitationsRef.current,
+        event: payload,
+      });
+      setChatMessages(nextState.messages);
+      setMessageCitations(nextState.citations);
       setRuntimeStatus(
-        payload.type === CONVERSATION_STREAM_EVENT.RUN_FAILED
-          ? `运行失败：${payload.error}`
-          : "运行失败。",
+        `运行失败：${payload.error}`,
       );
       source.close();
       startTransition(() => {
@@ -185,7 +212,7 @@ export function ConversationSession({
   }, [assistantMessageId, assistantStatus, conversationId, router]);
 
   const citationsByMessage = new Map<string, MessageCitation[]>();
-  for (const citation of initialCitations) {
+  for (const citation of messageCitations) {
     const group = citationsByMessage.get(citation.messageId) ?? [];
     group.push(citation);
     citationsByMessage.set(citation.messageId, group);
