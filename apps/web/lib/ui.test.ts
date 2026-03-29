@@ -7,6 +7,7 @@ import {
   menuItemStyles,
   navItemStyles,
   tabButtonStyles,
+  workspaceTileStyles,
 } from "./ui";
 
 describe("inputStyles", () => {
@@ -84,5 +85,23 @@ describe("conversation action helpers", () => {
 
     expect(classes).toContain("border-transparent");
     expect(classes).toContain("text-app-muted-strong");
+  });
+});
+
+describe("workspaceTileStyles", () => {
+  it("keeps standard workspace cards in a top-to-bottom information layout", () => {
+    const classes = workspaceTileStyles();
+
+    expect(classes).toContain("grid-rows-[auto_1fr_auto]");
+    expect(classes).toContain("min-h-[220px]");
+  });
+
+  it("centers the create-workspace card content within the tile", () => {
+    const classes = workspaceTileStyles({ variant: "create" });
+
+    expect(classes).toContain("place-content-center");
+    expect(classes).toContain("justify-items-center");
+    expect(classes).toContain("text-center");
+    expect(classes).toContain("border-dashed");
   });
 });

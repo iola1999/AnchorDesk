@@ -6,7 +6,7 @@ import { conversations, documents, getDb, workspaces } from "@knowledge-assistan
 import { auth } from "@/auth";
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { formatRelativeWorkspaceActivity } from "@/lib/api/workspace-overview";
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, ui, workspaceTileStyles } from "@/lib/ui";
 
 function getWorkspaceBadgeLabel(title: string) {
   const normalized = title.trim();
@@ -112,10 +112,7 @@ export default async function WorkspacesPage() {
               <Link
                 key={workspace.id}
                 href={`/workspaces/${workspace.id}`}
-                className={cn(
-                  ui.panel,
-                  "grid min-h-[220px] grid-rows-[auto_1fr_auto] gap-5 rounded-[24px] p-6 transition hover:-translate-y-0.5",
-                )}
+                className={workspaceTileStyles()}
               >
                 <div>
                   <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
@@ -143,10 +140,7 @@ export default async function WorkspacesPage() {
 
         <Link
           href="/workspaces/new"
-          className={cn(
-            ui.panel,
-            "grid min-h-[220px] content-start gap-5 rounded-[24px] border-dashed p-6 transition hover:-translate-y-0.5",
-          )}
+          className={workspaceTileStyles({ variant: "create" })}
         >
           <div>
             <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">

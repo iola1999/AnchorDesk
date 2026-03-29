@@ -7,6 +7,7 @@ type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "dangerGhost
 type ButtonSize = "md" | "sm" | "xs";
 type ButtonShape = "pill" | "icon";
 type MenuTone = "default" | "danger";
+type WorkspaceTileVariant = "default" | "create";
 
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
@@ -140,5 +141,19 @@ export function tabButtonStyles({ active }: { active: boolean }) {
     active
       ? "border-app-text text-app-text"
       : "border-transparent text-app-muted-strong hover:text-app-text",
+  );
+}
+
+export function workspaceTileStyles({
+  variant = "default",
+}: {
+  variant?: WorkspaceTileVariant;
+} = {}) {
+  return cn(
+    ui.panel,
+    "grid min-h-[220px] rounded-[24px] p-6 transition hover:-translate-y-0.5",
+    variant === "create"
+      ? "place-content-center justify-items-center gap-5 border-dashed text-center"
+      : "grid-rows-[auto_1fr_auto] gap-5",
   );
 }
