@@ -10,6 +10,7 @@ import {
   resolveComposerAttachmentStatus,
   type ComposerAttachmentStatus,
 } from "@/lib/api/conversation-attachments";
+import { resolveComposerHeading, resolveComposerSubmitStatus } from "@/lib/api/composer";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -65,7 +66,7 @@ function mergeAttachments(
 export function Composer({
   conversationId,
   workspaceId,
-  title = "提问",
+  title,
   description,
   placeholder = "输入你的问题...",
   submitLabel = "发送",
@@ -76,6 +77,7 @@ export function Composer({
   textareaClassName,
   initialAttachments = [],
 }: ComposerProps) {
+  const heading = resolveComposerHeading({ title, description });
   const router = useRouter();
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -409,11 +411,7 @@ export function Composer({
         | { agentError?: string }
         | null;
       setContent("");
-      setStatus(
-        body?.agentError
-          ? `消息已保存，但 Agent 处理失败：${body.agentError}`
-          : "消息已提交，正在建立工具时间线...",
-      );
+      setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
       startTransition(() => {
         if (!conversationId && workspaceId) {
           router.push(`/workspaces/${workspaceId}?conversationId=${targetConversationId}`);
@@ -436,10 +434,12 @@ export function Composer({
         className,
       )}
     >
-      <div className="grid gap-2">
-        <h3>{title}</h3>
-        {description ? <p className={ui.muted}>{description}</p> : null}
-      </div>
+      {heading ? (
+        <div className="grid gap-2">
+          {heading.title ? <h3>{heading.title}</h3> : null}
+          {heading.description ? <p className={ui.muted}>{heading.description}</p> : null}
+        </div>
+      ) : null}
       <textarea
         required
         rows={rows ?? (variant === "stage" ? 6 : 4)}

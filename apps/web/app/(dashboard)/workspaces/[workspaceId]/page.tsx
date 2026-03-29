@@ -220,11 +220,8 @@ export default async function WorkspacePage({
               workspaceId={workspaceId}
               variant="stage"
               rows={4}
-              title="继续提问"
-              description="上下文会沿用本轮会话，不需要重复描述已经上传的资料。"
               placeholder="继续追问、要求整理成结论，或让助手基于资料补充论证"
               submitLabel="发送"
-              helperText="会沿用当前会话上下文，并继续记录工具时间线。"
               className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
               textareaClassName="min-h-[132px] bg-white/92"
               initialAttachments={attachmentRows.map((attachment) => ({
