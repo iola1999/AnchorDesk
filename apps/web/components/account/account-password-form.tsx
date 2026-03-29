@@ -3,14 +3,13 @@
 import { signOut } from "next-auth/react";
 import { useState, useTransition } from "react";
 
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 export function AccountPasswordForm({
   layout = "standalone",
 }: {
   layout?: "standalone" | "compact";
 }) {
-  const [currentPassword, setCurrentPassword] = useState("");
   const [nextPassword, setNextPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<{
@@ -29,7 +28,6 @@ export function AccountPasswordForm({
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        currentPassword,
         nextPassword,
         confirmPassword,
       }),
@@ -51,7 +49,6 @@ export function AccountPasswordForm({
       message: "密码已更新，正在退出所有登录会话...",
     });
     startTransition(() => {
-      setCurrentPassword("");
       setNextPassword("");
       setConfirmPassword("");
     });
@@ -59,9 +56,6 @@ export function AccountPasswordForm({
       callbackUrl: "/login",
     });
   }
-
-  const compactInputClass =
-    "h-10 rounded-[18px] px-3.5 text-[14px] focus:ring-[3px]";
 
   return (
     <form
@@ -72,23 +66,10 @@ export function AccountPasswordForm({
         <div className="grid gap-2">
           <p className={ui.eyebrow}>Security</p>
           <h2>修改密码</h2>
-          <p className={ui.muted}>使用当前密码确认身份，再设置新的登录密码。更新后会撤销所有已登录会话。</p>
         </div>
       ) : null}
 
-      <div className={cn("grid gap-3", layout === "compact" && "xl:grid-cols-3")}>
-        <label className={cn(ui.label, layout === "compact" && "gap-1 text-[13px] font-medium text-app-muted")}>
-          当前密码
-          <input
-            required
-            type="password"
-            autoComplete="current-password"
-            className={cn(ui.input, layout === "compact" && compactInputClass)}
-            value={currentPassword}
-            onChange={(event) => setCurrentPassword(event.target.value)}
-          />
-        </label>
-
+      <div className={cn("grid gap-3", layout === "compact" && "xl:grid-cols-2")}>
         <label className={cn(ui.label, layout === "compact" && "gap-1 text-[13px] font-medium text-app-muted")}>
           新密码
           <input
@@ -96,7 +77,7 @@ export function AccountPasswordForm({
             type="password"
             minLength={6}
             autoComplete="new-password"
-            className={cn(ui.input, layout === "compact" && compactInputClass)}
+            className={layout === "compact" ? inputStyles({ size: "compact" }) : ui.input}
             value={nextPassword}
             onChange={(event) => setNextPassword(event.target.value)}
           />
@@ -109,7 +90,7 @@ export function AccountPasswordForm({
             type="password"
             minLength={6}
             autoComplete="new-password"
-            className={cn(ui.input, layout === "compact" && compactInputClass)}
+            className={layout === "compact" ? inputStyles({ size: "compact" }) : ui.input}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
           />
@@ -119,8 +100,7 @@ export function AccountPasswordForm({
       <div className="flex flex-wrap items-center gap-2.5">
         <button
           className={cn(
-            buttonStyles({ size: layout === "compact" ? "sm" : "md" }),
-            layout === "compact" && "min-h-8 px-3 text-[13px]",
+            buttonStyles({ size: layout === "compact" ? "xs" : "md" }),
           )}
           disabled={isPending}
           type="submit"

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 type ShareState = {
   isActive: boolean;
@@ -216,7 +216,7 @@ export function ConversationSharePopover({
           id={panelId}
           role="dialog"
           aria-label="会话分享"
-          className="absolute right-0 top-[calc(100%+10px)] z-20 w-[min(360px,calc(100vw-24px))] rounded-[26px] border border-app-border bg-white/98 p-3 shadow-card"
+          className={cn(ui.popover, "absolute right-0 top-[calc(100%+10px)] z-20 w-[min(360px,calc(100vw-24px))]")}
         >
           <div className="grid gap-3 rounded-[22px] border border-app-border bg-app-surface-soft/75 p-3">
             <div className="flex items-start justify-between gap-3">
@@ -269,7 +269,7 @@ export function ConversationSharePopover({
               <label className="grid gap-2 text-[12px] font-medium text-app-muted-strong">
                 分享链接
                 <input
-                  className="h-10 w-full rounded-2xl border border-app-border bg-app-surface-soft/80 px-3 text-[13px] text-app-text outline-none"
+                  className={cn(inputStyles({ size: "compact" }), "bg-app-surface-soft/80 text-[13px]")}
                   readOnly
                   value={share.shareUrl ?? ""}
                 />
@@ -296,10 +296,7 @@ export function ConversationSharePopover({
                   </a>
                 ) : null}
                 <button
-                  className={cn(
-                    buttonStyles({ variant: "ghost", size: "sm" }),
-                    "text-red-600 hover:bg-red-50",
-                  )}
+                  className={buttonStyles({ variant: "dangerGhost", size: "sm" })}
                   disabled={isSubmitting}
                   onClick={() => {
                     void handleDisableShare();

@@ -10,7 +10,7 @@ import {
   formatConversationSidebarUpdatedAt,
   resolveConversationDeleteRedirect,
 } from "@/lib/api/conversations";
-import { cn } from "@/lib/ui";
+import { cn, menuItemStyles, ui } from "@/lib/ui";
 import { resolveSidebarConversationMenuPosition } from "@/lib/sidebar-menu";
 
 const SIDEBAR_MENU_WIDTH = 156;
@@ -218,7 +218,7 @@ export function WorkspaceConversationSidebarItem({
               ref={menuRef}
               role="menu"
               aria-label={`${conversation.title} 操作`}
-              className="fixed z-40 min-w-[156px] rounded-[20px] border border-app-border bg-white/98 p-2 shadow-card"
+              className={cn(ui.menu, "fixed z-40 min-w-[156px]")}
               style={{
                 left: `${menuPosition.left}px`,
                 top: `${menuPosition.top}px`,
@@ -228,7 +228,10 @@ export function WorkspaceConversationSidebarItem({
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium transition",
+                  menuItemStyles({ tone: "danger" }),
+                )}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

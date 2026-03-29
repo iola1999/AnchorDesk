@@ -6,7 +6,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
-import { cn } from "@/lib/ui";
+import { buttonStyles, cn, menuItemStyles } from "@/lib/ui";
 
 type WorkspaceUserPanelProps = {
   initialUser: {
@@ -105,7 +105,10 @@ export function WorkspaceUserPanel({
                 key={action.key}
                 href={action.href ?? "/"}
                 onClick={() => setIsOpen(false)}
-                className="group flex items-center gap-2.5 rounded-[20px] px-3 py-2.5 transition hover:bg-app-surface-soft/82"
+                className={cn(
+                  "group flex items-center gap-2.5 rounded-[20px] px-3 py-2.5 transition",
+                  menuItemStyles(),
+                )}
               >
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-app-border bg-white text-app-muted-strong transition group-hover:border-app-border-strong group-hover:text-app-text">
                   {action.key === "account" ? <UserIcon /> : <SettingsIcon />}
@@ -122,7 +125,10 @@ export function WorkspaceUserPanel({
               <div className="mx-1 my-2 h-px bg-app-border" />
               <button
                 type="button"
-                className="group flex w-full items-center gap-2.5 rounded-[20px] px-3 py-2.5 text-left transition hover:bg-[#fff2ec]"
+                className={cn(
+                  "group flex w-full items-center gap-2.5 rounded-[20px] px-3 py-2.5 text-left transition",
+                  menuItemStyles({ tone: "danger" }),
+                )}
                 disabled={isSigningOut}
                 onClick={onSignOut}
               >
@@ -143,7 +149,10 @@ export function WorkspaceUserPanel({
         aria-expanded={isOpen}
         aria-controls={menuId}
         aria-label={isOpen ? "收起账号菜单" : "展开账号菜单"}
-        className="flex w-full items-center gap-3 rounded-[22px] border border-app-border bg-white/78 px-3 py-2.5 text-left shadow-soft backdrop-blur-sm transition hover:border-app-border-strong hover:bg-white focus:outline-none focus:ring-4 focus:ring-app-accent/10"
+        className={cn(
+          buttonStyles({ variant: "secondary", size: "sm" }),
+          "flex w-full justify-start gap-3 rounded-[22px] bg-white/78 px-3 py-2.5 text-left shadow-soft backdrop-blur-sm",
+        )}
         onClick={() => setIsOpen((current) => !current)}
       >
         <div className="grid size-11 shrink-0 place-items-center rounded-[16px] border border-app-border bg-[radial-gradient(circle_at_top,#ffffff_0%,#efe7da_62%,#e2d9ca_100%)] font-semibold text-app-accent">

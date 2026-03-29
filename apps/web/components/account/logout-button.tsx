@@ -26,9 +26,8 @@ export function LogoutButton({
         className={cn(
           buttonStyles({
             variant: layout === "compact" ? "ghost" : "secondary",
-            size: layout === "compact" ? "sm" : "md",
+            size: layout === "compact" ? "xs" : "md",
           }),
-          layout === "compact" && "min-h-8 px-3 text-[13px]",
         )}
         disabled={isPending}
         onClick={onClick}

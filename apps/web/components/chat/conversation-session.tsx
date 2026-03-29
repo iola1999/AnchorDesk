@@ -24,7 +24,7 @@ import {
   type ConversationChatMessage,
   type ConversationMessageCitation,
 } from "@/lib/api/conversation-session";
-import { cn, ui } from "@/lib/ui";
+import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
 
@@ -134,12 +134,7 @@ function ActionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-50",
-        active
-          ? "border-app-border-strong bg-app-surface-strong/65 text-app-text"
-          : "border-transparent bg-transparent text-app-muted-strong hover:border-app-border/80 hover:bg-white/70 hover:text-app-text",
-      )}
+      className={chipButtonStyles({ active })}
     >
       {children}
     </button>
@@ -162,12 +157,7 @@ function TabButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 border-b px-1 pb-2 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-45",
-        active
-          ? "border-app-text text-app-text"
-          : "border-transparent text-app-muted-strong hover:text-app-text",
-      )}
+      className={tabButtonStyles({ active })}
     >
       {children}
     </button>

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
 
 type AccountDisplayNameFormProps = {
   initialDisplayName: string;
@@ -62,9 +62,6 @@ export function AccountDisplayNameForm({
     }
   }
 
-  const compactInputClass =
-    "h-10 rounded-[18px] px-3.5 text-[14px] focus:ring-[3px]";
-
   return (
     <form
       onSubmit={onSubmit}
@@ -84,11 +81,11 @@ export function AccountDisplayNameForm({
           layout === "compact" && "gap-1 text-[13px] font-medium text-app-muted",
         )}
       >
-        显示名称
+        <span className={layout === "compact" ? "sr-only" : ""}>显示名称</span>
         <input
           required
           maxLength={120}
-          className={cn(ui.input, layout === "compact" && compactInputClass)}
+          className={layout === "compact" ? inputStyles({ size: "compact" }) : ui.input}
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
         />
@@ -97,13 +94,12 @@ export function AccountDisplayNameForm({
       <div className="flex flex-wrap items-center gap-2.5">
         <button
           className={cn(
-            buttonStyles({ size: layout === "compact" ? "sm" : "md" }),
-            layout === "compact" && "min-h-8 px-3 text-[13px]",
+            buttonStyles({ size: layout === "compact" ? "xs" : "md" }),
           )}
           disabled={isPending}
           type="submit"
         >
-          {isPending ? "提交中..." : "更新显示名称"}
+          {isPending ? "提交中..." : layout === "compact" ? "保存" : "更新显示名称"}
         </button>
         {status ? (
           <span

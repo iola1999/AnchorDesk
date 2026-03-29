@@ -4,7 +4,7 @@ import {
   type AccountSettingsNavGroup,
   type AccountSettingsSectionId,
 } from "@/lib/account-settings";
-import { cn } from "@/lib/ui";
+import { cn, navItemStyles } from "@/lib/ui";
 
 type AccountSettingsNavProps = {
   groups: AccountSettingsNavGroup[];
@@ -35,9 +35,7 @@ export function AccountSettingsNav({
                   onClick={() => onSelect(item.id)}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-[16px] px-2.5 py-2 text-left text-sm transition",
-                    selected
-                      ? "bg-white text-app-text shadow-soft"
-                      : "text-app-muted-strong hover:bg-white/78 hover:text-app-text",
+                    navItemStyles({ selected }),
                   )}
                   aria-pressed={selected}
                 >

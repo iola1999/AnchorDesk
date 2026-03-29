@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { cn } from "@/lib/ui";
+import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspaceListItem = {
   id: string;
@@ -66,7 +66,10 @@ export function WorkspaceBreadcrumbSwitcher({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-app-muted transition hover:bg-white/85 hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10"
+        className={cn(
+          buttonStyles({ variant: "ghost", size: "xs" }),
+          "min-h-0 gap-1 px-2 py-1 text-app-muted",
+        )}
       >
         <span>{workspace.title}</span>
         <span className={cn("text-[11px] transition", open && "rotate-180")}>▾</span>
@@ -76,7 +79,7 @@ export function WorkspaceBreadcrumbSwitcher({
         <div
           id={menuId}
           role="menu"
-          className="absolute left-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-1 rounded-2xl border border-app-border bg-white/95 p-2 shadow-card"
+          className={cn(ui.menu, "absolute left-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-1")}
         >
           {workspaces.map((workspaceItem) => (
             <Link
@@ -86,8 +89,7 @@ export function WorkspaceBreadcrumbSwitcher({
               onClick={() => setOpen(false)}
               className={cn(
                 "flex min-h-10 items-center rounded-xl px-3 text-sm transition hover:bg-app-surface-soft",
-                workspaceItem.id === workspace.id &&
-                  "bg-app-surface-soft font-medium text-app-text",
+                menuItemStyles({ selected: workspaceItem.id === workspace.id }),
               )}
             >
               {workspaceItem.title}

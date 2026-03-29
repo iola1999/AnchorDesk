@@ -4,7 +4,7 @@ import { CONVERSATION_STATUS, type ConversationStatus } from "@knowledge-assista
 
 import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import { workspaceBranding } from "@/lib/branding";
-import { cn, ui } from "@/lib/ui";
+import { cn, navItemStyles, ui } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 import { WorkspaceConversationSidebarItem } from "@/components/workspaces/workspace-conversation-sidebar-item";
 import { WorkspaceUserPanel } from "@/components/workspaces/workspace-user-panel";
@@ -60,7 +60,7 @@ export function WorkspaceShell({
     cn(
       "flex min-h-10 items-center justify-between rounded-xl px-3 text-sm transition",
       selected
-        ? "bg-white text-app-text shadow-soft"
+        ? navItemStyles({ selected: true })
         : "bg-white/68 text-app-muted-strong hover:bg-white hover:text-app-text",
     );
 
@@ -125,7 +125,7 @@ export function WorkspaceShell({
               href={`/workspaces/${workspace.id}/settings`}
               className={workspaceNavLink(activeView === "settings")}
             >
-              设置
+              空间设置
             </Link>
             <Link
               href={`/workspaces/${workspace.id}/knowledge-base`}
