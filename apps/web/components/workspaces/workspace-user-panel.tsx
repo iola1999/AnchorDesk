@@ -12,7 +12,7 @@ import {
   UserIcon,
 } from "@/components/icons";
 import { buildWorkspaceUserPanelState } from "@/lib/workspace-user-panel";
-import { buttonStyles, cn, menuItemStyles } from "@/lib/ui";
+import { cn, menuItemStyles } from "@/lib/ui";
 
 type WorkspaceUserPanelProps = {
   initialUser: {
@@ -88,38 +88,38 @@ export function WorkspaceUserPanel({
       {isOpen ? (
         <div
           id={menuId}
-          className="absolute inset-x-0 bottom-[calc(100%+0.75rem)] z-30 rounded-[28px] border border-app-border bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,248,242,0.96))] p-3 shadow-card backdrop-blur-md"
+          className="absolute inset-x-0 bottom-[calc(100%+0.5rem)] z-30 rounded-2xl border border-app-border bg-white/98 p-1.5 shadow-card backdrop-blur-md"
         >
-          <div className="flex items-center gap-3 rounded-[22px] border border-app-border/70 bg-white/82 px-3.5 py-3.5">
-            <div className="grid size-14 shrink-0 place-items-center rounded-[20px] border border-app-border bg-[radial-gradient(circle_at_top,#ffffff_0%,#f1eadf_62%,#e5ddcf_100%)] text-lg font-semibold text-app-accent shadow-soft">
+          {/* Account header */}
+          <div className="flex items-center gap-3 px-3 pb-2 pt-2.5">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-app-surface-strong text-sm font-semibold text-app-accent">
               {avatarLabel}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-muted">
-                当前账号
-              </p>
-              <strong className="mt-1 block truncate text-[1.02rem] font-semibold text-app-text">
+              <strong className="block truncate text-[14px] font-semibold text-app-text">
                 {displayName}
               </strong>
-              <span className="block truncate text-sm text-app-muted">@{username}</span>
+              <span className="block truncate text-[12.5px] text-app-muted">@{username}</span>
             </div>
           </div>
 
-          <nav className="mt-2.5 grid gap-1">
+          <div className="mx-2 my-1 h-px bg-app-border/70" />
+
+          <nav className="grid gap-0.5 py-0.5">
             {menuActions.map((action) => (
               <Link
                 key={action.key}
                 href={action.href ?? "/"}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-[20px] px-3 py-2.5 transition",
+                  "flex items-center gap-2.5 rounded-xl px-3 py-2 transition",
                   menuItemStyles(),
                 )}
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-app-border bg-white text-app-muted-strong transition group-hover:border-app-border-strong group-hover:text-app-text">
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
                   {action.key === "account" ? <UserIcon /> : <SlidersIcon />}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-app-text">
+                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
                   {action.label}
                 </span>
               </Link>
@@ -128,23 +128,25 @@ export function WorkspaceUserPanel({
 
           {logoutAction ? (
             <>
-              <div className="mx-1 my-2 h-px bg-app-border" />
-              <button
-                type="button"
-                className={cn(
-                  "group flex w-full items-center gap-2.5 rounded-[20px] px-3 py-2.5 text-left transition",
-                  menuItemStyles({ tone: "danger" }),
-                )}
-                disabled={isSigningOut}
-                onClick={onSignOut}
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#f0c9ba] bg-white text-[#b65643] transition group-hover:border-[#e0a892] group-hover:bg-[#fff8f5]">
-                  <LogoutIcon />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-[#9e4332]">
-                  {isSigningOut ? "退出中..." : logoutAction.label}
-                </span>
-              </button>
+              <div className="mx-2 my-1 h-px bg-app-border/70" />
+              <div className="pb-0.5 pt-0.5">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
+                    menuItemStyles({ tone: "danger" }),
+                  )}
+                  disabled={isSigningOut}
+                  onClick={onSignOut}
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-lg text-red-500">
+                    <LogoutIcon />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                    {isSigningOut ? "退出中..." : logoutAction.label}
+                  </span>
+                </button>
+              </div>
             </>
           ) : null}
         </div>
@@ -155,29 +157,26 @@ export function WorkspaceUserPanel({
         aria-expanded={isOpen}
         aria-controls={menuId}
         aria-label={isOpen ? "收起账号菜单" : "展开账号菜单"}
-        className={cn(
-          buttonStyles({ variant: "secondary", size: "sm" }),
-          "flex w-full justify-start gap-3 rounded-[22px] bg-white/78 px-3 py-2.5 text-left shadow-soft backdrop-blur-sm",
-        )}
+        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-white/80"
         onClick={() => setIsOpen((current) => !current)}
       >
-        <div className="grid size-11 shrink-0 place-items-center rounded-[16px] border border-app-border bg-[radial-gradient(circle_at_top,#ffffff_0%,#efe7da_62%,#e2d9ca_100%)] font-semibold text-app-accent">
+        <div className="grid size-8 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[13px] font-semibold text-app-accent">
           {avatarLabel}
         </div>
         <span className="min-w-0 flex-1">
-          <strong className="block truncate text-[15px] font-medium text-app-text">
+          <strong className="block truncate text-[13.5px] font-medium text-app-text">
             {displayName}
           </strong>
-          <span className="block truncate text-[13px] text-app-muted">@{username}</span>
+          <span className="block truncate text-[12px] text-app-muted">@{username}</span>
         </span>
         <span
           className={cn(
-            "grid size-8 shrink-0 place-items-center rounded-full bg-app-surface-soft text-app-muted-strong transition",
+            "grid size-6 shrink-0 place-items-center text-app-muted transition",
             isOpen && "rotate-180 text-app-text",
           )}
           aria-hidden="true"
         >
-          <ChevronDownIcon className="size-3.5" />
+          <ChevronDownIcon className="size-3" />
         </span>
       </button>
     </div>

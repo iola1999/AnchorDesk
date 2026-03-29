@@ -391,3 +391,40 @@ export function TrashIcon({
     </IconBase>
   );
 }
+
+export function AnchorDeskLogo({
+  className,
+  ...props
+}: Omit<IconProps, "strokeWidth">) {
+  return (
+    <svg
+      viewBox="0 0 512 512"
+      className={cn("shrink-0", className)}
+      aria-hidden={!props.title && !props["aria-label"] ? true : undefined}
+      role={!props.title && !props["aria-label"] ? undefined : "img"}
+      {...props}
+    >
+      {props.title ? <title>{props.title}</title> : null}
+      <defs>
+        <linearGradient id="ad-m" x1=".5" y1="0" x2=".5" y2="1">
+          <stop offset="0%" stopColor="#c7d2fe" />
+          <stop offset="100%" stopColor="#f1f5f9" />
+        </linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="76" fill="#09090b" />
+      <g
+        fill="none"
+        stroke="url(#ad-m)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="30"
+      >
+        <circle cx="256" cy="138" r="30" />
+        <line x1="256" y1="168" x2="256" y2="348" />
+        <line x1="182" y1="258" x2="330" y2="258" />
+        <path d="M256 348c0 44-58 58-82 30" />
+        <path d="M256 348c0 44 58 58 82 30" />
+      </g>
+    </svg>
+  );
+}

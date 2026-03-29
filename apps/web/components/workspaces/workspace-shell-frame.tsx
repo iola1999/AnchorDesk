@@ -8,7 +8,7 @@ import {
   type ConversationStatus,
 } from "@anchordesk/contracts";
 
-import { CloseIcon, MenuIcon, PlusIcon, SlidersIcon, SourceIcon } from "@/components/icons";
+import { AnchorDeskLogo, CloseIcon, MenuIcon, PlusIcon, SlidersIcon, SourceIcon } from "@/components/icons";
 import { workspaceBranding } from "@/lib/branding";
 import { WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY } from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
@@ -204,9 +204,7 @@ export function WorkspaceShellFrame({
                 className="flex min-w-0 items-center gap-3"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary font-serif text-[15px] font-semibold text-app-primary-contrast shadow-sm">
-                  {workspaceBranding.badgeLabel}
-                </span>
+                <AnchorDeskLogo className="size-[38px] shrink-0 rounded-xl shadow-sm" />
                 <span className="grid min-w-0 gap-0.5">
                   <strong className="truncate font-serif text-[15px] leading-tight text-app-text">
                     {workspaceBranding.productName}
@@ -303,9 +301,7 @@ function WorkspaceSidebarContent({
           className="group flex items-center gap-3 px-1.5 py-1 transition-opacity hover:opacity-80"
           onClick={onNavigate}
         >
-          <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary font-serif text-[15px] font-semibold text-app-primary-contrast shadow-sm">
-            {workspaceBranding.badgeLabel}
-          </span>
+          <AnchorDeskLogo className="size-[38px] shrink-0 rounded-xl shadow-sm" />
           <span className="grid gap-0.5">
             <strong className="font-serif text-[15px] leading-tight text-app-text">
               {workspaceBranding.productName}
