@@ -150,7 +150,7 @@ pnpm verify
 - `pnpm infra:logs`
   查看开发期 Docker 基础设施日志。
 - `pnpm dev`
-  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、自动建表、自动补齐 `system_settings` 与 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。受管进程的日志与 PID 状态统一写到 `/tmp/knowledge-assistant-dev/` 下，不再落在仓库内 `.dev/`。
+  一键启动本地开发栈；会检查 `node_modules`、`.venv`、`.env.local/.env`、自动执行 safe blocking upgrade、确保 bucket，再启动 `web` / `worker` / `agent-runtime` / `parser`。受管进程的日志与 PID 状态统一写到 `/tmp/knowledge-assistant-dev/` 下，不再落在仓库内 `.dev/`。
 - `pnpm dev:status`
   查看本地基础设施连通性与受管开发进程状态。
 - `pnpm dev:down`
@@ -170,6 +170,7 @@ pnpm verify
 - `DATABASE_URL` 仍是启动根配置，必须在进程外提供。
 - `AUTH_SECRET` 不放入业务数据库，也不做自动生成或本地回写；开发环境同样要求显式从 env / `.env.local` 提供。
 - `SUPER_ADMIN_USERNAMES` 通过 env 控制 `/settings` 与系统参数接口的访问权限，值使用注册用户名，不进入数据库。
+- 改 schema 时必须同时提交 `packages/db/drizzle/**` 中对应的 versioned SQL migration。
 - `system_settings` 默认值在建表后立即补齐；日常优先通过 `/settings` 页面维护，而不是直接改库。
 
 ## 6. 提交前检查

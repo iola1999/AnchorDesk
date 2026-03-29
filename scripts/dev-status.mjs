@@ -1,5 +1,4 @@
 import {
-  ensureSystemSettings,
   formatError,
   getManagedServiceStatus,
   getManagedServices,
@@ -11,7 +10,6 @@ import { parseInfrastructureTargets } from "./lib/dev-env.mjs";
 
 async function main() {
   const { env, envFileName } = await loadDevEnvironment({ createIfMissing: false });
-  await ensureSystemSettings(env, { ignoreErrors: true });
   const runtimeEnv = await loadResolvedSystemEnvironment(env);
 
   console.log(`Environment source: ${envFileName ?? "shell variables + built-in defaults"}`);

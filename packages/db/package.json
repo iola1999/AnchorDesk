@@ -10,7 +10,9 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "drizzle-kit": "drizzle-kit"
+    "drizzle-kit": "drizzle-kit",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@knowledge-assistant/contracts": "workspace:*",

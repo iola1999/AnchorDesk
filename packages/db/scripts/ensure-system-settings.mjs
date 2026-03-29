@@ -1,8 +1,9 @@
-import pg from "pg";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-import { buildSystemSettingSeedRows } from "../../../scripts/lib/system-settings.mjs";
-
-const { Client } = pg;
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 function formatError(error) {
   if (error instanceof Error && error.message) {
@@ -24,57 +25,28 @@ function formatError(error) {
   return String(error);
 }
 
-function getDatabaseUrl() {
-  const value = process.env.DATABASE_URL;
-  if (!value) {
-    throw new Error("DATABASE_URL is not configured");
-  }
-
-  return value;
-}
-
-async function hasSystemSettingsTable(client) {
-  const result = await client.query(
-    "select to_regclass('public.system_settings') as table_name",
-  );
-  return result.rows[0]?.table_name === "system_settings";
-}
-
 async function main() {
-  const client = new Client({
-    connectionString: getDatabaseUrl(),
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      pnpmCommand,
+      ["exec", "node", "scripts/run-upgrades.mjs", "--mode=apply-safe-blocking"],
+      {
+        cwd: packageRoot,
+        env: process.env,
+        stdio: "inherit",
+      },
+    );
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`upgrade runner exited with code ${code ?? "unknown"}`));
+    });
   });
-
-  await client.connect();
-
-  try {
-    if (!(await hasSystemSettingsTable(client))) {
-      console.log("system_settings table is missing; skipping seed.");
-      return;
-    }
-
-    const rows = buildSystemSettingSeedRows(process.env);
-    for (const row of rows) {
-      await client.query(
-        `
-          insert into system_settings (
-            setting_key,
-            value_text,
-            is_secret,
-            description,
-            created_at,
-            updated_at
-          ) values ($1, $2, $3, $4, now(), now())
-          on conflict (setting_key) do nothing
-        `,
-        [row.settingKey, row.valueText, row.isSecret, row.description],
-      );
-    }
-
-    console.log(`System settings ensured (${rows.length} keys checked).`);
-  } finally {
-    await client.end();
-  }
 }
 
 main().catch((error) => {

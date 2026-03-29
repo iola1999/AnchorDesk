@@ -30,4 +30,19 @@ describe("getManagedServices", () => {
     ]);
     expect(parser?.args).not.toContain("--reload");
   });
+
+  it("exposes health endpoints for managed HTTP services", () => {
+    const services = getManagedServices({
+      APP_URL: "http://localhost:3000",
+      PARSER_SERVICE_URL: "http://localhost:8001",
+      AGENT_RUNTIME_URL: "http://localhost:4001",
+    });
+
+    expect(services.find((service) => service.id === "agent")?.healthUrl)
+      .toBe("http://localhost:4001/health");
+    expect(services.find((service) => service.id === "web")?.port)
+      .toBe(3000);
+    expect(services.find((service) => service.id === "worker")?.healthUrl)
+      .toBeUndefined();
+  });
 });

@@ -1,7 +1,7 @@
 # 本地开发指引
 
-版本：v0.1  
-日期：2026-03-28
+版本：v0.2
+日期：2026-03-29
 
 ## 1. 推荐做法
 
@@ -81,11 +81,10 @@ pnpm dev
 这个命令会按顺序做：
 
 1. 检查 `node_modules` 和 `.venv`
-2. 自动建表
-3. 自动补齐 `system_settings`
-4. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
-5. 自动确保 S3 bucket 存在
-6. 拉起 `web` / `worker` / `agent-runtime` / `parser`
+2. 执行 SQL migrations + safe blocking app upgrades
+3. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
+4. 自动确保 S3 bucket 存在
+5. 拉起 `web` / `worker` / `agent-runtime` / `parser`
 
 补充说明：
 
@@ -115,9 +114,69 @@ pnpm dev:status
 pnpm dev:down
 ```
 
-## 5. 系统参数怎么改
+## 5. SQL migration 与 app upgrade 怎么写
 
-首次建表后，系统参数默认值会自动写入 `system_settings` 表。  
+### 5.1 改 schema
+
+`packages/db/src/schema.ts` 是 schema source of truth。
+
+新增或修改表结构时：
+
+1. 修改 `packages/db/src/schema.ts`
+2. 生成 migration：
+
+```bash
+pnpm db:generate -- --name <migration-name>
+```
+
+3. 提交生成出的 `packages/db/drizzle/**`
+4. 本地执行：
+
+```bash
+pnpm db:migrate
+```
+
+要求：
+
+- 不再使用 `drizzle-kit push --force` 作为长期演进方案。
+- 改 schema 时必须提交 versioned SQL migration，不能只改 schema 文件。
+- 线上默认按 roll-forward 处理，不设计自动 down migration。
+
+### 5.2 改一次性应用升级逻辑
+
+非 SQL 的一次性升级动作放到 app upgrade：
+
+1. 在 `scripts/upgrades/*.mjs` 新增 upgrade
+2. 在 `scripts/upgrades/index.mjs` 注册
+3. 至少声明：
+   - `key`
+   - `description`
+   - `blocking`
+   - `safeInDevStartup`
+   - `run(context)`
+
+常见场景：
+
+- 补齐新的 `system_settings` key
+- 历史数据 backfill
+- key rename / 值迁移
+- 外部系统的幂等初始化
+
+### 5.3 常用命令
+
+```bash
+pnpm app:upgrade:dev   # 开发启动前自动执行的 safe blocking upgrades
+pnpm app:upgrade       # 执行全部 blocking upgrades
+pnpm app:upgrade:all   # 执行所有 upgrades（含 non-blocking）
+pnpm app:upgrade:check # 只检查是否还有 blocking pending upgrades
+```
+
+开发环境的 `pnpm dev` 会自动执行 `pnpm app:upgrade:dev`。
+如果存在 blocking 但非 safe 的 pending upgrade，启动会直接失败，并提示你手动执行升级命令。
+
+## 6. 系统参数怎么改
+
+首次完成 safe blocking upgrade 后，系统参数默认值会自动写入 `system_settings` 表。
 当前已经提供基础版后台设置页：`/settings`。
 
 推荐改法：

@@ -14,6 +14,7 @@ import {
   parseRuntimeEndpoints,
   selectDevEnvFile,
 } from "./dev-env.mjs";
+import { runDbUpgradeCommand } from "./upgrade-common.mjs";
 import { buildRuntimeEnvironment } from "./system-settings.mjs";
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
@@ -345,41 +346,7 @@ export function formatError(error) {
 }
 
 export async function ensureDevDatabase(env) {
-  await runCommand({
-    command: resolvePnpmBinary(),
-    args: ["--filter", "@knowledge-assistant/db", "exec", "node", "scripts/ensure-dev-db.mjs"],
-    cwd: repoRoot,
-    env,
-  });
-}
-
-export async function ensureSystemSettings(env, options = {}) {
-  const ignoreErrors = options.ignoreErrors ?? false;
-
-  try {
-    const commandInput = {
-      command: resolvePnpmBinary(),
-      args: [
-        "--filter",
-        "@knowledge-assistant/db",
-        "exec",
-        "node",
-        "scripts/ensure-system-settings.mjs",
-      ],
-      cwd: repoRoot,
-      env,
-    };
-
-    if (ignoreErrors) {
-      await runCommandCapture(commandInput);
-    } else {
-      await runCommand(commandInput);
-    }
-  } catch (error) {
-    if (!ignoreErrors) {
-      throw error;
-    }
-  }
+  await runDbUpgradeCommand(["--mode=apply-safe-blocking"], { env });
 }
 
 export async function loadResolvedSystemEnvironment(env) {

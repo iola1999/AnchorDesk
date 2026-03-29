@@ -25,8 +25,12 @@
     "check:python": "sh -c 'PYTHON=.venv/bin/python; if [ ! -x \"$PYTHON\" ]; then PYTHON=python3; fi; \"$PYTHON\" -m py_compile services/parser/main.py services/parser/ocr.py services/parser/parser_utils.py services/parser/test_parser_utils.py services/parser/test_main.py'",
     "typecheck": "pnpm -r --if-present typecheck",
     "verify": "pnpm test && pnpm typecheck && pnpm check:python && pnpm build:web",
-    "db:generate": "pnpm --filter @knowledge-assistant/db drizzle-kit generate",
-    "db:migrate": "pnpm --filter @knowledge-assistant/db drizzle-kit migrate"
+    "db:generate": "pnpm --filter @knowledge-assistant/db generate",
+    "db:migrate": "pnpm --filter @knowledge-assistant/db migrate",
+    "app:upgrade:dev": "node scripts/upgrade-run.mjs --mode=apply-safe-blocking",
+    "app:upgrade": "node scripts/upgrade-run.mjs --mode=apply-blocking",
+    "app:upgrade:all": "node scripts/upgrade-run.mjs --mode=apply-all",
+    "app:upgrade:check": "node scripts/upgrade-check.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.9.1",

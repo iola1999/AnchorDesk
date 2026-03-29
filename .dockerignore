@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+coverage
+.venv
+.git
+.claude
+.env
+.env.local
+.env.production
+apps/web/.next
+apps/web/.turbo
