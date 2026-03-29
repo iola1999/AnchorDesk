@@ -394,37 +394,23 @@ export function TrashIcon({
 
 export function AnchorDeskLogo({
   className,
+  strokeWidth = 1.8,
   ...props
-}: Omit<IconProps, "strokeWidth">) {
+}: IconProps) {
   return (
-    <svg
-      viewBox="0 0 512 512"
-      className={cn("shrink-0", className)}
-      aria-hidden={!props.title && !props["aria-label"] ? true : undefined}
-      role={!props.title && !props["aria-label"] ? undefined : "img"}
+    <IconBase
+      viewBox="0 0 24 24"
+      className={cn("size-5", className)}
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
       {...props}
     >
-      {props.title ? <title>{props.title}</title> : null}
-      <defs>
-        <linearGradient id="ad-m" x1=".5" y1="0" x2=".5" y2="1">
-          <stop offset="0%" stopColor="#c7d2fe" />
-          <stop offset="100%" stopColor="#f1f5f9" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="76" fill="#09090b" />
-      <g
-        fill="none"
-        stroke="url(#ad-m)"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="30"
-      >
-        <circle cx="256" cy="138" r="30" />
-        <line x1="256" y1="168" x2="256" y2="348" />
-        <line x1="182" y1="258" x2="330" y2="258" />
-        <path d="M256 348c0 44-58 58-82 30" />
-        <path d="M256 348c0 44 58 58 82 30" />
-      </g>
-    </svg>
+      <circle cx="12" cy="4.5" r="2.5" />
+      <line x1="12" y1="7" x2="12" y2="18" />
+      <line x1="5.5" y1="13" x2="18.5" y2="13" />
+      <path d="M12 18c0 3.5-4.5 4-6 2" />
+      <path d="M12 18c0 3.5 4.5 4 6 2" />
+    </IconBase>
   );
 }
+

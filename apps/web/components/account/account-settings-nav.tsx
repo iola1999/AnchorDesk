@@ -35,17 +35,17 @@ export function AccountSettingsNav({
                   type="button"
                   onClick={() => onSelect(item.id)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-[16px] px-2.5 py-2 text-left text-sm transition",
+                    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition",
                     navItemStyles({ selected }),
                   )}
                   aria-pressed={selected}
                 >
                   <span
                     className={cn(
-                      "grid size-8 shrink-0 place-items-center rounded-[10px] border transition",
+                      "grid size-7 shrink-0 place-items-center rounded-lg transition",
                       selected
-                        ? "border-app-border-strong bg-app-surface-soft text-app-accent"
-                        : "border-transparent bg-white/72 text-app-muted",
+                        ? "text-app-accent"
+                        : "text-app-muted",
                     )}
                   >
                     <AccountSettingsNavIcon icon={item.icon} />

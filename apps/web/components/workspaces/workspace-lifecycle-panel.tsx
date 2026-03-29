@@ -56,13 +56,10 @@ export function WorkspaceLifecyclePanel({
 
   return (
     <>
-      <section className={cn(ui.panelLarge, "grid gap-5 p-6")}>
-        <div className="grid gap-2">
-          <p className={ui.eyebrow}>Lifecycle</p>
-          <h2>删除工作空间</h2>
-        </div>
+      <section className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+        <h2 className="text-[1.1rem] font-semibold text-app-text">删除工作空间</h2>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
             className={buttonStyles({ variant: "danger" })}
@@ -77,7 +74,7 @@ export function WorkspaceLifecyclePanel({
         </div>
 
         {status ? (
-          <p className={status.tone === "error" ? ui.error : ui.muted}>{status.message}</p>
+          <p className={cn("mt-3", status.tone === "error" ? ui.error : ui.muted)}>{status.message}</p>
         ) : null}
       </section>
 

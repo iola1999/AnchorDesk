@@ -204,7 +204,9 @@ export function WorkspaceShellFrame({
                 className="flex min-w-0 items-center gap-3"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <AnchorDeskLogo className="size-[38px] shrink-0 rounded-xl shadow-sm" />
+                <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
+                  <AnchorDeskLogo className="size-[18px] text-app-primary-contrast" />
+                </span>
                 <span className="grid min-w-0 gap-0.5">
                   <strong className="truncate font-serif text-[15px] leading-tight text-app-text">
                     {workspaceBranding.productName}
@@ -301,7 +303,9 @@ function WorkspaceSidebarContent({
           className="group flex items-center gap-3 px-1.5 py-1 transition-opacity hover:opacity-80"
           onClick={onNavigate}
         >
-          <AnchorDeskLogo className="size-[38px] shrink-0 rounded-xl shadow-sm" />
+          <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
+            <AnchorDeskLogo className="size-[18px] text-app-primary-contrast" />
+          </span>
           <span className="grid gap-0.5">
             <strong className="font-serif text-[15px] leading-tight text-app-text">
               {workspaceBranding.productName}

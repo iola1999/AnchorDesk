@@ -18,7 +18,6 @@ import {
   resolveDefaultAccountSettingsSectionId,
   type AccountSettingsSectionId,
 } from "@/lib/account-settings";
-import { ui } from "@/lib/ui";
 import { resolveWorkspaceUserAvatarLabel } from "@/lib/workspace-user-panel";
 
 type AccountSettingsWorkbenchProps = {
@@ -74,45 +73,36 @@ export function AccountSettingsWorkbench({
             返回工作台
           </Link>
 
-          <div className="grid gap-3 rounded-[26px] border border-app-border bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(252,249,243,0.88))] p-3.5 shadow-soft">
-            <div className="grid gap-0.5">
-              <p className={ui.eyebrow}>Personal Settings</p>
-              <h1 className="text-[1.55rem] font-semibold text-app-text">个人设置</h1>
-            </div>
-
-            <div className="flex items-center gap-3 rounded-[20px] border border-app-border/80 bg-white/82 p-3">
-              <div className="grid size-12 shrink-0 place-items-center rounded-[16px] border border-app-border bg-[radial-gradient(circle_at_top,#ffffff_0%,#f0e7d8_62%,#e3d8c7_100%)] text-base font-semibold text-app-accent">
+          <div className="grid gap-4">
+            <div className="flex items-center gap-3 px-1">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-app-surface-strong text-sm font-semibold text-app-accent">
                 {resolveWorkspaceUserAvatarLabel(displayName)}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-app-muted">
-                  当前账号
-                </span>
-                <strong className="mt-0.5 block truncate text-[1.05rem] font-semibold text-app-text">
+                <strong className="block truncate text-[14px] font-semibold text-app-text">
                   {displayName}
                 </strong>
-                <span className="block truncate text-[13px] text-app-muted">
+                <span className="block truncate text-[12.5px] text-app-muted">
                   @{currentUser.username}
                 </span>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-[24px] border border-app-border bg-app-sidebar/62 p-2.5 shadow-soft">
-            <AccountSettingsNav
-              groups={navGroups}
-              activeSectionId={activeSectionId}
-              onSelect={onSelectSection}
-            />
+            <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
+              <AccountSettingsNav
+                groups={navGroups}
+                activeSectionId={activeSectionId}
+                onSelect={onSelectSection}
+              />
+            </div>
           </div>
         </SettingsShellSidebar>
       }
     >
       <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
         <header className="grid gap-1 px-1 pb-0.5">
-          <p className={ui.eyebrow}>Account</p>
-          <h2 className="text-[1.78rem] font-semibold text-app-text md:text-[2rem]">
-            账号与偏好
+          <h2 className="text-[1.5rem] font-semibold text-app-text">
+            个人设置
           </h2>
         </header>
 
@@ -148,10 +138,8 @@ function AccountSettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[26px] border border-app-border bg-white/88 p-5 shadow-soft md:p-6">
-      <div className="grid gap-1.5">
-        <h2 className="text-[1.28rem] font-semibold text-app-text">{title}</h2>
-      </div>
+    <section className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+      <h3 className="text-[1.1rem] font-semibold text-app-text">{title}</h3>
       <div className="mt-4 grid gap-4">{children}</div>
     </section>
   );

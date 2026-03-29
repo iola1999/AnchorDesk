@@ -53,37 +53,37 @@ export function WorkspaceSettingsForm({
   }
 
   return (
-    <form id={sectionId} onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5 p-6")}>
-      <div className="grid gap-1">
-        <h1>设置</h1>
+    <form id={sectionId} onSubmit={onSubmit} className="rounded-2xl border border-app-border bg-white/90 p-5 shadow-soft md:p-6">
+      <h2 className="text-[1.1rem] font-semibold text-app-text">设置</h2>
+
+      <div className="mt-4 grid gap-4">
+        <label className={ui.label}>
+          空间名称
+          <input
+            required
+            className={ui.input}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        </label>
+        <label className={ui.label}>
+          <span className="flex items-center justify-between gap-3">
+            <span>预置提示词</span>
+            <span className="text-[12px] font-normal text-app-muted">
+              {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
+            </span>
+          </span>
+          <textarea
+            className={ui.textarea}
+            rows={5}
+            maxLength={WORKSPACE_PROMPT_MAX_LENGTH}
+            value={workspacePrompt}
+            onChange={(event) => setWorkspacePrompt(event.target.value)}
+          />
+        </label>
       </div>
 
-      <label className={ui.label}>
-        空间名称
-        <input
-          required
-          className={ui.input}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-      </label>
-      <label className={ui.label}>
-        <span className="flex items-center justify-between gap-3">
-          <span>预置提示词</span>
-          <span className="text-[12px] font-normal text-app-muted">
-            {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
-          </span>
-        </span>
-        <textarea
-          className={ui.textarea}
-          rows={5}
-          maxLength={WORKSPACE_PROMPT_MAX_LENGTH}
-          value={workspacePrompt}
-          onChange={(event) => setWorkspacePrompt(event.target.value)}
-        />
-      </label>
-
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="mt-5 flex flex-wrap items-center gap-3">
         <button className={cn(buttonStyles(), "justify-self-start")} disabled={isPending} type="submit">
           {isPending ? "保存中..." : "保存设置"}
         </button>
