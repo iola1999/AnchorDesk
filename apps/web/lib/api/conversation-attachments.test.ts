@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  COMPOSER_ATTACHMENT_STATUS,
   buildDraftAttachmentExpiryDate,
   buildTemporaryAttachmentDirectory,
   buildTemporaryAttachmentLogicalPath,
@@ -40,12 +41,33 @@ describe("conversation attachment helpers", () => {
   });
 
   test("allows sending once every attachment is either ready or failed", () => {
-    expect(canSubmitWithAttachments(["ready", "failed"])).toBe(true);
-    expect(canSubmitWithAttachments(["parsing", "ready"])).toBe(false);
-    expect(hasReadyAttachments(["failed", "ready"])).toBe(true);
-    expect(hasReadyAttachments(["failed"])).toBe(false);
-    expect(resolveComposerAttachmentStatus({ jobStatus: "completed" })).toBe("ready");
-    expect(resolveComposerAttachmentStatus({ parseStage: "failed" })).toBe("failed");
-    expect(resolveComposerAttachmentStatus({ jobStatus: "running" })).toBe("parsing");
+    expect(
+      canSubmitWithAttachments([
+        COMPOSER_ATTACHMENT_STATUS.READY,
+        COMPOSER_ATTACHMENT_STATUS.FAILED,
+      ]),
+    ).toBe(true);
+    expect(
+      canSubmitWithAttachments([
+        COMPOSER_ATTACHMENT_STATUS.PARSING,
+        COMPOSER_ATTACHMENT_STATUS.READY,
+      ]),
+    ).toBe(false);
+    expect(
+      hasReadyAttachments([
+        COMPOSER_ATTACHMENT_STATUS.FAILED,
+        COMPOSER_ATTACHMENT_STATUS.READY,
+      ]),
+    ).toBe(true);
+    expect(hasReadyAttachments([COMPOSER_ATTACHMENT_STATUS.FAILED])).toBe(false);
+    expect(resolveComposerAttachmentStatus({ jobStatus: "completed" })).toBe(
+      COMPOSER_ATTACHMENT_STATUS.READY,
+    );
+    expect(resolveComposerAttachmentStatus({ parseStage: "failed" })).toBe(
+      COMPOSER_ATTACHMENT_STATUS.FAILED,
+    );
+    expect(resolveComposerAttachmentStatus({ jobStatus: "running" })).toBe(
+      COMPOSER_ATTACHMENT_STATUS.PARSING,
+    );
   });
 });

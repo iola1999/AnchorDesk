@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 import {
+  APP_UPGRADE_STATUS,
+  UPGRADE_MODE,
   buildUpgradePlan,
   formatError,
   formatUpgradeList,
@@ -202,7 +204,8 @@ async function upsertUpgradeRecord(client, upgrade, values) {
 }
 
 function createPendingBlockingError(mode, blockingPending) {
-  const command = mode === "apply-all" ? "pnpm app:upgrade:all" : "pnpm app:upgrade";
+  const command =
+    mode === UPGRADE_MODE.APPLY_ALL ? "pnpm app:upgrade:all" : "pnpm app:upgrade";
   return new Error(
     `Blocking app upgrades are still pending:\n${formatUpgradeList(
       blockingPending,
@@ -213,7 +216,7 @@ function createPendingBlockingError(mode, blockingPending) {
 async function runAppUpgrade(client, upgrade) {
   console.log(`Running app upgrade ${upgrade.key}...`);
   await upsertUpgradeRecord(client, upgrade, {
-    status: "running",
+    status: APP_UPGRADE_STATUS.RUNNING,
     errorMessage: null,
     metadata: null,
     appliedAt: null,
@@ -227,7 +230,7 @@ async function runAppUpgrade(client, upgrade) {
     });
 
     await upsertUpgradeRecord(client, upgrade, {
-      status: "completed",
+      status: APP_UPGRADE_STATUS.COMPLETED,
       errorMessage: null,
       metadata,
       appliedAt: new Date(),
@@ -235,7 +238,7 @@ async function runAppUpgrade(client, upgrade) {
     console.log(`Completed app upgrade ${upgrade.key}.`);
   } catch (error) {
     await upsertUpgradeRecord(client, upgrade, {
-      status: "failed",
+      status: APP_UPGRADE_STATUS.FAILED,
       errorMessage: formatError(error),
       metadata: null,
       appliedAt: null,
@@ -246,7 +249,7 @@ async function runAppUpgrade(client, upgrade) {
 
 async function main() {
   const mode = parseUpgradeModeArg(process.argv.slice(2), {
-    defaultMode: "apply-blocking",
+    defaultMode: UPGRADE_MODE.APPLY_BLOCKING,
   });
   const client = new Client({
     connectionString: getDatabaseUrl(),
@@ -259,7 +262,7 @@ async function main() {
       const migrationEntries = await loadMigrationEntries();
       await assertMigrationBaselineState(client, migrationEntries);
 
-      if (mode === "check") {
+      if (mode === UPGRADE_MODE.CHECK) {
         const appliedMigrationTimestamps = await loadAppliedMigrationTimestamps(client);
         const pendingSqlMigrations = getPendingSqlMigrations(
           migrationEntries,
@@ -284,7 +287,7 @@ async function main() {
         return;
       }
 
-      if (mode !== "check") {
+      if (mode !== UPGRADE_MODE.CHECK) {
         for (const upgrade of plan.runnable) {
           await runAppUpgrade(client, upgrade);
         }

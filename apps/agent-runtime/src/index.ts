@@ -7,6 +7,10 @@ import { QUEUE_NAMES, getRedisConnection } from "@knowledge-assistant/queue";
 import { processConversationResponseJob } from "./process-conversation-job";
 import { runAgentResponse } from "./run-agent-response";
 
+const BULLMQ_WORKER_EVENT = {
+  FAILED: "failed",
+} as const;
+
 async function main() {
   await initRuntimeSettings();
 
@@ -60,7 +64,7 @@ async function main() {
     },
   );
 
-  respondWorker.on("failed", (job, error) => {
+  respondWorker.on(BULLMQ_WORKER_EVENT.FAILED, (job, error) => {
     console.error(
       `[agent-runtime] conversation job failed ${job?.id ?? "unknown"}: ${error.message}`,
     );

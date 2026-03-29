@@ -2,12 +2,24 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+export const UPGRADE_MODE = {
+  CHECK: "check",
+  APPLY_SAFE_BLOCKING: "apply-safe-blocking",
+  APPLY_BLOCKING: "apply-blocking",
+  APPLY_ALL: "apply-all",
+};
 const ALL_UPGRADE_MODES = [
-  "check",
-  "apply-safe-blocking",
-  "apply-blocking",
-  "apply-all",
+  UPGRADE_MODE.CHECK,
+  UPGRADE_MODE.APPLY_SAFE_BLOCKING,
+  UPGRADE_MODE.APPLY_BLOCKING,
+  UPGRADE_MODE.APPLY_ALL,
 ];
+
+export const APP_UPGRADE_STATUS = {
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(libDir, "../..");
@@ -109,13 +121,13 @@ export function validateUpgradeRegistry(upgrades) {
 
 export function isUpgradeRunnableInMode(upgrade, mode) {
   switch (mode) {
-    case "check":
+    case UPGRADE_MODE.CHECK:
       return false;
-    case "apply-safe-blocking":
+    case UPGRADE_MODE.APPLY_SAFE_BLOCKING:
       return upgrade.blocking && upgrade.safeInDevStartup;
-    case "apply-blocking":
+    case UPGRADE_MODE.APPLY_BLOCKING:
       return upgrade.blocking;
-    case "apply-all":
+    case UPGRADE_MODE.APPLY_ALL:
       return true;
     default:
       throw new Error(`Unsupported upgrade mode: ${mode}`);
@@ -124,7 +136,10 @@ export function isUpgradeRunnableInMode(upgrade, mode) {
 
 export function getPendingUpgrades(upgrades, appliedRowsByKey = new Map()) {
   const registry = validateUpgradeRegistry(upgrades);
-  return registry.filter((upgrade) => appliedRowsByKey.get(upgrade.key)?.status !== "completed");
+  return registry.filter(
+    (upgrade) =>
+      appliedRowsByKey.get(upgrade.key)?.status !== APP_UPGRADE_STATUS.COMPLETED,
+  );
 }
 
 export function buildUpgradePlan(upgrades, appliedRowsByKey, mode) {

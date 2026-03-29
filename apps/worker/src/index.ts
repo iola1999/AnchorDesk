@@ -65,6 +65,10 @@ type EmbeddingArtifact = {
 
 const db = getDb();
 const healthPort = Number(process.env.PORT ?? 4002);
+const BULLMQ_EVENT = {
+  COMPLETED: "completed",
+  FAILED: "failed",
+} as const;
 
 function getParserServiceUrl() {
   return process.env.PARSER_SERVICE_URL ?? "http://localhost:8001";
@@ -577,7 +581,7 @@ async function main() {
   );
 
   const queueEvents = new QueueEvents(QUEUE_NAMES.index, { connection });
-  queueEvents.on("completed", ({ jobId }) => {
+  queueEvents.on(BULLMQ_EVENT.COMPLETED, ({ jobId }) => {
     console.log(`[worker] completed ${jobId}`);
   });
 
@@ -597,7 +601,7 @@ async function main() {
   });
 
   for (const worker of [parseWorker, chunkWorker, embedWorker, indexWorker]) {
-    worker.on("failed", async (job, error) => {
+    worker.on(BULLMQ_EVENT.FAILED, async (job, error) => {
       if (!job) return;
 
       const version = await fetchVersion(job.data.documentVersionId);

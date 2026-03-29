@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  APP_UPGRADE_STATUS,
+  UPGRADE_MODE,
   buildUpgradePlan,
   formatUpgradeList,
   isUpgradeRunnableInMode,
@@ -10,10 +12,14 @@ import {
 
 describe("parseUpgradeModeArg", () => {
   it("parses explicit mode values", () => {
-    expect(parseUpgradeModeArg(["--mode=apply-all"]))
-      .toBe("apply-all");
-    expect(parseUpgradeModeArg(["--mode", "check"], { defaultMode: "apply-blocking" }))
-      .toBe("check");
+    expect(parseUpgradeModeArg([`--mode=${UPGRADE_MODE.APPLY_ALL}`])).toBe(
+      UPGRADE_MODE.APPLY_ALL,
+    );
+    expect(
+      parseUpgradeModeArg(["--mode", UPGRADE_MODE.CHECK], {
+        defaultMode: UPGRADE_MODE.APPLY_BLOCKING,
+      }),
+    ).toBe(UPGRADE_MODE.CHECK);
   });
 
   it("rejects invalid values", () => {
@@ -54,17 +60,27 @@ describe("upgrade planning", () => {
   ];
 
   it("selects runnable upgrades by mode", () => {
-    expect(isUpgradeRunnableInMode(upgrades[0], "check")).toBe(false);
-    expect(isUpgradeRunnableInMode(upgrades[0], "apply-safe-blocking")).toBe(true);
-    expect(isUpgradeRunnableInMode(upgrades[1], "apply-safe-blocking")).toBe(false);
-    expect(isUpgradeRunnableInMode(upgrades[1], "apply-blocking")).toBe(true);
-    expect(isUpgradeRunnableInMode(upgrades[2], "apply-blocking")).toBe(false);
-    expect(isUpgradeRunnableInMode(upgrades[2], "apply-all")).toBe(true);
+    expect(isUpgradeRunnableInMode(upgrades[0], UPGRADE_MODE.CHECK)).toBe(false);
+    expect(isUpgradeRunnableInMode(upgrades[0], UPGRADE_MODE.APPLY_SAFE_BLOCKING)).toBe(
+      true,
+    );
+    expect(isUpgradeRunnableInMode(upgrades[1], UPGRADE_MODE.APPLY_SAFE_BLOCKING)).toBe(
+      false,
+    );
+    expect(isUpgradeRunnableInMode(upgrades[1], UPGRADE_MODE.APPLY_BLOCKING)).toBe(true);
+    expect(isUpgradeRunnableInMode(upgrades[2], UPGRADE_MODE.APPLY_BLOCKING)).toBe(false);
+    expect(isUpgradeRunnableInMode(upgrades[2], UPGRADE_MODE.APPLY_ALL)).toBe(true);
   });
 
   it("separates pending, blocking, and runnable upgrades", () => {
-    const appliedRowsByKey = new Map([["safe-blocking", { status: "completed" }]]);
-    const plan = buildUpgradePlan(upgrades, appliedRowsByKey, "apply-safe-blocking");
+    const appliedRowsByKey = new Map([
+      ["safe-blocking", { status: APP_UPGRADE_STATUS.COMPLETED }],
+    ]);
+    const plan = buildUpgradePlan(
+      upgrades,
+      appliedRowsByKey,
+      UPGRADE_MODE.APPLY_SAFE_BLOCKING,
+    );
 
     expect(plan.pending.map((item) => item.key)).toEqual(["manual-blocking", "non-blocking"]);
     expect(plan.runnable.map((item) => item.key)).toEqual([]);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import {
+  COMPOSER_ATTACHMENT_STATUS,
   canSubmitWithAttachments,
   hasReadyAttachments,
   resolveComposerAttachmentStatus,
@@ -116,7 +117,7 @@ export function Composer({
     for (const attachment of attachments) {
       if (
         !attachment.documentJobId ||
-        attachment.status !== "parsing" ||
+        attachment.status !== COMPOSER_ATTACHMENT_STATUS.PARSING ||
         pollingJobIdsRef.current.has(attachment.documentJobId)
       ) {
         continue;
@@ -177,7 +178,7 @@ export function Composer({
             attachment.id === localId
               ? {
                   ...attachment,
-                  status: "failed",
+                  status: COMPOSER_ATTACHMENT_STATUS.FAILED,
                   errorMessage: "查询附件解析状态失败。",
                 }
               : attachment,
@@ -205,7 +206,10 @@ export function Composer({
         ),
       );
 
-      if (nextStatus === "ready" || nextStatus === "failed") {
+      if (
+        nextStatus === COMPOSER_ATTACHMENT_STATUS.READY ||
+        nextStatus === COMPOSER_ATTACHMENT_STATUS.FAILED
+      ) {
         pollingJobIdsRef.current.delete(jobId);
         startTransition(() => {
           router.refresh();
@@ -229,7 +233,7 @@ export function Composer({
         {
           id: localId,
           sourceFilename: file.name,
-          status: "presigning",
+          status: COMPOSER_ATTACHMENT_STATUS.PRESIGNING,
           progress: 0,
           stage: null,
           errorMessage: null,
@@ -259,7 +263,7 @@ export function Composer({
           attachment.id === localId
             ? {
                 ...attachment,
-                status: "failed",
+                status: COMPOSER_ATTACHMENT_STATUS.FAILED,
                 errorMessage: presignBody?.error ?? "申请上传地址失败。",
               }
             : attachment,
@@ -273,7 +277,7 @@ export function Composer({
         attachment.id === localId
           ? {
               ...attachment,
-              status: "uploading",
+              status: COMPOSER_ATTACHMENT_STATUS.UPLOADING,
             }
           : attachment,
       ),
@@ -293,7 +297,7 @@ export function Composer({
           attachment.id === localId
             ? {
                 ...attachment,
-                status: "failed",
+                status: COMPOSER_ATTACHMENT_STATUS.FAILED,
                 errorMessage: `上传文件失败：${uploadResponse.status}`,
               }
             : attachment,
@@ -307,7 +311,7 @@ export function Composer({
         attachment.id === localId
           ? {
               ...attachment,
-              status: "creating",
+              status: COMPOSER_ATTACHMENT_STATUS.CREATING,
             }
           : attachment,
       ),
@@ -353,7 +357,7 @@ export function Composer({
           attachment.id === localId
             ? {
                 ...attachment,
-                status: "failed",
+                status: COMPOSER_ATTACHMENT_STATUS.FAILED,
                 errorMessage: attachmentBody?.error ?? "创建临时附件失败。",
               }
             : attachment,
@@ -555,9 +559,9 @@ export function Composer({
             <div className="flex flex-wrap items-center gap-2 px-1">
               {attachments.map((attachment) => {
                 const tone =
-                  attachment.status === "ready"
+                  attachment.status === COMPOSER_ATTACHMENT_STATUS.READY
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : attachment.status === "failed"
+                    : attachment.status === COMPOSER_ATTACHMENT_STATUS.FAILED
                       ? "border-rose-200 bg-rose-50 text-rose-800"
                       : "border-app-border bg-white/90 text-app-muted-strong";
 
@@ -570,9 +574,9 @@ export function Composer({
                   >
                     <span className="max-w-[180px] truncate">{attachment.sourceFilename}</span>
                     <span>
-                      {attachment.status === "ready"
+                      {attachment.status === COMPOSER_ATTACHMENT_STATUS.READY
                         ? "可用"
-                        : attachment.status === "failed"
+                        : attachment.status === COMPOSER_ATTACHMENT_STATUS.FAILED
                           ? "失败"
                           : `${attachment.stage ?? "解析中"}${attachment.progress > 0 ? ` ${attachment.progress}%` : ""}`}
                     </span>

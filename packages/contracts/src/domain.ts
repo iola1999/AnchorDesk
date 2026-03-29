@@ -186,6 +186,18 @@ export const CONVERSATION_STREAM_EVENT_VALUES = [
 ] as const;
 export type ConversationStreamEventType = ValueOf<typeof CONVERSATION_STREAM_EVENT>;
 
+export const APP_UPGRADE_STATUS = {
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+} as const;
+export const APP_UPGRADE_STATUS_VALUES = [
+  APP_UPGRADE_STATUS.RUNNING,
+  APP_UPGRADE_STATUS.COMPLETED,
+  APP_UPGRADE_STATUS.FAILED,
+] as const;
+export type AppUpgradeStatus = ValueOf<typeof APP_UPGRADE_STATUS>;
+
 export function isGroundedAnswerConfidence(
   value: unknown,
 ): value is GroundedAnswerConfidence {

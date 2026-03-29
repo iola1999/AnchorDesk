@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   type ConversationStatus,
+  DEFAULT_APP_UPGRADE_STATUS,
   DEFAULT_CONVERSATION_STATUS,
   DEFAULT_DOCUMENT_STATUS,
   DEFAULT_DOCUMENT_TYPE,
@@ -9,6 +10,7 @@ import {
   DEFAULT_REPORT_STATUS,
   DEFAULT_RETRIEVAL_RUN_TOP_K,
   DEFAULT_RUN_STATUS,
+  type AppUpgradeStatus,
   type DocumentStatus,
   type DocumentType,
   type MessageRole,
@@ -73,6 +75,7 @@ export const systemSettings = pgTable("system_settings", {
   settingKey: varchar("setting_key", { length: 120 }).primaryKey(),
   valueText: text("value_text").notNull().default(""),
   isSecret: boolean("is_secret").notNull().default(false),
+  summary: text("summary"),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -81,7 +84,10 @@ export const systemSettings = pgTable("system_settings", {
 export const appUpgrades = pgTable("app_upgrades", {
   upgradeKey: varchar("upgrade_key", { length: 160 }).primaryKey(),
   description: text("description").notNull(),
-  status: varchar("status", { length: 32 }).notNull().default("completed"),
+  status: varchar("status", { length: 32 })
+    .$type<AppUpgradeStatus>()
+    .notNull()
+    .default(DEFAULT_APP_UPGRADE_STATUS),
   blocking: boolean("blocking").notNull().default(true),
   safeInDevStartup: boolean("safe_in_dev_startup").notNull().default(false),
   errorMessage: text("error_message"),

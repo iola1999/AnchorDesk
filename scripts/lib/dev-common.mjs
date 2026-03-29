@@ -47,6 +47,13 @@ const envExamplePath = path.join(repoRoot, ".env.example");
 const envLocalPath = path.join(repoRoot, ".env.local");
 const envPath = path.join(repoRoot, ".env");
 const nodeModulesPath = path.join(repoRoot, "node_modules");
+const MANAGED_SERVICE_STATE = {
+  UNMANAGED: "unmanaged",
+  STOPPED: "stopped",
+  RUNNING: "running",
+  STALE_UNMANAGED: "stale_unmanaged",
+  STALE: "stale",
+};
 
 function resolvePythonBinary() {
   if (process.platform === "win32") {
@@ -561,7 +568,9 @@ export async function getManagedServiceStatus(service) {
 
   if (!record) {
     return {
-      state: reachable ? "unmanaged" : "stopped",
+      state: reachable
+        ? MANAGED_SERVICE_STATE.UNMANAGED
+        : MANAGED_SERVICE_STATE.STOPPED,
       detail: `${reachable ? "running (unmanaged)" : "not running"}${portLabel}`,
     };
   }
@@ -569,13 +578,15 @@ export async function getManagedServiceStatus(service) {
   const running = record.pid ? isProcessRunning(record.pid) : false;
   if (running) {
     return {
-      state: "running",
+      state: MANAGED_SERVICE_STATE.RUNNING,
       detail: `running (pid ${record.pid}${portLabel}, log ${getLogPath(service.id)})`,
     };
   }
 
   return {
-    state: reachable ? "stale_unmanaged" : "stale",
+    state: reachable
+      ? MANAGED_SERVICE_STATE.STALE_UNMANAGED
+      : MANAGED_SERVICE_STATE.STALE,
     detail: `${
       reachable ? "stale pid / running unmanaged" : "stale pid"
     } (pid ${record.pid}${portLabel}, log ${getLogPath(service.id)})`,

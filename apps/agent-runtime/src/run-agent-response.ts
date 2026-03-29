@@ -21,6 +21,14 @@ import {
 } from "./assistant-stream";
 import { renderGroundedAnswer } from "./final-answerer";
 
+const CLAUDE_AGENT_MESSAGE_TYPE = {
+  RESULT: "result",
+} as const;
+
+const CLAUDE_AGENT_RESULT_SUBTYPE = {
+  SUCCESS: "success",
+} as const;
+
 function getAgentWorkdirRoot() {
   return process.env.AGENT_WORKDIR_ROOT
     ? path.resolve(process.env.AGENT_WORKDIR_ROOT)
@@ -355,7 +363,10 @@ export async function runAgentResponse(
       });
     }
 
-    if (message.type === "result" && message.subtype === "success") {
+    if (
+      message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
+      message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
+    ) {
       finalResult = message.result || streamedDraft;
     }
   }

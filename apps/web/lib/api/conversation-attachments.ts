@@ -1,13 +1,27 @@
+import { PARSE_STATUS, RUN_STATUS } from "@knowledge-assistant/contracts";
+
 export const TEMPORARY_ATTACHMENT_ROOT_DIRECTORY = "资料库/临时目录";
 export const DRAFT_ATTACHMENT_EXPIRY_HOURS = 24;
 
-export type ComposerAttachmentStatus =
-  | "presigning"
-  | "uploading"
-  | "creating"
-  | "parsing"
-  | "ready"
-  | "failed";
+type ValueOf<T> = T[keyof T];
+
+export const COMPOSER_ATTACHMENT_STATUS = {
+  PRESIGNING: "presigning",
+  UPLOADING: "uploading",
+  CREATING: "creating",
+  PARSING: "parsing",
+  READY: "ready",
+  FAILED: "failed",
+} as const;
+export const COMPOSER_ATTACHMENT_STATUS_VALUES = [
+  COMPOSER_ATTACHMENT_STATUS.PRESIGNING,
+  COMPOSER_ATTACHMENT_STATUS.UPLOADING,
+  COMPOSER_ATTACHMENT_STATUS.CREATING,
+  COMPOSER_ATTACHMENT_STATUS.PARSING,
+  COMPOSER_ATTACHMENT_STATUS.READY,
+  COMPOSER_ATTACHMENT_STATUS.FAILED,
+] as const;
+export type ComposerAttachmentStatus = ValueOf<typeof COMPOSER_ATTACHMENT_STATUS>;
 
 function sanitizeToken(value: string) {
   const normalized = value.replace(/[^a-zA-Z0-9-_]/g, "").slice(0, 8);
@@ -43,24 +57,34 @@ export function buildDraftAttachmentExpiryDate(now = new Date()) {
 }
 
 export function canSubmitWithAttachments(statuses: ComposerAttachmentStatus[]) {
-  return statuses.every((status) => status === "ready" || status === "failed");
+  return statuses.every(
+    (status) =>
+      status === COMPOSER_ATTACHMENT_STATUS.READY ||
+      status === COMPOSER_ATTACHMENT_STATUS.FAILED,
+  );
 }
 
 export function hasReadyAttachments(statuses: ComposerAttachmentStatus[]) {
-  return statuses.some((status) => status === "ready");
+  return statuses.some((status) => status === COMPOSER_ATTACHMENT_STATUS.READY);
 }
 
 export function resolveComposerAttachmentStatus(input: {
   jobStatus?: string | null;
   parseStage?: string | null;
 }) {
-  if (input.jobStatus === "failed" || input.parseStage === "failed") {
-    return "failed" as const;
+  if (
+    input.jobStatus === RUN_STATUS.FAILED ||
+    input.parseStage === PARSE_STATUS.FAILED
+  ) {
+    return COMPOSER_ATTACHMENT_STATUS.FAILED;
   }
 
-  if (input.jobStatus === "completed" || input.parseStage === "ready") {
-    return "ready" as const;
+  if (
+    input.jobStatus === RUN_STATUS.COMPLETED ||
+    input.parseStage === PARSE_STATUS.READY
+  ) {
+    return COMPOSER_ATTACHMENT_STATUS.READY;
   }
 
-  return "parsing" as const;
+  return COMPOSER_ATTACHMENT_STATUS.PARSING;
 }
