@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   buildPdfSearchResults,
@@ -35,11 +36,13 @@ export function PdfViewer({
   title,
   initialPage,
   highlightedText,
+  children,
 }: {
   fileUrl: string;
   title: string;
   initialPage: number;
   highlightedText?: string;
+  children?: React.ReactNode;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PdfDocumentProxy | null>(null);
@@ -210,104 +213,119 @@ export function PdfViewer({
   );
 
   return (
-    <div className="grid gap-5 rounded-2xl border border-app-border/60 bg-white/40 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-app-border/40 pb-3">
-        <div className="grid gap-1">
-          <h3 className="text-[15px] font-semibold text-app-text">PDF 阅读器</h3>
-          <p className="text-[12px] text-app-muted truncate max-w-[300px]" title={title}>
-            {title}
-            {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0 bg-app-surface-soft/50 p-1 rounded-xl border border-app-border/40">
-          <button
-            className={buttonStyles({ variant: "ghost", size: "sm" })}
-            disabled={currentPage <= 1}
-            onClick={() => jumpToPage(currentPage - 1)}
-            type="button"
-          >
-            上一页
-          </button>
-          <input
-            className="h-8 w-[60px] rounded-lg border border-app-border/60 bg-white px-2 py-0 text-center text-[13px] outline-none focus:border-app-border-strong focus:ring-2 focus:ring-app-accent/10"
-            inputMode="numeric"
-            value={currentPageInput}
-            onChange={(event) => setCurrentPageInput(event.target.value)}
-            onBlur={() => jumpToPage(Number(currentPageInput))}
-          />
-          <button
-            className={buttonStyles({ variant: "ghost", size: "sm" })}
-            disabled={pageCount > 0 ? currentPage >= pageCount : true}
-            onClick={() => jumpToPage(currentPage + 1)}
-            type="button"
-          >
-            下一页
-          </button>
-          <div className="w-px h-4 bg-app-border/60 mx-1" />
-          <button
-            className={buttonStyles({ variant: "ghost", size: "sm" })}
-            disabled={scale <= 0.8}
-            onClick={() => setScale((value) => Math.max(0.8, value - 0.2))}
-            type="button"
-          >
-            缩小
-          </button>
-          <button
-            className={buttonStyles({ variant: "ghost", size: "sm" })}
-            onClick={() => setScale((value) => Math.min(2, value + 0.2))}
-            type="button"
-          >
-            放大
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col lg:flex-row items-start gap-6">
+      {/* 左侧独立搜索大纲区 */}
+      <div className="w-full shrink-0 lg:w-[280px] xl:w-[320px] pb-6">
+        <div className="sticky top-6 grid gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-app-muted-strong px-1">页内搜索</span>
+            <input
+              className={cn(ui.input, "bg-white/60")}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="搜索当前 PDF 中的关键词"
+            />
+          </label>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-medium text-app-muted-strong px-1">页内搜索</span>
-        <input
-          className={cn(ui.input, "bg-white/60")}
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="搜索当前 PDF 中的关键词"
-        />
-      </label>
-
-      {searchResults.length > 0 ? (
-        <div className="grid gap-2">
-          {searchResults.map((result) => (
-            <button
-              key={`${result.pageNo}-${result.snippet}`}
-              className="w-full rounded-2xl border border-app-border bg-app-surface-soft px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white"
-              onClick={() => jumpToPage(result.pageNo)}
-              type="button"
-            >
-              第 {result.pageNo} 页 · {result.snippet}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {status ? <p className="text-[13px] text-app-muted px-1">{status}</p> : null}
-      
-      <div className="overflow-auto rounded-xl border border-app-border/50 bg-white p-2 shadow-sm">
-        <canvas ref={canvasRef} className="block h-auto w-full max-w-none" />
-      </div>
-
-      <div className="grid gap-2.5">
-        <div className="flex items-center justify-between px-1">
-          <strong className="text-[13px] font-medium text-app-text">第 {currentPage} 页文本</strong>
-          {highlightedText ? <span className="text-[12px] text-app-muted">已按引用内容高亮</span> : null}
-        </div>
-        <div className="rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm">
-          {highlightedSegments.map((segment, index) =>
-            segment.highlighted ? (
-              <mark key={`${segment.text}-${index}`} className="bg-app-accent/20 text-app-text rounded-sm px-0.5">{segment.text}</mark>
-            ) : (
-              <span key={`${segment.text}-${index}`}>{segment.text}</span>
-            ),
+          {searchResults.length > 0 ? (
+            <div className="grid gap-2">
+              {searchResults.map((result) => (
+                <button
+                  key={`${result.pageNo}-${result.snippet}`}
+                  className="w-full rounded-2xl border border-app-border/60 bg-white/40 px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white transition"
+                  onClick={() => jumpToPage(result.pageNo)}
+                  type="button"
+                >
+                  <strong className="text-app-text block mb-1">第 {result.pageNo} 页</strong>
+                  <span className="text-app-muted text-[13px] leading-relaxed block">{result.snippet}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            searchQuery ? <p className="text-[13px] text-app-muted px-1">未找到相关内容。</p> : null
           )}
         </div>
       </div>
+
+      {/* 中间主要层 */}
+      <div className="grid min-w-0 flex-1 gap-6">
+        <div className="grid gap-5 rounded-2xl border border-app-border/60 bg-white/40 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-app-border/40 pb-3">
+            <div className="grid gap-1">
+              <h3 className="text-[15px] font-semibold text-app-text">PDF 阅读器</h3>
+              <p className="text-[12px] text-app-muted truncate max-w-[300px]" title={title}>
+                {title}
+                {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 shrink-0 bg-app-surface-soft/50 p-1 rounded-xl border border-app-border/40">
+              <button
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+                disabled={currentPage <= 1}
+                onClick={() => jumpToPage(currentPage - 1)}
+                type="button"
+              >
+                上一页
+              </button>
+              <input
+                className="h-8 w-[60px] rounded-lg border border-app-border/60 bg-white px-2 py-0 text-center text-[13px] outline-none focus:border-app-border-strong focus:ring-2 focus:ring-app-accent/10"
+                inputMode="numeric"
+                value={currentPageInput}
+                onChange={(event) => setCurrentPageInput(event.target.value)}
+                onBlur={() => jumpToPage(Number(currentPageInput))}
+              />
+              <button
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+                disabled={pageCount > 0 ? currentPage >= pageCount : true}
+                onClick={() => jumpToPage(currentPage + 1)}
+                type="button"
+              >
+                下一页
+              </button>
+              <div className="w-px h-4 bg-app-border/60 mx-1" />
+              <button
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+                disabled={scale <= 0.8}
+                onClick={() => setScale((value) => Math.max(0.8, value - 0.2))}
+                type="button"
+              >
+                缩小
+              </button>
+              <button
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+                onClick={() => setScale((value) => Math.min(2, value + 0.2))}
+                type="button"
+              >
+                放大
+              </button>
+            </div>
+          </div>
+
+        {status ? <p className="text-[13px] text-app-muted px-1">{status}</p> : null}
+        
+        <div className="overflow-auto rounded-xl border border-app-border/50 bg-white p-2 shadow-sm">
+          <canvas ref={canvasRef} className="block h-auto w-full max-w-none" />
+        </div>
+
+        <div className="grid gap-2.5">
+          <div className="flex items-center justify-between px-1">
+            <strong className="text-[13px] font-medium text-app-text">第 {currentPage} 页文本</strong>
+            {highlightedText ? <span className="text-[12px] text-app-muted">已按引用内容高亮</span> : null}
+          </div>
+            <div className="rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm">
+            {highlightedSegments.map((segment, index) =>
+              segment.highlighted ? (
+                <mark key={`${segment.text}-${index}`} className="bg-yellow-200/80 text-black font-medium rounded-sm px-0.5">{segment.text}</mark>
+              ) : (
+                <span key={`${segment.text}-${index}`}>{segment.text}</span>
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+
+      {children}
     </div>
+  </div>
   );
 }

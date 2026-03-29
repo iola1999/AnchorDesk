@@ -162,6 +162,118 @@ export default async function DocumentPage({
   const tags = doc[0].tagsJson ?? [];
   const canRenderPdf = doc[0].mimeType.includes("pdf") && Boolean(latestVersion);
 
+  const contentBlocks = (
+    <>
+      {anchor ? (
+        <div className="grid gap-2 rounded-2xl border border-app-accent/20 bg-app-accent/5 p-4 mix-blend-multiply mb-6">
+          <h3 className="text-[13px] font-semibold text-app-accent">当前引用定位：{anchor.anchorLabel}</h3>
+          <p className="text-[14px] leading-relaxed text-app-text">{anchor.anchorText}</p>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4">
+        <div className="flex items-center justify-between pb-1">
+          <h3 className="text-[15px] font-semibold text-app-text">解析内容区块</h3>
+          <span className="text-[13px] text-app-muted">
+            {viewerPages.length > 0
+              ? `共 ${viewerPages.length} 页`
+              : latestVersion?.parseStatus === PARSE_STATUS.READY
+                ? "暂无解析内容"
+                : "等待解析完成"}
+          </span>
+        </div>
+        {viewerPages.length > 0 ? (
+          viewerPages.map((page) => (
+            <details
+              key={page.pageNo}
+              open={page.anchors.some((a) => a.isHighlighted)}
+              className="group grid gap-3 rounded-2xl border border-app-border/60 bg-white/40 open:bg-white/60 p-3 transition-colors"
+            >
+              <summary className="flex cursor-pointer select-none items-center justify-between px-1 outline-none marker:content-none [&::-webkit-details-marker]:hidden">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 text-app-muted-strong transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <strong className="text-[14px] text-app-text">第 {page.pageNo} 页</strong>
+                </div>
+                <span className="text-[12px] text-app-muted">{page.anchors.length} 条引用锚点</span>
+              </summary>
+              
+              <div className="grid gap-3 pt-2">
+                {page.anchors.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  {page.anchors.map((item) => (
+                      <Link
+                      key={item.id}
+                      href={`/workspaces/${workspaceId}/documents/${documentId}?anchorId=${item.id}`}
+                      className={cn(
+                        "inline-flex items-center rounded-lg border px-2.5 py-0.5 text-[12px] transition hover:-translate-y-px",
+                        item.isHighlighted
+                          ? "border-app-accent/30 bg-app-accent/10 text-app-accent"
+                          : "border-app-border/80 bg-white hover:border-app-border-strong text-app-muted-strong",
+                      )}
+                    >
+                      {item.anchorLabel}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+              <div className="grid gap-2">
+                {page.blocks.map((block) => (
+                  <article
+                    key={block.id}
+                    className={cn(
+                      "grid gap-2 rounded-xl border p-3.5 transition-all",
+                      block.isHighlighted
+                        ? "border-app-accent/40 bg-white shadow-soft ring-1 ring-app-accent/10 relative z-10"
+                        : "border-app-border/60 bg-white/70 hover:bg-white hover:border-app-border",
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <strong className="text-app-text text-[13px] font-medium">{block.blockType}</strong>
+                      <span className={ui.muted}>
+                        {block.sectionLabel ?? block.headingPath.at(-1) ?? "正文"}
+                        {block.anchorCount > 0 ? ` · ${block.anchorCount} 个引用` : ""}
+                        {formatCitationLocator(
+                          readCitationLocator(
+                            (block.metadataJson as Record<string, unknown> | null | undefined) ??
+                              null,
+                          ),
+                        )
+                          ? ` · ${formatCitationLocator(
+                              readCitationLocator(
+                                (block.metadataJson as
+                                  | Record<string, unknown>
+                                  | null
+                                  | undefined) ?? null,
+                              ),
+                            )}`
+                          : ""}
+                      </span>
+                    </div>
+                    {block.headingPath.length > 0 ? (
+                      <div className={cn(ui.muted, "text-[13px]")}>
+                        {block.headingPath.join(" / ")}
+                      </div>
+                    ) : null}
+                    <div className="leading-6 text-[14px] text-app-text">{block.text}</div>
+                  </article>
+                ))}
+              </div>
+              </div>
+            </details>
+          ))
+        ) : (
+          <p className={cn(ui.muted, "py-12 text-center text-[13px]")}>
+            {latestVersion?.parseStatus === PARSE_STATUS.READY
+              ? "未提取出文本内容"
+              : "当前还没有可展示的解析内容。若状态仍在处理中，稍后刷新即可。"}
+          </p>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className={cn(ui.page, "max-w-[1440px]")}>
       {/* 顶部标题区，去除了笨重的 panelLarge，改为通栏透明底带底边框 */}
@@ -208,120 +320,24 @@ export default async function DocumentPage({
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_420px]">
-        {/* 左侧主内容区：阅读器与解析内容 */}
-        <div className="grid min-w-0 gap-6">
+      <div className="flex flex-col lg:flex-row items-start gap-6">
+        <div className="min-w-0 flex-1">
           {canRenderPdf ? (
             <PdfViewer
               fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
               title={doc[0].title}
               initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
               highlightedText={anchor?.anchorText ?? ""}
-            />
-          ) : null}
-          
-          {anchor ? (
-            <div className="grid gap-2 rounded-2xl border border-app-accent/20 bg-app-accent/5 p-4 mix-blend-multiply">
-              <h3 className="text-[13px] font-semibold text-app-accent">当前引用定位：{anchor.anchorLabel}</h3>
-              <p className="text-[14px] leading-relaxed text-app-text">{anchor.anchorText}</p>
-            </div>
-          ) : null}
-
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between pb-1">
-              <h3 className="text-[15px] font-semibold text-app-text">解析内容区块</h3>
-              <span className="text-[13px] text-app-muted">
-                {viewerPages.length > 0
-                  ? `共 ${viewerPages.length} 页`
-                  : latestVersion?.parseStatus === PARSE_STATUS.READY
-                    ? "暂无解析内容"
-                    : "等待解析完成"}
-              </span>
-            </div>
-            {viewerPages.length > 0 ? (
-              viewerPages.map((page) => (
-                <section
-                  key={page.pageNo}
-                  className="grid gap-3 rounded-2xl border border-app-border/60 bg-white/40 p-3"
-                >
-                  <div className="flex items-center justify-between px-1">
-                    <strong className="text-[14px] text-app-text">第 {page.pageNo} 页</strong>
-                    <span className="text-[12px] text-app-muted">{page.anchors.length} 条引用锚点</span>
-                  </div>
-                  {page.anchors.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-1">
-                      {page.anchors.map((item) => (
-                         <Link
-                          key={item.id}
-                          href={`/workspaces/${workspaceId}/documents/${documentId}?anchorId=${item.id}`}
-                          className={cn(
-                            "inline-flex items-center rounded-lg border px-2.5 py-0.5 text-[12px] transition hover:-translate-y-px",
-                            item.isHighlighted
-                              ? "border-app-accent/30 bg-app-accent/10 text-app-accent"
-                              : "border-app-border/80 bg-white hover:border-app-border-strong text-app-muted-strong",
-                          )}
-                        >
-                          {item.anchorLabel}
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="grid gap-2">
-                    {page.blocks.map((block) => (
-                      <article
-                        key={block.id}
-                        className={cn(
-                          "grid gap-2 rounded-xl border p-3.5 transition-all",
-                          block.isHighlighted
-                            ? "border-app-accent/40 bg-white shadow-soft ring-1 ring-app-accent/10 relative z-10"
-                            : "border-app-border/60 bg-white/70 hover:bg-white hover:border-app-border",
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <strong className="text-app-text text-[13px] font-medium">{block.blockType}</strong>
-                          <span className={ui.muted}>
-                            {block.sectionLabel ?? block.headingPath.at(-1) ?? "正文"}
-                            {block.anchorCount > 0 ? ` · ${block.anchorCount} 个引用` : ""}
-                            {formatCitationLocator(
-                              readCitationLocator(
-                                (block.metadataJson as Record<string, unknown> | null | undefined) ??
-                                  null,
-                              ),
-                            )
-                              ? ` · ${formatCitationLocator(
-                                  readCitationLocator(
-                                    (block.metadataJson as
-                                      | Record<string, unknown>
-                                      | null
-                                      | undefined) ?? null,
-                                  ),
-                                )}`
-                              : ""}
-                          </span>
-                        </div>
-                        {block.headingPath.length > 0 ? (
-                          <div className={cn(ui.muted, "text-[13px]")}>
-                            {block.headingPath.join(" / ")}
-                          </div>
-                        ) : null}
-                        <div className="leading-6 text-[14px] text-app-text">{block.text}</div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              ))
-            ) : (
-              <p className={cn(ui.muted, "py-12 text-center text-[13px]")}>
-                {latestVersion?.parseStatus === PARSE_STATUS.READY
-                  ? "未提取出文本内容"
-                  : "当前还没有可展示的解析内容。若状态仍在处理中，稍后刷新即可。"}
-              </p>
-            )}
-          </div>
+            >
+              {contentBlocks}
+            </PdfViewer>
+          ) : (
+            contentBlocks
+          )}
         </div>
-
+          
         {/* 右侧边栏：状态、属性、版本 */}
-        <div className="grid w-full shrink-0 gap-5">
+        <div className="grid w-full shrink-0 lg:w-[320px] xl:w-[360px] gap-5">
           <DocumentJobPanel job={latestJob} />
           
           <div className="sticky top-6 grid gap-5">
