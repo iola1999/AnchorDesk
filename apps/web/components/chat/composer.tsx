@@ -12,6 +12,8 @@ import {
   type ComposerAttachmentStatus,
 } from "@/lib/api/conversation-attachments";
 import {
+  COMPOSER_ENTER_ACTION,
+  resolveComposerEnterKeyAction,
   resolveComposerHeading,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
@@ -100,14 +102,16 @@ export function Composer({
   const hasPendingAttachments = !canSubmitWithAttachments(attachmentStatuses);
   const hasNoReadyAttachments =
     attachments.length > 0 && !hasReadyAttachments(attachmentStatuses);
-  const showFooterMessages =
-    Boolean(helperText && workspaceId) ||
-    Boolean(status) ||
-    Boolean(firstAttachmentError) ||
-    hasPendingAttachments ||
-    hasNoReadyAttachments;
   const isStage = variant === "stage";
+  const showFooterMessages =
+    !isStage &&
+    (Boolean(helperText && workspaceId) ||
+      Boolean(status) ||
+      Boolean(firstAttachmentError) ||
+      hasPendingAttachments ||
+      hasNoReadyAttachments);
   const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
+  const isSubmitDisabled = isPending || hasPendingAttachments;
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -474,6 +478,29 @@ export function Composer({
     }
   }
 
+  function onTextareaKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    const action = resolveComposerEnterKeyAction({
+      key: event.key,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+      ctrlKey: event.ctrlKey,
+      isComposing: event.nativeEvent.isComposing,
+      keyCode: event.nativeEvent.keyCode,
+    });
+
+    if (action !== COMPOSER_ENTER_ACTION.SUBMIT) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isSubmitDisabled) {
+      return;
+    }
+
+    event.currentTarget.form?.requestSubmit();
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -501,13 +528,14 @@ export function Composer({
       />
       {isStage ? (
         <div className="grid gap-3">
-          <div className="grid gap-3 rounded-[28px] border border-app-border/80 bg-white/94 px-5 py-4 shadow-soft md:px-6 md:py-5">
+          <div className="grid gap-3 rounded-[28px] border border-app-border/80 bg-white/94 px-5 py-4 shadow-[0_10px_24px_rgba(23,22,18,0.045)] md:px-6 md:py-5">
             <textarea
               ref={textareaRef}
               required
               rows={stageTextareaSizing.minRows}
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onKeyDown={onTextareaKeyDown}
               placeholder={placeholder}
               className={cn(
                 "w-full resize-none bg-transparent px-0 py-0 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted md:text-[16px]",
@@ -538,7 +566,7 @@ export function Composer({
               </div>
               <button
                 className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-app-primary text-app-primary-contrast transition hover:bg-[#25211c] disabled:cursor-not-allowed disabled:opacity-55 md:size-11"
-                disabled={isPending || hasPendingAttachments}
+                disabled={isSubmitDisabled}
                 type="submit"
                 aria-label={submitLabel}
               >
@@ -605,6 +633,7 @@ export function Composer({
             rows={rows ?? 4}
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onKeyDown={onTextareaKeyDown}
             placeholder={placeholder}
             className={cn(ui.textarea, "min-h-[120px]", textareaClassName)}
           />
@@ -631,9 +660,7 @@ export function Composer({
             </div>
             <button
               className={buttonStyles()}
-              disabled={
-                isPending || hasPendingAttachments
-              }
+              disabled={isSubmitDisabled}
               type="submit"
             >
               {isPending ? "刷新中..." : submitLabel}

@@ -15,6 +15,39 @@ export function resolveComposerHeading(input: {
   };
 }
 
+export const COMPOSER_ENTER_ACTION = {
+  NONE: "none",
+  NEWLINE: "newline",
+  SUBMIT: "submit",
+} as const;
+
+export function resolveComposerEnterKeyAction(input: {
+  key: string;
+  shiftKey?: boolean | null;
+  metaKey?: boolean | null;
+  ctrlKey?: boolean | null;
+  isComposing?: boolean | null;
+  keyCode?: number | null;
+}) {
+  if (input.key !== "Enter") {
+    return COMPOSER_ENTER_ACTION.NONE;
+  }
+
+  if (input.isComposing || input.keyCode === 229) {
+    return COMPOSER_ENTER_ACTION.NONE;
+  }
+
+  if (input.shiftKey) {
+    return COMPOSER_ENTER_ACTION.NEWLINE;
+  }
+
+  if (input.metaKey || input.ctrlKey) {
+    return COMPOSER_ENTER_ACTION.SUBMIT;
+  }
+
+  return COMPOSER_ENTER_ACTION.SUBMIT;
+}
+
 const STAGE_COMPOSER_LINE_HEIGHT = 28;
 const STAGE_COMPOSER_MAX_HEIGHT = STAGE_COMPOSER_LINE_HEIGHT * 8;
 

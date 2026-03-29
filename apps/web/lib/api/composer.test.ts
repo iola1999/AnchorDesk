@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  COMPOSER_ENTER_ACTION,
+  resolveComposerEnterKeyAction,
   resolveComposerHeading,
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
@@ -39,6 +41,45 @@ describe("resolveComposerSubmitStatus", () => {
     expect(resolveComposerSubmitStatus("queue offline")).toBe(
       "消息已保存，但 Agent 处理失败：queue offline",
     );
+  });
+});
+
+describe("resolveComposerEnterKeyAction", () => {
+  it("ignores non-enter keys", () => {
+    expect(resolveComposerEnterKeyAction({ key: "a" })).toBe(COMPOSER_ENTER_ACTION.NONE);
+  });
+
+  it("keeps shift-enter as a newline", () => {
+    expect(resolveComposerEnterKeyAction({ key: "Enter", shiftKey: true })).toBe(
+      COMPOSER_ENTER_ACTION.NEWLINE,
+    );
+  });
+
+  it("submits on plain enter and command-enter", () => {
+    expect(resolveComposerEnterKeyAction({ key: "Enter" })).toBe(
+      COMPOSER_ENTER_ACTION.SUBMIT,
+    );
+    expect(
+      resolveComposerEnterKeyAction({
+        key: "Enter",
+        metaKey: true,
+      }),
+    ).toBe(COMPOSER_ENTER_ACTION.SUBMIT);
+  });
+
+  it("does not submit while IME composition is still active", () => {
+    expect(
+      resolveComposerEnterKeyAction({
+        key: "Enter",
+        isComposing: true,
+      }),
+    ).toBe(COMPOSER_ENTER_ACTION.NONE);
+    expect(
+      resolveComposerEnterKeyAction({
+        key: "Enter",
+        keyCode: 229,
+      }),
+    ).toBe(COMPOSER_ENTER_ACTION.NONE);
   });
 });
 

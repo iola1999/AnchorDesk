@@ -157,7 +157,7 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-hidden">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-visible">
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1 md:py-5">
             <ConversationSession
               conversationId={activeConversation.id}
@@ -197,7 +197,7 @@ export default async function WorkspacePage({
             />
           </div>
 
-          <div className="shrink-0 border-t border-app-border/60 pb-2 pt-4 md:pb-3">
+          <div className="shrink-0 border-t border-app-border/60 pb-5 pt-4 md:pb-6">
             <Composer
               conversationId={activeConversation.id}
               workspaceId={workspaceId}
