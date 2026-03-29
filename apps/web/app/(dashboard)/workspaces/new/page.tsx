@@ -11,7 +11,7 @@ export default function NewWorkspacePage() {
           <p className={ui.eyebrow}>Create Space</p>
           <h1>新建工作空间</h1>
           <p className={ui.muted}>
-            每个空间对应一组资料、会话和生成结果。名称用于划定边界，预置提示词用于统一约束后续回答方式。
+            每个空间对应一组资料、会话和生成结果。预置提示词用于统一约束后续回答方式。
           </p>
         </div>
         <Link

@@ -8,6 +8,7 @@ import {
   SUPPORTED_UPLOAD_TYPES_LABEL,
   validateUploadSupport,
 } from "@/lib/api/upload-policy";
+import { resetSubmittedForm } from "@/lib/api/form-submission";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function UploadForm({ workspaceId }: { workspaceId: string }) {
@@ -18,7 +19,8 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const file = formData.get("file") as File | null;
     if (!file) {
       return;
@@ -92,7 +94,7 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
     }
 
     setStatus("上传完成，任务已入队。");
-    event.currentTarget.reset();
+    resetSubmittedForm(form);
     startTransition(() => {
       router.refresh();
     });

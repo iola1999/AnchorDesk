@@ -20,7 +20,7 @@ export function ManualRefreshButton() {
       }
       type="button"
     >
-      {isPending ? "刷新中..." : "手动刷新"}
+      {isPending ? "刷新中..." : "刷新"}
     </button>
   );
 }

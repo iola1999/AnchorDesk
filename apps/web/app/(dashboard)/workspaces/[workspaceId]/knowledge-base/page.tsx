@@ -114,9 +114,6 @@ export default async function WorkspaceKnowledgeBasePage({
           <section className={cn(ui.subcard, "grid content-start gap-4")}>
             <div className="grid gap-1">
               <h2 className="text-base font-semibold">处理中的资料</h2>
-              <p className={cn(ui.muted, "text-[13px] leading-5")}>
-                这里只显示正在处理或失败的任务。
-              </p>
             </div>
 
             {processingDocs.length > 0 ? (
@@ -154,7 +151,7 @@ export default async function WorkspaceKnowledgeBasePage({
                 ))}
               </div>
             ) : (
-              <p className={ui.muted}>当前没有正在处理或失败的资料任务。</p>
+              <p className={ui.muted}>当前没有正在处理或失败的资料任务</p>
             )}
           </section>
         </div>
