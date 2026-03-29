@@ -157,15 +157,12 @@ export default async function WorkspacePage({
       }
     >
       {activeConversation ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[980px] flex-col overflow-hidden">
+        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1280px] flex-col overflow-hidden">
           <header className="grid shrink-0 gap-2 border-b border-app-border/70 pb-5">
             <p className={ui.eyebrow}>Conversation</p>
             <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
               {activeConversation.title}
             </h1>
-            <p className={cn(ui.muted, "max-w-[62ch]")}>
-              保持当前会话上下文，继续围绕这组资料追问、整理结论或补充论证。
-            </p>
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-6 pr-1 md:py-8">

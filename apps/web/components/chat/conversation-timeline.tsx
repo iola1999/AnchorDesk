@@ -53,7 +53,6 @@ export function ConversationTimeline({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid gap-1">
           <h3 className="text-sm font-medium text-app-text">运行过程</h3>
-          <p className={cn(ui.muted, "text-[13px]")}>只展示工具调用与状态，不展示思维链。</p>
         </div>
         {runtimeStatus ? (
           <span className="inline-flex items-center rounded-full border border-app-border/80 bg-white/85 px-3 py-1 text-[12px] text-app-muted-strong">

@@ -10,7 +10,7 @@ export default async function AccountPage() {
   const user = await requireSessionUser();
 
   return (
-    <div className={cn(ui.pageNarrow, "max-w-[980px]")}>
+    <div className={cn(ui.pageNarrow, "max-w-[1280px]")}>
       <section className={cn(ui.panelLarge, "grid gap-4")}>
         <div className={ui.toolbar}>
           <div className="space-y-2">

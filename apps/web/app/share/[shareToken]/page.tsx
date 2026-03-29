@@ -120,7 +120,7 @@ export default async function SharedConversationPage({
   }
 
   return (
-    <main className={cn(ui.pageNarrow, "min-h-screen max-w-[980px] gap-5 py-10")}>
+    <main className={cn(ui.pageNarrow, "min-h-screen max-w-[1280px] gap-5 py-10")}>
       <div className="grid gap-3">
         <div className="grid gap-2">
           <p className={ui.eyebrow}>Shared Conversation</p>
