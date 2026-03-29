@@ -22,6 +22,7 @@ import {
 import {
   bigint,
   boolean,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -268,8 +269,8 @@ export const documentPages = pgTable(
       .notNull()
       .references(() => documentVersions.id, { onDelete: "cascade" }),
     pageNo: integer("page_no").notNull(),
-    width: integer("width"),
-    height: integer("height"),
+    width: doublePrecision("width"),
+    height: doublePrecision("height"),
     textLength: integer("text_length"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
