@@ -14,6 +14,7 @@
 ```text
 user
   └─ workspace
+      ├─ workspace_directories
       ├─ documents
       │   └─ document_versions
       │       ├─ document_jobs
@@ -36,7 +37,9 @@ user
 
 - `workspace` 是知识隔离和会话上下文的核心边界。
 - `workspace` 可携带 `workspace_prompt`，用于附加到该空间内每轮对话的统一回答要求。
+- `workspace_directories` 保存工作空间资料库中的目录树；目录拥有显式父子关系，并通过软删除保留历史节点。
 - `documents` 保存逻辑文档信息，`document_versions` 保存版本化文件。
+- `document_versions.storage_key` 指向全局 content-addressed blob（`blobs/<sha256>`）；对象存储不表达工作空间或目录树层级。
 - `document_blocks / document_chunks / citation_anchors` 支撑检索、阅读和引用。
 - `conversation_attachments` 绑定“会话级临时资料”和正式 `document_version`，用于首条消息前临时上传、首发后认领，以及 parse-only 附件检索。
 - `messages` 保存用户与助手消息，`message_citations` 保存回答中的引用映射。

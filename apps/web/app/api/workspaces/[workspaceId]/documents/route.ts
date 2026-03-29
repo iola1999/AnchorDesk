@@ -1,11 +1,15 @@
-import crypto from "node:crypto";
-
 import { and, desc, eq } from "drizzle-orm";
 import {
   DEFAULT_PARSE_STATUS,
   DOCUMENT_STATUS,
   RUN_STATUS,
 } from "@knowledge-assistant/contracts";
+import {
+  buildContentAddressedStorageKey,
+  matchesContentAddressedStorageKey,
+  normalizeSha256Hex,
+  objectExists,
+} from "@knowledge-assistant/storage";
 
 import {
   documents,
@@ -16,14 +20,11 @@ import {
 import { enqueueIngestFlow } from "@knowledge-assistant/queue";
 
 import { auth } from "@/auth";
+import { ensureWorkspaceDirectoryPath } from "@/lib/api/workspace-directories";
 import { validateUploadSupport } from "@/lib/api/upload-policy";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
 
 export const runtime = "nodejs";
-
-function getWorkspaceStoragePrefix(workspaceId: string) {
-  return `workspaces/${workspaceId}/`;
-}
 
 export async function GET(
   _request: Request,
@@ -69,6 +70,7 @@ export async function POST(
 
   const body = (await request.json()) as {
     storageKey?: string;
+    sha256?: string;
     sourceFilename?: string;
     mimeType?: string;
     directoryPath?: string;
@@ -76,6 +78,7 @@ export async function POST(
   };
 
   const storageKey = String(body.storageKey ?? "").trim();
+  const sha256 = String(body.sha256 ?? "").trim();
   const sourceFilename = String(body.sourceFilename ?? "").trim();
   const directoryPath =
     String(body.directoryPath ?? "")
@@ -84,9 +87,9 @@ export async function POST(
       .replace(/\/+/g, "/") || "资料库";
   const mimeType = String(body.mimeType ?? "application/octet-stream");
 
-  if (!storageKey || !sourceFilename) {
+  if (!sha256 || !sourceFilename) {
     return Response.json(
-      { error: "storageKey and sourceFilename are required" },
+      { error: "sha256 and sourceFilename are required" },
       { status: 400 },
     );
   }
@@ -99,9 +102,25 @@ export async function POST(
     return Response.json({ error: support.message, code: support.code }, { status: 400 });
   }
 
-  if (!storageKey.startsWith(getWorkspaceStoragePrefix(workspaceId))) {
+  let canonicalStorageKey: string;
+  let normalizedSha256: string;
+  try {
+    normalizedSha256 = normalizeSha256Hex(sha256);
+    canonicalStorageKey = buildContentAddressedStorageKey(normalizedSha256);
+  } catch {
+    return Response.json({ error: "sha256 is invalid" }, { status: 400 });
+  }
+
+  if (storageKey && !matchesContentAddressedStorageKey(storageKey, normalizedSha256)) {
     return Response.json(
-      { error: "storageKey does not belong to this workspace" },
+      { error: "storageKey does not match sha256" },
+      { status: 400 },
+    );
+  }
+
+  if (!(await objectExists(canonicalStorageKey))) {
+    return Response.json(
+      { error: "uploaded object not found in storage" },
       { status: 400 },
     );
   }
@@ -109,6 +128,8 @@ export async function POST(
   const logicalPath = `${directoryPath}/${sourceFilename}`.replace(/\/+/g, "/");
   const title = sourceFilename.replace(/\.[^.]+$/, "");
   const db = getDb();
+
+  await ensureWorkspaceDirectoryPath(workspaceId, directoryPath, db);
 
   const existingDocument = await db
     .select()
@@ -146,8 +167,8 @@ export async function POST(
     .values({
       documentId: document.id,
       version: versionNumber,
-      storageKey,
-      sha256: crypto.createHash("sha256").update(storageKey).digest("hex"),
+      storageKey: canonicalStorageKey,
+      sha256: normalizedSha256,
       clientMd5: body.clientMd5 ? String(body.clientMd5) : null,
       parseStatus: DEFAULT_PARSE_STATUS,
       metadataJson: {},

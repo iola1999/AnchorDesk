@@ -8,6 +8,7 @@ import {
   SUPPORTED_UPLOAD_TYPES_LABEL,
   validateUploadSupport,
 } from "@/lib/api/upload-policy";
+import { computeFileSha256 } from "@/lib/api/file-digests";
 import { resetSubmittedForm } from "@/lib/api/form-submission";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -35,6 +36,15 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
       return;
     }
 
+    setStatus("正在计算文件指纹...");
+    const sha256 = await computeFileSha256(file).catch((error: unknown) => {
+      setStatus(error instanceof Error ? error.message : "计算文件指纹失败");
+      return null;
+    });
+    if (!sha256) {
+      return;
+    }
+
     setStatus("正在申请上传地址...");
     const presignResponse = await fetch(`/api/workspaces/${workspaceId}/uploads/presign`, {
       method: "POST",
@@ -43,34 +53,43 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
         filename: file.name,
         contentType: file.type || "application/octet-stream",
         directoryPath,
+        sha256,
       }),
     });
     const presignBody = (await presignResponse.json().catch(() => null)) as
       | {
-          uploadUrl: string;
+          uploadUrl: string | null;
           key: string;
-          bucket: string;
+          bucket: string | null;
+          alreadyExists?: boolean;
           error?: string;
         }
       | null;
 
-    if (!presignResponse.ok || !presignBody?.uploadUrl || !presignBody.key) {
+    if (!presignResponse.ok || !presignBody?.key) {
       setStatus(presignBody?.error ?? "申请上传地址失败");
       return;
     }
 
-    setStatus("正在上传文件...");
-    const uploadResponse = await fetch(presignBody.uploadUrl, {
-      method: "PUT",
-      headers: {
-        "content-type": file.type || "application/octet-stream",
-      },
-      body: file,
-    });
+    if (!presignBody.alreadyExists) {
+      if (!presignBody.uploadUrl) {
+        setStatus("申请上传地址失败");
+        return;
+      }
 
-    if (!uploadResponse.ok) {
-      setStatus(`上传文件失败：${uploadResponse.status}`);
-      return;
+      setStatus("正在上传文件...");
+      const uploadResponse = await fetch(presignBody.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "content-type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        setStatus(`上传文件失败：${uploadResponse.status}`);
+        return;
+      }
     }
 
     setStatus("正在创建文档任务...");
@@ -79,6 +98,7 @@ export function UploadForm({ workspaceId }: { workspaceId: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         storageKey: presignBody.key,
+        sha256,
         sourceFilename: file.name,
         mimeType: file.type || "application/octet-stream",
         directoryPath,

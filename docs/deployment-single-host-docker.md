@@ -20,6 +20,7 @@
 - 非 SQL 的一次性升级通过 app upgrades 执行。
 - 运行时服务启动前只做 `pnpm app:upgrade:check` fail-fast 检查。
 - 常规发布采用 roll-forward，不依赖自动 down migration。
+- 对象存储使用单 bucket；正式原始文件对象统一落在 `blobs/<sha256>`，不再按工作空间或目录前缀划分。
 
 ## 2. 准备环境文件
 

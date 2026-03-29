@@ -1,32 +1,57 @@
-import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
 import { RUN_STATUS } from "@knowledge-assistant/contracts";
 
-import { documentJobs, documentVersions, documents, getDb } from "@knowledge-assistant/db";
+import {
+  documentJobs,
+  documentVersions,
+  documents,
+  getDb,
+  workspaceDirectories,
+} from "@knowledge-assistant/db";
 
-import { DocumentTreePanel } from "@/components/workspaces/document-tree-panel";
-import { ManualRefreshButton } from "@/components/workspaces/manual-refresh-button";
-import { UploadForm } from "@/components/workspaces/upload-form";
+import { KnowledgeBaseExplorer } from "@/components/workspaces/knowledge-base-explorer";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
-import { canRetryDocumentJob, describeDocumentJobFailure } from "@/lib/api/document-jobs";
+import { KNOWLEDGE_BASE_ROOT_PATH, normalizeDirectoryPath } from "@/lib/api/directory-paths";
+import { ensureWorkspaceRootDirectory } from "@/lib/api/workspace-directories";
 import { loadWorkspaceShellData } from "@/lib/api/workspace-shell-data";
-import { cn, ui } from "@/lib/ui";
 
 export default async function WorkspaceKnowledgeBasePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceId: string }>;
+  searchParams: Promise<{ path?: string }>;
 }) {
   const { workspaceId } = await params;
+  const { path } = await searchParams;
   const { workspace, workspaceList, conversationList, user } =
     await loadWorkspaceShellData(workspaceId);
   const db = getDb();
+  await ensureWorkspaceRootDirectory(workspaceId, db);
 
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.workspaceId, workspaceId))
-    .orderBy(desc(documents.createdAt));
+  const [docs, directories] = await Promise.all([
+    db
+      .select()
+      .from(documents)
+      .where(eq(documents.workspaceId, workspaceId))
+      .orderBy(desc(documents.createdAt)),
+    db
+      .select()
+      .from(workspaceDirectories)
+      .where(eq(workspaceDirectories.workspaceId, workspaceId))
+      .orderBy(workspaceDirectories.path),
+  ]);
+
+  const activeDirectories = directories.filter((directory) => !directory.deletedAt);
+  const normalizedPath = normalizeDirectoryPath(path ?? KNOWLEDGE_BASE_ROOT_PATH);
+  const currentDirectory =
+    activeDirectories.find((directory) => directory.path === normalizedPath) ??
+    activeDirectories.find((directory) => directory.path === KNOWLEDGE_BASE_ROOT_PATH) ??
+    null;
+
+  if (!currentDirectory) {
+    throw new Error("Knowledge base root directory is missing");
+  }
 
   const latestVersionIds = docs
     .map((doc) => doc.latestVersionId)
@@ -63,13 +88,6 @@ export default async function WorkspaceKnowledgeBasePage({
     };
   });
 
-  const processingDocs = docsWithProgress.filter(
-    (doc) =>
-      doc.latestJob?.status === RUN_STATUS.QUEUED ||
-      doc.latestJob?.status === RUN_STATUS.RUNNING ||
-      doc.latestJob?.status === RUN_STATUS.FAILED,
-  );
-
   return (
     <WorkspaceShell
       workspace={{
@@ -89,73 +107,50 @@ export default async function WorkspaceKnowledgeBasePage({
         { label: "资料库" },
       ]}
     >
-      <div className="mx-auto grid w-full max-w-[1080px] gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
-          <h1>资料库</h1>
-          <ManualRefreshButton />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(280px,0.92fr)]">
-          <div className="grid gap-4">
-            <UploadForm workspaceId={workspace.id} />
-
-            <DocumentTreePanel
-              workspaceId={workspace.id}
-              documents={docsWithProgress.map((doc) => ({
-                id: doc.id,
-                title: doc.title,
-                logicalPath: doc.logicalPath,
-                docType: doc.docType,
-                tags: doc.tagsJson ?? [],
-              }))}
-            />
-          </div>
-
-          <section className={cn(ui.subcard, "grid content-start gap-4")}>
-            <div className="grid gap-1">
-              <h2 className="text-base font-semibold">处理中的资料</h2>
-            </div>
-
-            {processingDocs.length > 0 ? (
-              <div className="grid gap-3">
-                {processingDocs.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="grid gap-2 rounded-2xl border border-app-border bg-white/82 p-4"
-                  >
-                    <Link
-                      href={`/workspaces/${workspace.id}/documents/${doc.id}`}
-                      className="font-medium hover:text-app-accent"
-                    >
-                      <strong>{doc.title}</strong>
-                    </Link>
-                    <span className={ui.muted}>
-                      {doc.latestJob?.stage ?? doc.latestVersion?.parseStatus ?? doc.status}
-                      {doc.latestJob ? ` · ${doc.latestJob.progress}%` : ""}
-                    </span>
-                    {doc.latestJob?.status === RUN_STATUS.FAILED ? (
-                      <p className={ui.error}>
-                        {describeDocumentJobFailure({
-                          stage: doc.latestJob.stage,
-                          errorCode: doc.latestJob.errorCode,
-                          errorMessage: doc.latestJob.errorMessage,
-                        })}
-                      </p>
-                    ) : null}
-                    {doc.latestJob && canRetryDocumentJob(doc.latestJob) ? (
-                      <div className={cn(ui.muted, "text-[13px] leading-5")}>
-                        可在文档详情页或任务入口继续重试。
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className={ui.muted}>当前没有正在处理或失败的资料任务</p>
-            )}
-          </section>
-        </div>
-      </div>
+      <KnowledgeBaseExplorer
+        workspaceId={workspace.id}
+        initialCurrentPath={currentDirectory.path}
+        currentDirectoryId={currentDirectory.id}
+        directories={activeDirectories.map((directory) => ({
+          id: directory.id,
+          parentId: directory.parentId,
+          name: directory.name,
+          path: directory.path,
+          createdAt: directory.createdAt.toISOString(),
+          updatedAt: directory.updatedAt.toISOString(),
+        }))}
+        documents={docsWithProgress.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          sourceFilename: doc.sourceFilename,
+          logicalPath: doc.logicalPath,
+          directoryPath: doc.directoryPath,
+          mimeType: doc.mimeType,
+          docType: doc.docType,
+          tags: doc.tagsJson ?? [],
+          status: doc.status,
+          createdAt: doc.createdAt.toISOString(),
+          updatedAt: doc.updatedAt.toISOString(),
+          latestVersion: doc.latestVersion
+            ? {
+                id: doc.latestVersion.id,
+                parseStatus: doc.latestVersion.parseStatus,
+                fileSizeBytes: doc.latestVersion.fileSizeBytes ?? null,
+              }
+            : null,
+          latestJob: doc.latestJob
+            ? {
+                id: doc.latestJob.id,
+                status: doc.latestJob.status,
+                stage: doc.latestJob.stage,
+                progress: doc.latestJob.progress,
+                updatedAt: doc.latestJob.updatedAt.toISOString(),
+                errorCode: doc.latestJob.errorCode,
+                errorMessage: doc.latestJob.errorMessage,
+              }
+            : null,
+        }))}
+      />
     </WorkspaceShell>
   );
 }

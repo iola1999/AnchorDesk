@@ -43,6 +43,7 @@
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
@@ -62,6 +63,8 @@
 ## 2. 最近完成
 
 - `working tree` Consolidate runtime config to bootstrap env + DB system_settings; app services load settings at startup via initRuntimeSettings()
+- `working tree` Switch uploaded source objects to direct content-addressed blobs, verify claimed SHA256 in worker, and avoid deleting shared blobs still referenced by other versions
+- `working tree` Materialize workspace knowledge-base directories, add file-manager table layout, batch operations, zip download, and drag-to-directory flow
 - `working tree` Add Redis-backed JWT session allowlist and revoke all sessions on password change
 - `working tree` Add retry entry for the latest failed assistant turn in workspace conversations
 - `working tree` Align local mock agent fallback with real tool names and stable output structure

@@ -6,6 +6,7 @@ import {
   DOCUMENT_TYPE_VALUES,
   type DocumentType,
 } from "@knowledge-assistant/contracts";
+import { normalizeDirectoryPath } from "./directory-paths";
 
 export const documentTypeOptions = [
   { value: DOCUMENT_TYPE.REFERENCE, label: "参考资料" },
@@ -64,16 +65,6 @@ function normalizeFilenamePart(value: string) {
     .replace(/[\\/]+/g, " ")
     .replace(/\s+/g, " ")
     .replace(/^\.+|\.+$/g, "");
-}
-
-export function normalizeDirectoryPath(value: string, fallback = "资料库") {
-  const normalized = value
-    .trim()
-    .replace(/\\/g, "/")
-    .replace(/^\/+|\/+$/g, "")
-    .replace(/\/+/g, "/");
-
-  return normalized || fallback;
 }
 
 export function normalizeDocumentTags(values: string[]) {

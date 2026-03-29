@@ -42,9 +42,14 @@
 - `/api/workspaces`
 - `/api/workspaces/[workspaceId]`
 - `/api/workspaces/[workspaceId]/uploads/presign`
+  - 接收前端计算好的 `sha256`，为 `blobs/<sha256>` 返回 presigned PUT；若已有已验证 blob，可直接返回复用结果
+- `/api/workspaces/[workspaceId]/directories`
 - `/api/workspaces/[workspaceId]/attachments/presign`
+  - 与资料库上传相同，但用于会话级临时附件
 - `/api/workspaces/[workspaceId]/attachments`
 - `/api/workspaces/[workspaceId]/documents`
+- `/api/workspaces/[workspaceId]/knowledge-base/operations`
+- `/api/workspaces/[workspaceId]/knowledge-base/download`
 - `/api/workspaces/[workspaceId]/tree`
 - `/api/workspaces/[workspaceId]/conversations`
 - `/api/conversations/[conversationId]/messages`

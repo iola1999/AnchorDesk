@@ -1,6 +1,11 @@
-import { createPresignedUploadUrl } from "@knowledge-assistant/storage";
+import {
+  buildContentAddressedStorageKey,
+  createPresignedUploadUrl,
+  normalizeSha256Hex,
+} from "@knowledge-assistant/storage";
 
 import { auth } from "@/auth";
+import { hasVerifiedContentAddressedBlob } from "@/lib/api/content-addressed-storage";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
 import { validateUploadSupport } from "@/lib/api/upload-policy";
 
@@ -26,14 +31,16 @@ export async function POST(
     filename?: string;
     contentType?: string;
     directoryPath?: string;
+    sha256?: string;
   };
 
   const filename = String(body.filename ?? "").trim();
   const contentType = String(body.contentType ?? "application/octet-stream");
   const directoryPath = String(body.directoryPath ?? "").trim();
+  const sha256 = String(body.sha256 ?? "").trim();
 
-  if (!filename) {
-    return Response.json({ error: "filename is required" }, { status: 400 });
+  if (!filename || !sha256) {
+    return Response.json({ error: "filename and sha256 are required" }, { status: 400 });
   }
 
   const support = validateUploadSupport({ filename, contentType });
@@ -41,14 +48,32 @@ export async function POST(
     return Response.json({ error: support.message, code: support.code }, { status: 400 });
   }
 
-  const safeFilename = filename.replace(/[^\w.\-\u4e00-\u9fa5]/g, "_");
-  const key = `workspaces/${workspaceId}/${Date.now()}-${safeFilename}`;
+  let key: string;
+  let normalizedSha256: string;
+  try {
+    normalizedSha256 = normalizeSha256Hex(sha256);
+    key = buildContentAddressedStorageKey(normalizedSha256);
+  } catch {
+    return Response.json({ error: "sha256 is invalid" }, { status: 400 });
+  }
+
+  if (await hasVerifiedContentAddressedBlob(normalizedSha256)) {
+    return Response.json({
+      uploadUrl: null,
+      key,
+      bucket: null,
+      alreadyExists: true,
+      directoryPath,
+    });
+  }
+
   const presigned = await createPresignedUploadUrl({ key, contentType });
 
   return Response.json({
     uploadUrl: presigned.url,
     key: presigned.key,
     bucket: presigned.bucket,
+    alreadyExists: false,
     directoryPath,
   });
 }

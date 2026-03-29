@@ -1,10 +1,13 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+export * from "./object-keys";
 
 let client: S3Client | null = null;
 
@@ -64,6 +67,21 @@ export async function putJson(key: string, value: unknown) {
   );
 }
 
+export async function putObjectBytes(
+  key: string,
+  value: Uint8Array,
+  contentType?: string,
+) {
+  await getS3Client().send(
+    new PutObjectCommand({
+      Bucket: getBucketName(),
+      Key: key,
+      ContentType: contentType,
+      Body: value,
+    }),
+  );
+}
+
 function isNotFoundError(error: unknown) {
   if (!(error instanceof Error)) {
     return false;
@@ -94,6 +112,24 @@ export async function getObjectBytes(key: string): Promise<Uint8Array | null> {
   } catch (error) {
     if (isNotFoundError(error)) {
       return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function objectExists(key: string) {
+  try {
+    await getS3Client().send(
+      new HeadObjectCommand({
+        Bucket: getBucketName(),
+        Key: key,
+      }),
+    );
+    return true;
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return false;
     }
 
     throw error;

@@ -19,6 +19,7 @@ import {
   resolveComposerStageTextareaSizing,
   resolveComposerSubmitStatus,
 } from "@/lib/api/composer";
+import { computeFileSha256 } from "@/lib/api/file-digests";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -242,11 +243,29 @@ export function Composer({
           sourceFilename: file.name,
           status: COMPOSER_ATTACHMENT_STATUS.PRESIGNING,
           progress: 0,
-          stage: null,
+          stage: "计算指纹",
           errorMessage: null,
         },
       ]),
     );
+
+    const sha256 = await computeFileSha256(file).catch((error: unknown) => {
+      setAttachments((current) =>
+        current.map((attachment) =>
+          attachment.id === localId
+            ? {
+                ...attachment,
+                status: COMPOSER_ATTACHMENT_STATUS.FAILED,
+                errorMessage: error instanceof Error ? error.message : "计算文件指纹失败。",
+              }
+            : attachment,
+        ),
+      );
+      return null;
+    });
+    if (!sha256) {
+      return;
+    }
 
     const presignResponse = await fetch(`/api/workspaces/${workspaceId}/attachments/presign`, {
       method: "POST",
@@ -254,17 +273,19 @@ export function Composer({
       body: JSON.stringify({
         filename: file.name,
         contentType: file.type || "application/octet-stream",
+        sha256,
       }),
     });
     const presignBody = (await presignResponse.json().catch(() => null)) as
       | {
-          uploadUrl?: string;
+          uploadUrl?: string | null;
           key?: string;
+          alreadyExists?: boolean;
           error?: string;
         }
       | null;
 
-    if (!presignResponse.ok || !presignBody?.uploadUrl || !presignBody.key) {
+    if (!presignResponse.ok || !presignBody?.key) {
       setAttachments((current) =>
         current.map((attachment) =>
           attachment.id === localId
@@ -285,32 +306,50 @@ export function Composer({
           ? {
               ...attachment,
               status: COMPOSER_ATTACHMENT_STATUS.UPLOADING,
+              stage: presignBody.alreadyExists ? "复用已有文件" : "上传中",
             }
           : attachment,
       ),
     );
 
-    const uploadResponse = await fetch(presignBody.uploadUrl, {
-      method: "PUT",
-      headers: {
-        "content-type": file.type || "application/octet-stream",
-      },
-      body: file,
-    });
+    if (!presignBody.alreadyExists) {
+      if (!presignBody.uploadUrl) {
+        setAttachments((current) =>
+          current.map((attachment) =>
+            attachment.id === localId
+              ? {
+                  ...attachment,
+                  status: COMPOSER_ATTACHMENT_STATUS.FAILED,
+                  errorMessage: "申请上传地址失败。",
+                }
+              : attachment,
+          ),
+        );
+        return;
+      }
 
-    if (!uploadResponse.ok) {
-      setAttachments((current) =>
-        current.map((attachment) =>
-          attachment.id === localId
-            ? {
-                ...attachment,
-                status: COMPOSER_ATTACHMENT_STATUS.FAILED,
-                errorMessage: `上传文件失败：${uploadResponse.status}`,
-              }
-            : attachment,
-        ),
-      );
-      return;
+      const uploadResponse = await fetch(presignBody.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "content-type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        setAttachments((current) =>
+          current.map((attachment) =>
+            attachment.id === localId
+              ? {
+                  ...attachment,
+                  status: COMPOSER_ATTACHMENT_STATUS.FAILED,
+                  errorMessage: `上传文件失败：${uploadResponse.status}`,
+                }
+              : attachment,
+          ),
+        );
+        return;
+      }
     }
 
     setAttachments((current) =>
@@ -319,6 +358,7 @@ export function Composer({
           ? {
               ...attachment,
               status: COMPOSER_ATTACHMENT_STATUS.CREATING,
+              stage: "登记中",
             }
           : attachment,
       ),
@@ -329,6 +369,7 @@ export function Composer({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         storageKey: presignBody.key,
+        sha256,
         sourceFilename: file.name,
         mimeType: file.type || "application/octet-stream",
         ...(conversationId

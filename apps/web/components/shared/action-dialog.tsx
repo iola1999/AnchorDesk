@@ -1,6 +1,13 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useEffect, useId } from "react";
+import { createPortal } from "react-dom";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
@@ -39,6 +46,11 @@ export function ActionDialog({
 }) {
   const titleId = useId();
   const descriptionId = useId();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -62,14 +74,14 @@ export function ActionDialog({
     };
   }, [isSubmitting, onClose, open]);
 
-  if (!open) {
+  if (!open || !isMounted) {
     return null;
   }
 
   const isDanger = tone === "danger";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-6">
+  return createPortal(
+    <div className="fixed inset-0 z-70 flex items-center justify-center px-4 py-6 sm:px-6">
       <button
         type="button"
         aria-label="关闭对话框"
@@ -151,7 +163,8 @@ export function ActionDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -32,7 +32,15 @@ import {
   embedTexts,
   upsertDocumentChunks,
 } from "@knowledge-assistant/retrieval";
-import { getJson, getObjectBytes, putJson } from "@knowledge-assistant/storage";
+import {
+  buildContentAddressedStorageKey,
+  deleteObject,
+  getJson,
+  getObjectBytes,
+  isTemporaryUploadKey,
+  putJson,
+  putObjectBytes,
+} from "@knowledge-assistant/storage";
 import { buildChunkSeeds } from "./chunking";
 import {
   resolveDocumentIndexingMode,
@@ -161,6 +169,7 @@ async function fetchVersion(documentVersionId: string) {
       parseArtifactId: documentVersions.parseArtifactId,
       metadataJson: documentVersions.metadataJson,
       documentTitle: documents.title,
+      documentMimeType: documents.mimeType,
       workspaceId: documents.workspaceId,
       documentPath: documents.logicalPath,
     })
@@ -185,20 +194,65 @@ async function ensureVersionFingerprint(documentVersionId: string) {
 
   const sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
   const fileSizeBytes = bytes.byteLength;
+  const canonicalStorageKey = buildContentAddressedStorageKey(sha256);
+  let storageKey = version.storageKey;
+  let previousStorageKey: string | null = null;
+  const nextSha256 = isTemporaryUploadKey(version.storageKey) ? sha256 : version.sha256;
 
-  if (version.sha256 !== sha256 || version.fileSizeBytes !== fileSizeBytes) {
+  if (isTemporaryUploadKey(version.storageKey)) {
+    await putObjectBytes(canonicalStorageKey, bytes, version.documentMimeType);
+    storageKey = canonicalStorageKey;
+    previousStorageKey = version.storageKey;
+  } else if (version.storageKey !== canonicalStorageKey || version.sha256 !== sha256) {
+    try {
+      await deleteObject(version.storageKey);
+    } catch (error) {
+      logger.warn(
+        {
+          documentVersionId,
+          storageKey: version.storageKey,
+          error: serializeErrorForLog(error),
+        },
+        "failed to remove mismatched content-addressed blob",
+      );
+    }
+    throw new Error("uploaded object digest does not match the claimed sha256");
+  }
+
+  if (
+    version.sha256 !== nextSha256 ||
+    version.fileSizeBytes !== fileSizeBytes ||
+    version.storageKey !== storageKey
+  ) {
     await db
       .update(documentVersions)
       .set({
-        sha256,
+        storageKey,
+        sha256: nextSha256,
         fileSizeBytes,
       })
       .where(eq(documentVersions.id, documentVersionId));
   }
 
+  if (previousStorageKey) {
+    try {
+      await deleteObject(previousStorageKey);
+    } catch (error) {
+      logger.warn(
+        {
+          documentVersionId,
+          previousStorageKey,
+          error: serializeErrorForLog(error),
+        },
+        "failed to clean up temporary object after promoting content-addressed blob",
+      );
+    }
+  }
+
   return {
     ...version,
-    sha256,
+    storageKey,
+    sha256: nextSha256,
     fileSizeBytes,
   };
 }

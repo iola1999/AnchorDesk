@@ -5,6 +5,7 @@ import { getDb, workspaces } from "@knowledge-assistant/db";
 
 import { auth } from "@/auth";
 import { createWorkspace } from "@/lib/api/workspace-creation";
+import { ensureWorkspaceRootDirectory } from "@/lib/api/workspace-directories";
 import {
   WORKSPACE_PROMPT_MAX_LENGTH,
 } from "@/lib/api/workspace-prompt";
@@ -82,6 +83,8 @@ export async function POST(request: Request) {
       },
     },
   );
+
+  await ensureWorkspaceRootDirectory(workspace.id, db);
 
   return Response.json({ workspace }, { status: 201 });
 }

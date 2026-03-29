@@ -15,6 +15,12 @@ import {
   getDb,
 } from "@knowledge-assistant/db";
 import { enqueueIngestFlow } from "@knowledge-assistant/queue";
+import {
+  buildContentAddressedStorageKey,
+  matchesContentAddressedStorageKey,
+  normalizeSha256Hex,
+  objectExists,
+} from "@knowledge-assistant/storage";
 
 import { auth } from "@/auth";
 import {
@@ -22,15 +28,12 @@ import {
   buildTemporaryAttachmentDirectory,
   buildTemporaryAttachmentLogicalPath,
 } from "@/lib/api/conversation-attachments";
+import { ensureWorkspaceDirectoryPath } from "@/lib/api/workspace-directories";
 import { validateUploadSupport } from "@/lib/api/upload-policy";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
 
 export const runtime = "nodejs";
-
-function getTemporaryStoragePrefix(workspaceId: string) {
-  return `workspaces/${workspaceId}/temporary/`;
-}
 
 export async function POST(
   request: Request,
@@ -50,6 +53,7 @@ export async function POST(
 
   const body = (await request.json().catch(() => ({}))) as {
     storageKey?: string;
+    sha256?: string;
     sourceFilename?: string;
     mimeType?: string;
     clientMd5?: string;
@@ -58,14 +62,15 @@ export async function POST(
   };
 
   const storageKey = String(body.storageKey ?? "").trim();
+  const sha256 = String(body.sha256 ?? "").trim();
   const sourceFilename = String(body.sourceFilename ?? "").trim();
   const mimeType = String(body.mimeType ?? "application/octet-stream");
   const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
   const conversationId = String(body.conversationId ?? "").trim() || null;
 
-  if (!storageKey || !sourceFilename) {
+  if (!sha256 || !sourceFilename) {
     return Response.json(
-      { error: "storageKey and sourceFilename are required" },
+      { error: "sha256 and sourceFilename are required" },
       { status: 400 },
     );
   }
@@ -85,9 +90,25 @@ export async function POST(
     return Response.json({ error: support.message, code: support.code }, { status: 400 });
   }
 
-  if (!storageKey.startsWith(getTemporaryStoragePrefix(workspaceId))) {
+  let canonicalStorageKey: string;
+  let normalizedSha256: string;
+  try {
+    normalizedSha256 = normalizeSha256Hex(sha256);
+    canonicalStorageKey = buildContentAddressedStorageKey(normalizedSha256);
+  } catch {
+    return Response.json({ error: "sha256 is invalid" }, { status: 400 });
+  }
+
+  if (storageKey && !matchesContentAddressedStorageKey(storageKey, normalizedSha256)) {
     return Response.json(
-      { error: "storageKey does not belong to this workspace temporary scope" },
+      { error: "storageKey does not match sha256" },
+      { status: 400 },
+    );
+  }
+
+  if (!(await objectExists(canonicalStorageKey))) {
+    return Response.json(
+      { error: "uploaded object not found in storage" },
       { status: 400 },
     );
   }
@@ -112,6 +133,8 @@ export async function POST(
   const title = sourceFilename.replace(/\.[^.]+$/, "");
   const db = getDb();
 
+  await ensureWorkspaceDirectoryPath(workspaceId, directoryPath, db);
+
   const [document] = await db
     .insert(documents)
     .values({
@@ -131,8 +154,8 @@ export async function POST(
     .values({
       documentId: document.id,
       version: 1,
-      storageKey,
-      sha256: crypto.createHash("sha256").update(storageKey).digest("hex"),
+      storageKey: canonicalStorageKey,
+      sha256: normalizedSha256,
       clientMd5: body.clientMd5 ? String(body.clientMd5) : null,
       parseStatus: DEFAULT_PARSE_STATUS,
       metadataJson: {

@@ -99,6 +99,12 @@ pnpm dev
 - 可选通过 `LOG_LEVEL` 调整日志级别；默认行为是开发期 `debug`、生产期 `info`、测试期 `silent`。
 - 这样可以避免在仓库内留下 `.dev` 状态目录，减少对前端 dev watch 的干扰。
 
+当前对象存储 key 布局：
+
+- 客户端在浏览器侧先计算 SHA256，再直传到：`blobs/<sha256>`
+- worker 会复核对象内容的 SHA256 与 key 是否一致，并补齐 `file_size_bytes`
+- 资料所属工作空间、目录层级与逻辑路径只保存在数据库；在 MinIO / R2 里不要再期待 `workspaces/<workspaceId>/...` 这类前缀
+
 状态检查：
 
 ```bash

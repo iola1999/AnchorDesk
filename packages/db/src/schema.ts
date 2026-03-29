@@ -22,6 +22,7 @@ import {
 import {
   bigint,
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -114,6 +115,41 @@ export const workspaces = pgTable(
   (table) => [
     uniqueIndex("workspaces_user_slug_uid").on(table.userId, table.slug),
     index("workspaces_user_idx").on(table.userId),
+  ],
+);
+
+export const workspaceDirectories = pgTable(
+  "workspace_directories",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id"),
+    name: varchar("name", { length: 255 }).notNull(),
+    path: text("path").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+      name: "workspace_directories_parent_id_workspace_directories_id_fk",
+    }).onDelete("set null"),
+    uniqueIndex("workspace_directories_workspace_path_uid").on(
+      table.workspaceId,
+      table.path,
+    ),
+    index("workspace_directories_workspace_parent_idx").on(
+      table.workspaceId,
+      table.parentId,
+    ),
+    index("workspace_directories_workspace_deleted_idx").on(
+      table.workspaceId,
+      table.deletedAt,
+    ),
   ],
 );
 

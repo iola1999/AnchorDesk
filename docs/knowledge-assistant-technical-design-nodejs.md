@@ -97,6 +97,7 @@ flowchart LR
 - `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页。
 - 工作空间当前不再提供归档入口；删除改为软删除，已删除空间会从默认列表和资源访问链路中隐藏。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
+- 工作空间与会话附件上传当前由前端先计算文件 SHA256，再由 Web 下发 `blobs/<sha256>` 的 presigned PUT；若已有已验证 blob 则直接复用，不再按工作空间或目录前缀组织对象。
 - `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，再交给最终 grounded answer renderer。
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
@@ -256,7 +257,28 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - 工作空间是最小隔离边界。
 - 目录树只影响过滤和展示，不改变底层 chunk 平铺索引。
+- 对象存储不承担工作空间隔离或目录表达；这两层语义只存在于数据库 metadata。
 - 回答引用落到 `citation_anchors`。
+
+### 6.1 对象存储布局
+
+对象存储采用“单 bucket + 内容寻址 blob”模型：
+
+- 原始文件对象统一写到 `blobs/<sha256>`。
+- 工作空间、目录树、逻辑路径、软删除和权限判断全部由 PostgreSQL 中的 `workspaces`、`workspace_directories`、`documents`、`document_versions` 等表维护，不从对象 key 反推。
+- 上传链路采用两段式：
+  1. 前端计算文件 SHA256
+  2. Web 基于 SHA256 下发 `blobs/<sha256>` 的 presigned PUT；若数据库中已有已验证 blob，可直接跳过上传
+  3. 前端提交 `sha256 + 目录路径 + 文件元数据` 创建 `documents` / `document_versions` 并入队
+  4. Worker 读取 `blobs/<sha256>`，复核实际 SHA256 与 `storage_key` 是否一致，再写入 `file_size_bytes` 并继续 parse / chunk / index
+- `document_versions.sha256` 在 finalize 时即写入客户端声明的 SHA256；worker 必须复核内容和 key 是否匹配，不允许在正式 key 上静默改写成其他 hash。
+- 删除资料时不能只看当前 document 是否被删；必须先检查同一个 `storage_key` 是否仍被其他 `document_versions` 引用，只有最后一个引用消失时才删除 blob。
+
+数据库关系约束保持不变：
+
+- 对象 key 扁平化不等于放弃关系完整性。
+- `documents -> workspaces`、`document_versions -> documents`、`document_jobs -> document_versions`、`conversation_attachments -> document_versions / documents` 等核心链路继续保留外键。
+- 这些外键的职责是防止悬挂版本、悬挂任务和悬挂附件；对象存储已经不再表达层级归属后，数据库更需要保留这层硬约束。
 
 ## 7. Tool 设计
 

@@ -12,6 +12,7 @@ import {
   buildDocumentMetadataUpdate,
   documentMetadataPatchSchema,
 } from "@/lib/api/document-metadata";
+import { ensureWorkspaceDirectoryPath } from "@/lib/api/workspace-directories";
 import { requireOwnedWorkspace } from "@/lib/guards/workspace";
 
 export const runtime = "nodejs";
@@ -124,6 +125,10 @@ export async function PATCH(
 
   if (!next.metadataChanged) {
     return Response.json({ document });
+  }
+
+  if (next.pathChanged) {
+    await ensureWorkspaceDirectoryPath(workspaceId, next.directoryPath, db);
   }
 
   const [updatedDocument] = await db

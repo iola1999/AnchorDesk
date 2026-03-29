@@ -21,6 +21,7 @@ import {
   buildMessageCitationLabel,
   readCitationLocator,
 } from "./document-metadata";
+import { resolveStorageKeysToDelete } from "./storage-assets";
 
 type EmbeddingArtifact = {
   points: Array<{
@@ -135,6 +136,7 @@ export async function syncDocumentSearchIndex(documentId: string) {
 
 export async function deleteDocumentSearchIndexAndAssets(documentId: string) {
   const versions = await listDocumentVersions(documentId);
+  const storageKeys = [...new Set(versions.map((version) => version.storageKey))];
 
   for (const version of versions) {
     await deleteDocumentVersionPoints({
@@ -143,12 +145,25 @@ export async function deleteDocumentSearchIndexAndAssets(documentId: string) {
     });
   }
 
-  await Promise.all(
-    versions.flatMap((version) => [
-      deleteObject(version.storageKey),
-      deleteObject(getEmbeddingArtifactKey(version.id)),
-    ]),
-  );
+  const referencedStorageKeys =
+    storageKeys.length === 0
+      ? []
+      : (
+          await getDb()
+            .select({ storageKey: documentVersions.storageKey })
+            .from(documentVersions)
+            .where(inArray(documentVersions.storageKey, storageKeys))
+        ).map((row) => row.storageKey);
+
+  const storageKeysToDelete = resolveStorageKeysToDelete({
+    referencedStorageKeys,
+    deletingStorageKeys: versions.map((version) => version.storageKey),
+  });
+
+  await Promise.all([
+    ...storageKeysToDelete.map((storageKey) => deleteObject(storageKey)),
+    ...versions.map((version) => deleteObject(getEmbeddingArtifactKey(version.id))),
+  ]);
 }
 
 export async function syncDocumentCitationMetadata(input: {
