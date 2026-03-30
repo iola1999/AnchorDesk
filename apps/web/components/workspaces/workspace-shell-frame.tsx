@@ -10,7 +10,10 @@ import {
 
 import { AnchorDeskLogo, CloseIcon, MenuIcon, PlusIcon, SlidersIcon, SourceIcon } from "@/components/icons";
 import { workspaceBranding } from "@/lib/branding";
-import { WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY } from "@/lib/workspace-shell";
+import {
+  WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY,
+  WORKSPACE_SHELL_SIDEBAR_CONTENT_CLASS,
+} from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 import { WorkspaceConversationSidebarItem } from "@/components/workspaces/workspace-conversation-sidebar-item";
@@ -43,6 +46,27 @@ export type WorkspaceShellFrameProps = {
   breadcrumbs: Array<{ label: string; href?: string }>;
   topActions?: ReactNode;
   children: ReactNode;
+};
+
+type SidebarContentProps = {
+  workspace: WorkspaceListItem;
+  conversations: ConversationListItem[];
+  activeConversationId?: string;
+  activeView: "chat" | "settings" | "knowledge-base";
+  currentUser: {
+    name?: string | null;
+    username: string;
+  };
+  canAccessSystemSettings: boolean;
+  onNavigate?: () => void;
+  alwaysShowConversationMenu?: boolean;
+};
+
+type BreadcrumbTrailProps = {
+  workspace: WorkspaceListItem;
+  workspaces: WorkspaceListItem[];
+  breadcrumbs: Array<{ label: string; href?: string }>;
+  activeView: "chat" | "settings" | "knowledge-base";
 };
 
 export function WorkspaceShellFrame({
@@ -268,19 +292,7 @@ function WorkspaceSidebarContent({
   canAccessSystemSettings,
   onNavigate,
   alwaysShowConversationMenu = false,
-}: {
-  workspace: WorkspaceListItem;
-  conversations: ConversationListItem[];
-  activeConversationId?: string;
-  activeView: "chat" | "settings" | "knowledge-base";
-  currentUser: {
-    name?: string | null;
-    username: string;
-  };
-  canAccessSystemSettings: boolean;
-  onNavigate?: () => void;
-  alwaysShowConversationMenu?: boolean;
-}) {
+}: SidebarContentProps) {
   const activeConversations = conversations.filter(
     (item) => item.status === CONVERSATION_STATUS.ACTIVE,
   );
@@ -296,7 +308,7 @@ function WorkspaceSidebarContent({
     );
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-4 px-4 py-4">
+    <div className={WORKSPACE_SHELL_SIDEBAR_CONTENT_CLASS}>
       <div className="grid gap-4">
         <Link
           href="/workspaces"
@@ -397,12 +409,7 @@ function BreadcrumbTrail({
   workspaces,
   breadcrumbs,
   activeView,
-}: {
-  workspace: WorkspaceListItem;
-  workspaces: WorkspaceListItem[];
-  breadcrumbs: Array<{ label: string; href?: string }>;
-  activeView: "chat" | "settings" | "knowledge-base";
-}) {
+}: BreadcrumbTrailProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-app-muted" aria-label="Breadcrumb">
       {breadcrumbs.map((item, index) => {
