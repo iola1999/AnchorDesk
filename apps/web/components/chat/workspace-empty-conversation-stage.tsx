@@ -20,9 +20,11 @@ type PendingConversationState = {
 export function WorkspaceEmptyConversationStage({
   workspaceId,
   workspaceTitle,
+  onSubmittedTurn,
 }: {
   workspaceId: string;
   workspaceTitle: string;
+  onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -39,6 +41,7 @@ export function WorkspaceEmptyConversationStage({
       }),
       attachments: turn.attachments,
     });
+    onSubmittedTurn?.(turn);
 
     startTransition(() => {
       router.replace(`/workspaces/${workspaceId}?conversationId=${turn.conversationId}`);

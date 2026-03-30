@@ -25,6 +25,7 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant,
   initialCitations,
   initialAttachments,
+  onSubmittedTurn,
 }: {
   conversationId: string;
   workspaceId: string;
@@ -32,6 +33,7 @@ export function WorkspaceConversationPanel({
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialCitations?: ConversationMessageCitation[];
   initialAttachments: ComposerAttachment[];
+  onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
@@ -70,6 +72,7 @@ export function WorkspaceConversationPanel({
       ...current,
       [turn.assistantMessage.id]: [],
     }));
+    onSubmittedTurn?.(turn);
   }
 
   return (

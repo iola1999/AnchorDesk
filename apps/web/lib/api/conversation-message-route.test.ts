@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
   const auth = vi.fn();
   const requireOwnedConversation = vi.fn();
   const buildConversationPrompt = vi.fn();
+  const buildConversationTitleFromPrompt = vi.fn();
   const loggerChild = {
     error: vi.fn(),
     info: vi.fn(),
@@ -54,6 +55,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     auth,
+    buildConversationTitleFromPrompt,
     buildConversationPrompt,
     db,
     enqueueConversationResponse,
@@ -76,6 +78,10 @@ vi.mock("@/lib/guards/resources", () => ({
 
 vi.mock("@/lib/api/workspace-prompt", () => ({
   buildConversationPrompt: mocks.buildConversationPrompt,
+}));
+
+vi.mock("@/lib/api/conversations", () => ({
+  buildConversationTitleFromPrompt: mocks.buildConversationTitleFromPrompt,
 }));
 
 vi.mock("@/lib/server/logger", () => ({
@@ -110,6 +116,7 @@ beforeEach(() => {
   mocks.enqueueConversationResponse.mockReset();
   mocks.auth.mockReset();
   mocks.requireOwnedConversation.mockReset();
+  mocks.buildConversationTitleFromPrompt.mockReset();
   mocks.buildConversationPrompt.mockReset();
   mocks.loggerChild.error.mockReset();
   mocks.loggerChild.info.mockReset();
@@ -126,6 +133,7 @@ describe("POST /api/conversations/[conversationId]/messages", () => {
       workspaceId: "workspace-1",
       workspacePrompt: "空间提示",
     });
+    mocks.buildConversationTitleFromPrompt.mockReturnValue("总结一下");
     mocks.buildConversationPrompt.mockReturnValue("完整 prompt");
     mocks.selectExistingMessages.push({ id: "user-1" });
     mocks.insertReturningQueue.push(

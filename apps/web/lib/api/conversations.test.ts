@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 
 import {
+  applySubmittedConversationToList,
+  buildConversationTitleFromPrompt,
   chooseWorkspaceConversation,
   chooseWorkspaceConversationWithMeta,
   formatConversationMetaTimestamp,
@@ -12,6 +14,17 @@ import {
 } from "./conversations";
 
 describe("conversation helpers", () => {
+  test("builds the first-turn conversation title from the submitted prompt", () => {
+    expect(buildConversationTitleFromPrompt("  请总结新版发布流程的关键变化  ")).toBe(
+      "请总结新版发布流程的关键变化",
+    );
+    expect(
+      buildConversationTitleFromPrompt(
+        "这是一个明显超过四十个字符的长问题，需要在侧栏标题里被截断显示，并且继续补充更多描述避免过短",
+      ),
+    ).toBe("这是一个明显超过四十个字符的长问题，需要在侧栏标题里被截断显示，并且继续补充更多...");
+  });
+
   test("normalizes conversation titles and falls back when empty", () => {
     expect(normalizeConversationTitle("  发布方案讨论  ", "默认会话")).toBe(
       "发布方案讨论",
@@ -227,5 +240,79 @@ describe("conversation helpers", () => {
         activeConversationId: "conversation-2",
       }),
     ).toBeNull();
+  });
+
+  test("bumps an existing conversation to the top after a new submitted turn", () => {
+    expect(
+      applySubmittedConversationToList({
+        conversations: [
+          {
+            id: "conversation-1",
+            title: "较早会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          },
+          {
+            id: "conversation-2",
+            title: "当前会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T09:00:00.000Z"),
+          },
+        ],
+        conversationId: "conversation-2",
+        promptContent: "继续补充风险清单",
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }).map((item) => ({
+        ...item,
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+    ).toEqual([
+      {
+        id: "conversation-2",
+        title: "当前会话",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T11:00:00.000Z",
+      },
+      {
+        id: "conversation-1",
+        title: "较早会话",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("inserts a newly created conversation with the first prompt title", () => {
+    expect(
+      applySubmittedConversationToList({
+        conversations: [
+          {
+            id: "conversation-1",
+            title: "已有会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          },
+        ],
+        conversationId: "conversation-2",
+        promptContent: "请总结新版发布流程的关键变化",
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }).map((item) => ({
+        ...item,
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+    ).toEqual([
+      {
+        id: "conversation-2",
+        title: "请总结新版发布流程的关键变化",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T11:00:00.000Z",
+      },
+      {
+        id: "conversation-1",
+        title: "已有会话",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T10:00:00.000Z",
+      },
+    ]);
   });
 });

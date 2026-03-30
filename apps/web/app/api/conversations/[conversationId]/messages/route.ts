@@ -16,16 +16,12 @@ import { serializeErrorForLog } from "@anchordesk/logging";
 import { enqueueConversationResponse } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
+import { buildConversationTitleFromPrompt } from "@/lib/api/conversations";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
-
-function buildConversationTitle(content: string) {
-  const normalized = content.replace(/\s+/g, " ").trim();
-  return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
-}
 
 export async function GET(
   _request: Request,
@@ -116,7 +112,7 @@ export async function POST(
     await db
       .update(conversations)
       .set({
-        title: buildConversationTitle(content),
+        title: buildConversationTitleFromPrompt(content),
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversationId));

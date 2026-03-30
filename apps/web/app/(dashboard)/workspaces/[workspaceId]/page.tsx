@@ -15,10 +15,7 @@ import {
 } from "@anchordesk/db";
 
 import { auth } from "@/auth";
-import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
-import { WorkspaceEmptyConversationStage } from "@/components/chat/workspace-empty-conversation-stage";
-import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
-import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
+import { WorkspaceChatView } from "@/components/chat/workspace-chat-view";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
@@ -125,92 +122,77 @@ export default async function WorkspacePage({
       : [];
 
   return (
-    <WorkspaceShell
+    <WorkspaceChatView
       workspace={{
         id: workspace.id,
         title: workspace.title,
       }}
       workspaces={workspaceList}
-      conversations={conversationList}
-      activeConversationId={activeConversation?.id}
+      initialConversations={conversationList}
       currentUser={{
         name: user.name,
         username: user.username,
       }}
-      contentScroll="contained"
       breadcrumbs={[
         { label: "空间", href: "/workspaces" },
         { label: workspace.title },
       ]}
-      topActions={
-        activeConversation ? (
-          <ConversationPageActions
-            conversationId={activeConversation.id}
-            workspaceId={workspaceId}
-            conversationTitle={activeConversation.title}
-            conversationStatus={activeConversation.status}
-            createdAt={activeConversation.createdAt}
-            updatedAt={activeConversation.updatedAt}
-            creatorLabel={`${user.username}（你）`}
-            messageCount={chatThread.length}
-            attachmentCount={attachmentRows.length}
-          />
-        ) : undefined
+      workspaceId={workspaceId}
+      activeConversation={
+        activeConversation
+          ? {
+              id: activeConversation.id,
+              title: activeConversation.title,
+              status: activeConversation.status,
+              createdAt: activeConversation.createdAt,
+              updatedAt: activeConversation.updatedAt,
+              messageCount: chatThread.length,
+              attachmentCount: attachmentRows.length,
+            }
+          : null
       }
-    >
-      {activeConversation ? (
-        <WorkspaceConversationPanel
-          conversationId={activeConversation.id}
-          workspaceId={workspaceId}
-          initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
-            thread.map((message) => ({
-              id: message.id,
-              role: message.role,
-              status: message.status,
-              contentMarkdown: message.contentMarkdown,
-              createdAt: message.createdAt,
-              structuredJson:
-                (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-            })),
-          )}
-          initialMessages={chatThread.map((message) => ({
-            id: message.id,
-            role: message.role,
-            status: message.status,
-            contentMarkdown: message.contentMarkdown,
-            structuredJson:
-              (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-          }))}
-          initialCitations={citations.map((citation) => ({
-            id: citation.id,
-            messageId: citation.messageId,
-            anchorId: citation.anchorId,
-            documentId: citation.documentId,
-            label: citation.label,
-            quoteText: citation.quoteText,
-          }))}
-          initialAttachments={attachmentRows.map((attachment) => ({
-            id: attachment.id,
-            attachmentId: attachment.id,
-            documentId: attachment.documentId,
-            documentVersionId: attachment.documentVersionId,
-            documentJobId: attachment.jobId ?? undefined,
-            sourceFilename: attachment.sourceFilename,
-            status: resolveComposerAttachmentStatus({
-              jobStatus: attachment.jobStatus ?? null,
-              parseStage: attachment.stage ?? null,
-            }),
-            progress: attachment.progress ?? 0,
-            stage: attachment.stage ?? null,
-            errorMessage: attachment.errorMessage ?? null,
-          }))}
-        />
-      ) : (
-        <WorkspaceEmptyConversationStage
-          workspaceId={workspaceId}
-          workspaceTitle={workspace.title}
-        />
+      initialTimelineMessagesByAssistant={groupAssistantProcessMessages(
+        thread.map((message) => ({
+          id: message.id,
+          role: message.role,
+          status: message.status,
+          contentMarkdown: message.contentMarkdown,
+          createdAt: message.createdAt,
+          structuredJson:
+            (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+        })),
       )}
-    </WorkspaceShell>
+      initialMessages={chatThread.map((message) => ({
+        id: message.id,
+        role: message.role,
+        status: message.status,
+        contentMarkdown: message.contentMarkdown,
+        structuredJson:
+          (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+      }))}
+      initialCitations={citations.map((citation) => ({
+        id: citation.id,
+        messageId: citation.messageId,
+        anchorId: citation.anchorId,
+        documentId: citation.documentId,
+        label: citation.label,
+        quoteText: citation.quoteText,
+      }))}
+      initialAttachments={attachmentRows.map((attachment) => ({
+        id: attachment.id,
+        attachmentId: attachment.id,
+        documentId: attachment.documentId,
+        documentVersionId: attachment.documentVersionId,
+        documentJobId: attachment.jobId ?? undefined,
+        sourceFilename: attachment.sourceFilename,
+        status: resolveComposerAttachmentStatus({
+          jobStatus: attachment.jobStatus ?? null,
+          parseStage: attachment.stage ?? null,
+        }),
+        progress: attachment.progress ?? 0,
+        stage: attachment.stage ?? null,
+        errorMessage: attachment.errorMessage ?? null,
+      }))}
+    />
   );
 }

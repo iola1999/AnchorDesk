@@ -21,9 +21,40 @@ export type WorkspaceConversationListItem = {
   updatedAt: Date;
 };
 
+export function buildConversationTitleFromPrompt(content: string) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
+}
+
 export function normalizeConversationTitle(input: string, fallback: string) {
   const normalized = input.trim().replace(/\s+/g, " ");
   return normalized || fallback;
+}
+
+export function applySubmittedConversationToList(input: {
+  conversationId: string;
+  conversations: WorkspaceConversationListItem[];
+  now?: Date;
+  promptContent: string;
+}) {
+  const now = input.now ?? new Date();
+  const existingConversation = input.conversations.find(
+    (conversation) => conversation.id === input.conversationId,
+  );
+  const nextConversation: WorkspaceConversationListItem = {
+    id: input.conversationId,
+    title:
+      existingConversation?.title ?? buildConversationTitleFromPrompt(input.promptContent),
+    status: existingConversation?.status ?? CONVERSATION_STATUS.ACTIVE,
+    updatedAt: now,
+  };
+
+  return [
+    nextConversation,
+    ...input.conversations.filter(
+      (conversation) => conversation.id !== input.conversationId,
+    ),
+  ].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
 }
 
 export function chooseWorkspaceConversation(
