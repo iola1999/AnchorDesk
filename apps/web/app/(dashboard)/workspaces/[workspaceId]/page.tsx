@@ -200,6 +200,7 @@ export default async function WorkspacePage({
                 anchorId: citation.anchorId,
                 documentId: citation.documentId,
                 label: citation.label,
+                quoteText: citation.quoteText,
               }))}
             />
           </div>

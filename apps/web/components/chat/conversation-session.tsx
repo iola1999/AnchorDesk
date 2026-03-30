@@ -21,7 +21,10 @@ import {
 } from "@/components/icons";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
 import { LinkifiedText } from "@/components/shared/linkified-text";
-import { canShowAssistantResultPanel } from "@/lib/api/conversation-process";
+import {
+  canShowAssistantResultPanel,
+  describeAssistantStreamingStatus,
+} from "@/lib/api/conversation-process";
 import {
   findRegeneratableConversationTurn,
   type RetryableConversationMessage,
@@ -54,6 +57,13 @@ function flattenTimelineMessageIds(timelineByAssistant: TimelineMessagesByAssist
       .flat()
       .map((message) => message.id),
   );
+}
+
+function readAssistantMessageContent(
+  messages: ChatMessage[],
+  assistantMessageId?: string | null,
+) {
+  return messages.find((message) => message.id === assistantMessageId)?.contentMarkdown ?? "";
 }
 
 function ActionButton({
@@ -135,7 +145,11 @@ export function ConversationSession({
   );
   const [messageCitations, setMessageCitations] = useState(initialCitations ?? []);
   const [runtimeStatus, setRuntimeStatus] = useState<string | null>(
-    assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
+    assistantStatus === MESSAGE_STATUS.STREAMING
+      ? describeAssistantStreamingStatus(
+          readAssistantMessageContent(initialMessages, assistantMessageId),
+        )
+      : null,
   );
   const [messageViewModes, setMessageViewModes] = useState<Record<string, MessageViewMode>>({});
   const [actionStatusByMessage, setActionStatusByMessage] = useState<
@@ -161,7 +175,11 @@ export function ConversationSession({
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
     setRuntimeStatus(
-      assistantStatus === MESSAGE_STATUS.STREAMING ? "助手正在分析问题并生成回答..." : null,
+      assistantStatus === MESSAGE_STATUS.STREAMING
+        ? describeAssistantStreamingStatus(
+            readAssistantMessageContent(initialMessages, assistantMessageId),
+          )
+        : null,
     );
     seenTimelineIdsRef.current = flattenTimelineMessageIds(
       initialTimelineMessagesByAssistant ?? {},
@@ -234,7 +252,7 @@ export function ConversationSession({
         return;
       }
 
-      setRuntimeStatus("助手正在生成回答...");
+      setRuntimeStatus(describeAssistantStreamingStatus(payload.content_markdown));
       setChatMessages((current) =>
         current.map((message) =>
           message.id === payload.message_id
@@ -306,12 +324,15 @@ export function ConversationSession({
       CONVERSATION_STREAM_EVENT.RUN_FAILED,
       handleRunFailed as EventListener,
     );
+    source.onopen = () => {
+      const currentContent = readAssistantMessageContent(
+        chatMessagesRef.current,
+        assistantMessageId,
+      );
+      setRuntimeStatus(describeAssistantStreamingStatus(currentContent));
+    };
     source.onerror = () => {
-      source.close();
-      setRuntimeStatus("连接已断开，正在刷新对话...");
-      startTransition(() => {
-        router.refresh();
-      });
+      setRuntimeStatus("连接暂时中断，正在重连...");
     };
 
     return () => {
@@ -503,6 +524,11 @@ export function ConversationSession({
                             <span className="text-[14px] leading-6 text-app-text">
                               {citation.label}
                             </span>
+                            {citation.quoteText.trim() ? (
+                              <span className="line-clamp-4 text-[13px] leading-6 text-app-muted-strong">
+                                {citation.quoteText}
+                              </span>
+                            ) : null}
                           </Link>
                         ) : (
                           <div
@@ -517,6 +543,11 @@ export function ConversationSession({
                             <span className="text-[14px] leading-6 text-app-text">
                               {citation.label}
                             </span>
+                            {citation.quoteText.trim() ? (
+                              <span className="line-clamp-4 text-[13px] leading-6 text-app-muted-strong">
+                                {citation.quoteText}
+                              </span>
+                            ) : null}
                           </div>
                         )
                       ))}

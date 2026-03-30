@@ -12,6 +12,7 @@ const conversationStreamCitationSchema = z.object({
   anchor_id: z.string().uuid(),
   document_id: z.string().uuid(),
   label: z.string().min(1),
+  quote_text: z.string(),
 });
 
 export const conversationStreamEventSchema = z.discriminatedUnion("type", [

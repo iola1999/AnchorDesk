@@ -3,5 +3,6 @@ export * from "./grounded-answer";
 export * from "./conversation-run";
 export * from "./conversation-stream";
 export * from "./conversation-errors";
+export * from "./conversation-message-state";
 export * from "./citation-locator";
 export * from "./constants";

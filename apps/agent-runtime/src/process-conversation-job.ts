@@ -1,13 +1,14 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
+  buildAssistantFailedMessageState,
+  buildRunFailedToolMessageState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS,
-  TIMELINE_EVENT,
   TOOL_TIMELINE_STATE,
-  refreshStreamingAssistantRunState,
   normalizeConversationFailureMessage,
+  refreshStreamingAssistantRunState,
   type ToolTimelineState,
 } from "@anchordesk/contracts";
 import {
@@ -346,34 +347,24 @@ export async function processConversationResponseJob(
       throw error;
     }
   } catch (error) {
-    const message = normalizeConversationFailureMessage(error);
+    const failedAssistantState = buildAssistantFailedMessageState(error);
+    const failedToolState = buildRunFailedToolMessageState(error);
 
     await db.insert(messages).values({
       conversationId: payload.conversationId,
       role: MESSAGE_ROLE.TOOL,
-      status: MESSAGE_STATUS.FAILED,
-      contentMarkdown: `运行失败：${message}`,
-      structuredJson: {
-        timeline_event: TIMELINE_EVENT.RUN_FAILED,
-        error: message,
-      },
+      ...failedToolState,
     });
 
     await db
       .update(messages)
-      .set({
-        status: MESSAGE_STATUS.FAILED,
-        contentMarkdown: `Agent 处理失败：${message}`,
-        structuredJson: {
-          agent_error: message,
-        },
-      })
+      .set(failedAssistantState)
       .where(eq(messages.id, payload.assistantMessageId));
 
     jobLogger.error(
       {
         workspaceId: conversation.workspaceId,
-        errorMessage: message,
+        errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),
       },
       "conversation response job failed",

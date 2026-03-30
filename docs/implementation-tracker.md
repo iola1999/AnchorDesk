@@ -1,7 +1,7 @@
 # 实施跟踪
 
 版本：v0.7
-日期：2026-03-29
+日期：2026-03-30
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -43,6 +43,8 @@
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
+- assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答。
@@ -62,6 +64,9 @@
 
 ## 2. 最近完成
 
+- `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
+- `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
+- `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
 - `working tree` Consolidate runtime config to bootstrap env + DB system_settings; app services load settings at startup via initRuntimeSettings()
 - `working tree` Switch uploaded source objects to direct content-addressed blobs, verify claimed SHA256 in worker, and avoid deleting shared blobs still referenced by other versions
 - `working tree` Materialize workspace knowledge-base directories, add file-manager table layout, batch operations, zip download, and drag-to-directory flow
@@ -112,7 +117,7 @@
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示
   - 不得伪造 citation、置信度覆盖度或外部来源
 - grounded answer 证据 dossier 与更清晰的证据展示
-  - 继续补 evidence dossier、引用说明和完成态切换体验
+  - 当前已补齐引用摘录展示，仍需继续补 evidence dossier、引用说明和完成态切换体验
   - 收口 citation 刷新、阅读器联动和分享页最终态一致性
 - 会话级临时资料
   - 当前已支持上传、解析、会话绑定、本地检索和引用跳转

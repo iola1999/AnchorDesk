@@ -5,6 +5,7 @@ import {
   canShowAssistantProcess,
   canShowAssistantResultPanel,
   describeAssistantProcessSummary,
+  describeAssistantStreamingStatus,
   groupAssistantProcessMessages,
 } from "./conversation-process";
 
@@ -111,6 +112,14 @@ describe("canShowAssistantProcess", () => {
     expect(canShowAssistantProcess({ stepCount: 2, isStreaming: false })).toBe(true);
     expect(canShowAssistantProcess({ stepCount: 0, isStreaming: true })).toBe(true);
     expect(canShowAssistantProcess({ stepCount: 0, isStreaming: false })).toBe(false);
+  });
+});
+
+describe("describeAssistantStreamingStatus", () => {
+  test("keeps the assistant in analysis mode until the first answer delta arrives", () => {
+    expect(describeAssistantStreamingStatus("")).toBe("助手正在分析问题并生成回答...");
+    expect(describeAssistantStreamingStatus("   ")).toBe("助手正在分析问题并生成回答...");
+    expect(describeAssistantStreamingStatus("第一段回答")).toBe("助手正在生成回答...");
   });
 });
 

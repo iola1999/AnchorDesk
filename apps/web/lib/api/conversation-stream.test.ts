@@ -113,6 +113,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
             anchorId: "45abfef3-61d9-4933-a551-d58b3d6f9f61",
             documentId: "f3e3b2c9-91aa-48a2-9b5c-b5ff4d19bc61",
             label: "产品说明 · 第2页",
+            quoteText: "发布前需要完成回归验证。",
           },
         ],
       }),
@@ -129,6 +130,7 @@ describe("buildAssistantTerminalStreamEvent", () => {
           anchor_id: "45abfef3-61d9-4933-a551-d58b3d6f9f61",
           document_id: "f3e3b2c9-91aa-48a2-9b5c-b5ff4d19bc61",
           label: "产品说明 · 第2页",
+          quote_text: "发布前需要完成回归验证。",
         },
       ],
     });

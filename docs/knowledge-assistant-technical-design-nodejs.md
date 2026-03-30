@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
 版本：v0.7
-日期：2026-03-29
+日期：2026-03-30
 
 > 文档角色说明：
 >
@@ -105,8 +105,10 @@ flowchart LR
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 轮询会把过期回答收敛成 `run_failed`，避免前端无限等待。
+- assistant / tool 的失败态 message payload 已收口为共享 helper，消息发送、重试、过期收敛和 worker 失败路径复用同一套错误语义。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
@@ -117,6 +119,7 @@ flowchart LR
 
 - 当前回答流式仍是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 最新失败回答可直接重试”，但页面其余部分的一致性和更完整的失败恢复路径仍需要继续收口。
+- 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
 - 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
 - OCR 真实 provider 尚未接入；当前仅支持关闭，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。

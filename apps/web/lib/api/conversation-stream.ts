@@ -27,6 +27,7 @@ type AssistantCitationRow = {
   anchorId: string;
   documentId: string;
   label: string;
+  quoteText: string;
 };
 
 type ToolMessageEvent = Extract<
@@ -113,6 +114,7 @@ export function buildAssistantTerminalStreamEvent(input: {
         anchor_id: citation.anchorId,
         document_id: citation.documentId,
         label: citation.label,
+        quote_text: citation.quoteText,
       })),
     };
   }

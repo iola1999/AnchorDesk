@@ -1,6 +1,7 @@
 import {
+  buildAssistantFailedMessageState,
+  buildRunFailedToolMessageState,
   MESSAGE_STATUS,
-  TIMELINE_EVENT,
   isStreamingAssistantRunExpired,
   type MessageStatus,
 } from "@anchordesk/contracts";
@@ -33,20 +34,7 @@ export function buildExpiredAssistantRunPayload(
   errorMessage: string = STALE_STREAMING_ASSISTANT_ERROR,
 ) {
   return {
-    assistant: {
-      status: MESSAGE_STATUS.FAILED,
-      contentMarkdown: `Agent 处理失败：${errorMessage}`,
-      structuredJson: {
-        agent_error: errorMessage,
-      },
-    },
-    tool: {
-      status: MESSAGE_STATUS.FAILED,
-      contentMarkdown: `运行失败：${errorMessage}`,
-      structuredJson: {
-        timeline_event: TIMELINE_EVENT.RUN_FAILED,
-        error: errorMessage,
-      },
-    },
+    assistant: buildAssistantFailedMessageState(errorMessage),
+    tool: buildRunFailedToolMessageState(errorMessage),
   };
 }

@@ -78,6 +78,12 @@ export function describeAssistantProcessSummary(input: {
   return `已完成 ${input.stepCount} 个步骤`;
 }
 
+export function describeAssistantStreamingStatus(contentMarkdown: string) {
+  return contentMarkdown.trim()
+    ? "助手正在生成回答..."
+    : "助手正在分析问题并生成回答...";
+}
+
 export function canShowAssistantProcess(input: {
   stepCount: number;
   isStreaming: boolean;

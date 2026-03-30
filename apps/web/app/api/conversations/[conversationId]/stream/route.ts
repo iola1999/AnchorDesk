@@ -303,6 +303,7 @@ export async function GET(
                     anchorId: messageCitations.anchorId,
                     documentId: messageCitations.documentId,
                     label: messageCitations.label,
+                    quoteText: messageCitations.quoteText,
                   })
                   .from(messageCitations)
                   .where(eq(messageCitations.messageId, effectiveAssistantMessage.id))

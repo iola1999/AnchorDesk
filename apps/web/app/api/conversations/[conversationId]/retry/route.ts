@@ -1,9 +1,9 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import {
   buildStreamingAssistantRunState,
+  buildAssistantFailedMessageState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
-  normalizeConversationFailureMessage,
 } from "@anchordesk/contracts";
 import { conversations, getDb, messageCitations, messages } from "@anchordesk/db";
 import { serializeErrorForLog } from "@anchordesk/logging";
@@ -121,17 +121,11 @@ export async function POST(
       { status: 202 },
     );
   } catch (error) {
-    const message = normalizeConversationFailureMessage(error);
+    const failedAssistantState = buildAssistantFailedMessageState(error);
 
     await db
       .update(messages)
-      .set({
-        status: MESSAGE_STATUS.FAILED,
-        contentMarkdown: `Agent 处理失败：${message}`,
-        structuredJson: {
-          agent_error: message,
-        },
-      })
+      .set(failedAssistantState)
       .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 
     requestLogger.error(
@@ -140,14 +134,14 @@ export async function POST(
         userId,
         userMessageId: regeneratableTurn.userMessageId,
         assistantMessageId: regeneratableTurn.assistantMessageId,
-        errorMessage: message,
+        errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),
       },
       "conversation retry enqueue failed",
     );
 
     return Response.json(
-      { error: `重新生成失败：${message}` },
+      { error: `重新生成失败：${failedAssistantState.structuredJson.agent_error}` },
       { status: 500 },
     );
   }

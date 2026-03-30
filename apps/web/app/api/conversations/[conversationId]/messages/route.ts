@@ -1,9 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import {
   buildStreamingAssistantRunState,
+  buildAssistantFailedMessageState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
-  normalizeConversationFailureMessage,
 } from "@anchordesk/contracts";
 
 import {
@@ -184,17 +184,11 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    const message = normalizeConversationFailureMessage(error);
+    const failedAssistantState = buildAssistantFailedMessageState(error);
 
     await db
       .update(messages)
-      .set({
-        status: MESSAGE_STATUS.FAILED,
-        contentMarkdown: `Agent 处理失败：${message}`,
-        structuredJson: {
-          agent_error: message,
-        },
-      })
+      .set(failedAssistantState)
       .where(eq(messages.id, assistantMessage.id));
 
     requestLogger.error(
@@ -205,7 +199,7 @@ export async function POST(
         assistantMessageId: assistantMessage.id,
         contentLength: content.length,
         hasDraftUploadId: Boolean(draftUploadId),
-        errorMessage: message,
+        errorMessage: failedAssistantState.structuredJson.agent_error,
         error: serializeErrorForLog(error),
       },
       "failed to enqueue conversation response",
@@ -213,9 +207,12 @@ export async function POST(
 
     return Response.json(
       {
-        agentError: message,
+        agentError: failedAssistantState.structuredJson.agent_error,
         userMessage,
-        assistantMessage,
+        assistantMessage: {
+          ...assistantMessage,
+          ...failedAssistantState,
+        },
       },
       { status: 201 },
     );

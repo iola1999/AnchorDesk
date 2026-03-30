@@ -14,6 +14,7 @@ export type ConversationMessageCitation = {
   anchorId?: string | null;
   documentId?: string | null;
   label: string;
+  quoteText: string;
 };
 
 type AssistantTerminalEvent = Extract<
@@ -67,6 +68,7 @@ export function applyAssistantTerminalEvent(input: {
             anchorId: citation.anchor_id,
             documentId: citation.document_id,
             label: citation.label,
+            quoteText: citation.quote_text,
           })),
         )
       : input.citations.filter((citation) => citation.messageId !== input.event.message_id);

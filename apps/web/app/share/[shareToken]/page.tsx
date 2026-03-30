@@ -74,6 +74,7 @@ export default async function SharedConversationPage({
             id: messageCitations.id,
             messageId: messageCitations.messageId,
             label: messageCitations.label,
+            quoteText: messageCitations.quoteText,
           })
           .from(messageCitations)
           .innerJoin(citationAnchors, eq(citationAnchors.id, messageCitations.anchorId))
@@ -142,6 +143,7 @@ export default async function SharedConversationPage({
               id: citation.id,
               messageId: citation.messageId,
               label: citation.label,
+              quoteText: citation.quoteText,
             }))}
             streamEnabled={false}
             sourceLinksEnabled={false}
