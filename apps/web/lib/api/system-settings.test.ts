@@ -81,6 +81,47 @@ describe("buildSystemSettingSections", () => {
     });
   });
 
+  test("keeps runtime and fetch concurrency settings near their related controls", () => {
+    const sections = buildSystemSettingSections([
+      {
+        settingKey: "fetch_source_max_concurrency",
+        valueText: "3",
+        isSecret: false,
+        summary: "抓取工具最大并发数",
+        description: "Maximum number of concurrent fetch_source requests.",
+      },
+      {
+        settingKey: "agent_runtime_url",
+        valueText: "http://localhost:4001",
+        isSecret: false,
+        summary: "Agent Runtime 地址",
+        description: "Base URL for the agent runtime service.",
+      },
+      {
+        settingKey: "agent_runtime_respond_worker_concurrency",
+        valueText: "2",
+        isSecret: false,
+        summary: "回答 Worker 并发数",
+        description: "BullMQ worker concurrency for conversation.respond.",
+      },
+      {
+        settingKey: "fetch_allowed_domains",
+        valueText: "example.com",
+        isSecret: false,
+        summary: "抓取白名单",
+        description: "Allowed domains.",
+      },
+    ]);
+
+    expect(sections.map((section) => section.id)).toEqual(["application"]);
+    expect(sections[0]?.items.map((item) => item.settingKey)).toEqual([
+      "agent_runtime_url",
+      "agent_runtime_respond_worker_concurrency",
+      "fetch_allowed_domains",
+      "fetch_source_max_concurrency",
+    ]);
+  });
+
   test("groups web search settings into the model section", () => {
     const sections = buildSystemSettingSections([
       {

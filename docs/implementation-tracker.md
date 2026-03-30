@@ -38,6 +38,7 @@
 当前实现快照：
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
+- `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
@@ -56,6 +57,7 @@
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
 - grounded answer 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
 - `search_web_general` 现在只负责返回候选链接；只有 `fetch_source` 拉回的网页正文才会进入最终 citation，因此“工具时间线里做过联网搜索”与“终态存在可展示网页引用”这两件事已被明确区分。
+- 当前已新增 `fetch_sources` 批量抓取工具；当模型需要抓取多个独立网页时，可在单次工具调用内并发拉取，并由 `fetch_source_max_concurrency` 控制该工具的进程内最大并发数。
 - `message_citations` 现已支持外部网页来源字段（`source_url` / `source_domain` / `source_title`）；会话页 source panel 可同时渲染工作空间文档跳转和网页外链。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
@@ -92,6 +94,7 @@
 - `working tree` Let first-message conversation creation switch locally into the new thread immediately after submit, then sync the URL in background
 - `working tree` Let existing conversations append the new user turn and assistant placeholder locally right after submit, then continue with SSE streaming without an immediate hard refresh
 - `working tree` Add executed regression tests for agent-runtime completion/failure handling and conversation message/retry enqueue failure responses
+- `working tree` Add configurable `conversation.respond` worker concurrency and bounded batch web fetching via `fetch_sources`
 - `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
 - `working tree` Unify grounded evidence for workspace anchors and fetched web pages, and persist web citations into `message_citations`

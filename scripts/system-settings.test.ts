@@ -59,6 +59,18 @@ describe("buildSystemSettingSeedRows", () => {
       valueText: "true",
       isSecret: false,
     });
+    expect(
+      rows.find((row) => row.settingKey === "agent_runtime_respond_worker_concurrency"),
+    ).toMatchObject({
+      settingKey: "agent_runtime_respond_worker_concurrency",
+      valueText: "1",
+      isSecret: false,
+    });
+    expect(rows.find((row) => row.settingKey === "fetch_source_max_concurrency")).toMatchObject({
+      settingKey: "fetch_source_max_concurrency",
+      valueText: "3",
+      isSecret: false,
+    });
     expect(rows.some((row) => row.settingKey === "auth_trust_host")).toBe(false);
   });
 });

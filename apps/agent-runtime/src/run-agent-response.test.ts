@@ -9,7 +9,11 @@ import {
 } from "@anchordesk/contracts";
 import { getConfiguredAnthropicApiKey } from "@anchordesk/db";
 
-import { getAllowedTools, runAgentResponse } from "./run-agent-response";
+import {
+  getAllowedTools,
+  parseToolPayload,
+  runAgentResponse,
+} from "./run-agent-response";
 
 const originalAnthropicApiKey = process.env.ANTHROPIC_API_KEY;
 const temporaryDirs: string[] = [];
@@ -74,4 +78,40 @@ describe("runAgentResponse", () => {
       expect(getConfiguredAnthropicApiKey()).toBe("example-anthropic-api-key");
     },
   );
+});
+
+describe("parseToolPayload", () => {
+  test("parses SDK tool responses shaped as content block arrays", () => {
+    expect(
+      parseToolPayload([
+        {
+          type: "text",
+          text: "{\"ok\":true,\"source\":{\"url\":\"https://example.com/post\",\"title\":\"Example\",\"paragraphs\":[\"hello\"]}}",
+        },
+      ]),
+    ).toEqual({
+      ok: true,
+      source: {
+        url: "https://example.com/post",
+        title: "Example",
+        paragraphs: ["hello"],
+      },
+    });
+  });
+
+  test("still parses wrapped content payloads", () => {
+    expect(
+      parseToolPayload({
+        content: [
+          {
+            type: "text",
+            text: "{\"ok\":true,\"results\":[]}",
+          },
+        ],
+      }),
+    ).toEqual({
+      ok: true,
+      results: [],
+    });
+  });
 });

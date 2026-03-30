@@ -5,6 +5,7 @@ import {
   ASSISTANT_TOOL,
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
+  fetchSourcesInputSchema,
   readCitationAnchorInputSchema,
   searchConversationAttachmentsInputSchema,
   searchStatutesInputSchema,
@@ -16,6 +17,7 @@ import {
 import { asToolText } from "./tool-output";
 import { createReportOutlineHandler } from "./tools/create-report-outline";
 import { fetchSourceHandler } from "./tools/fetch-source-tool";
+import { fetchSourcesHandler } from "./tools/fetch-sources-tool";
 import { readCitationAnchorHandler } from "./tools/read-citation-anchor";
 import { searchConversationAttachmentsHandler } from "./tools/search-conversation-attachments";
 import { searchStatutesHandler } from "./tools/search-statutes";
@@ -26,6 +28,7 @@ import { writeReportSectionHandler } from "./tools/write-report-section";
 export {
   createReportOutlineHandler,
   fetchSourceHandler,
+  fetchSourcesHandler,
   readCitationAnchorHandler,
   searchConversationAttachmentsHandler,
   searchStatutesHandler,
@@ -70,6 +73,12 @@ export const assistantToolDefinitions = [
     description: "Fetch text content from an allowed URL",
     inputShape: fetchSourceInputSchema.shape,
     handler: fetchSourceHandler,
+  },
+  {
+    name: ASSISTANT_TOOL.FETCH_SOURCES,
+    description: "Fetch text content from multiple allowed URLs with bounded concurrency",
+    inputShape: fetchSourcesInputSchema.shape,
+    handler: fetchSourcesHandler,
   },
   {
     name: ASSISTANT_TOOL.CREATE_REPORT_OUTLINE,

@@ -53,7 +53,7 @@
 - Agent 规划固定 Anthropic
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
 - 工具 provider 未就绪时，应保持稳定契约并返回明确失败，不再提供本地 mock fallback
-- `fetch_source` 通过 `markdown.new` 获取 `text/markdown`，优先返回结构化 Markdown，而不是在本地直接解析原始 HTML
+- `fetch_source` / `fetch_sources` 通过 `markdown.new` 获取 `text/markdown`，优先返回结构化 Markdown，而不是在本地直接解析原始 HTML
 - OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
 - OCR provider 暂不推进本地实现；后续待商业 API 口径确认后再接入，候选方向优先考虑百炼
 
@@ -105,6 +105,7 @@ flowchart LR
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
+- `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
 - `Agent Runtime` 现在会抽取 Claude Agent SDK 的 assistant text delta，并把 assistant draft 持久化回 `messages`，供前端会话气泡实时更新。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件现在会以 `messages.role = "tool"` 持久化到数据库，并由 `/api/conversations/[conversationId]/stream` 作为 SSE 工具时间线持续推送到前端；同一路 SSE 也会推送 assistant `answer_delta` / `answer_done` / `run_failed`。
@@ -316,6 +317,7 @@ bootstrap env-only（不进入 `system_settings`）：
 - `read_citation_anchor`
 - `search_web_general`
 - `fetch_source`
+- `fetch_sources`
 - `create_report_outline`
 - `write_report_section`
 - `search_statutes`
@@ -326,7 +328,8 @@ bootstrap env-only（不进入 `system_settings`）：
 - 其他工具和主流程都以通用知识库助手为中心组织。
 - `search_workspace_knowledge` 的输入仍以 `workspace_id` 为上下文键，但内部语义已升级为“检索当前 workspace 可访问的资料范围”，默认覆盖私有库 + 已启用检索的全局订阅库。
 - `read_citation_anchor` 与文档/内容访问链路统一走 accessible library scope 授权；取消订阅后历史 citation 文本仍可显示，但内部跳转不再保证可打开。
-- `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 获取正文后，才能进入 grounded answer 的可引用证据集。
+- `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 或 `fetch_sources` 获取正文后，才能进入 grounded answer 的可引用证据集。
+- `fetch_sources` 用于模型一次抓取多个独立 URL；批量抓取受 `fetch_source_max_concurrency` 限流，并继续复用与 `fetch_source` 相同的白名单和 grounded evidence 归一化逻辑。
 - 当前阶段要求 `search_web_general`、`search_statutes`、报告生成相关工具按真实 provider 或明确失败语义运行；输出契约必须稳定，且不得伪造 citation。
 
 ## 8. 当前阶段关注点

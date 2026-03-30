@@ -4,6 +4,7 @@ import {
   DEFAULT_SEARCH_STATUTES_TOP_K,
   DEFAULT_SEARCH_WEB_GENERAL_TOP_K,
   DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
+  MAX_FETCH_SOURCE_BATCH_URLS,
   DEFAULT_STATUTES_JURISDICTION,
   MAX_SEARCH_STATUTES_TOP_K,
   MAX_SEARCH_WEB_GENERAL_TOP_K,
@@ -174,23 +175,45 @@ export const searchWebGeneralOutputSchema = z.union([
   toolFailureSchema,
 ]);
 
+const fetchedSourceDocumentSchema = z.object({
+  url: z.string().url(),
+  title: z.string(),
+  fetched_at: z.string(),
+  content_type: z.string(),
+  paragraphs: z.array(z.string()),
+});
+
 export const fetchSourceInputSchema = z.object({
   url: z.string().url(),
 });
 
 export const fetchSourceSuccessSchema = z.object({
   ok: z.literal(true),
-  source: z.object({
-    url: z.string().url(),
-    title: z.string(),
-    fetched_at: z.string(),
-    content_type: z.string(),
-    paragraphs: z.array(z.string()),
-  }),
+  source: fetchedSourceDocumentSchema,
 });
 
 export const fetchSourceOutputSchema = z.union([
   fetchSourceSuccessSchema,
+  toolFailureSchema,
+]);
+
+export const fetchSourcesInputSchema = z.object({
+  urls: z.array(z.string().url()).min(1).max(MAX_FETCH_SOURCE_BATCH_URLS),
+});
+
+export const fetchSourcesSuccessSchema = z.object({
+  ok: z.literal(true),
+  sources: z.array(fetchedSourceDocumentSchema),
+  failures: z.array(
+    z.object({
+      url: z.string().url(),
+      error: toolErrorSchema,
+    }),
+  ),
+});
+
+export const fetchSourcesOutputSchema = z.union([
+  fetchSourcesSuccessSchema,
   toolFailureSchema,
 ]);
 
@@ -268,6 +291,8 @@ export type SearchWebGeneralOutput = z.infer<typeof searchWebGeneralOutputSchema
 
 export type FetchSourceInput = z.infer<typeof fetchSourceInputSchema>;
 export type FetchSourceOutput = z.infer<typeof fetchSourceOutputSchema>;
+export type FetchSourcesInput = z.infer<typeof fetchSourcesInputSchema>;
+export type FetchSourcesOutput = z.infer<typeof fetchSourcesOutputSchema>;
 
 export type CreateReportOutlineInput = z.infer<typeof createReportOutlineInputSchema>;
 export type CreateReportOutlineOutput = z.infer<typeof createReportOutlineOutputSchema>;

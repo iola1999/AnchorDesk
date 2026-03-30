@@ -11,6 +11,7 @@ import { logger } from "./logger";
 import { processConversationResponseJob } from "./process-conversation-job";
 import { runAgentResponse } from "./run-agent-response";
 import { buildClaudeAgentRuntimeLogContext } from "./runtime-log";
+import { resolveRespondWorkerConcurrency } from "./runtime-config";
 
 const BULLMQ_WORKER_EVENT = {
   FAILED: "failed",
@@ -20,6 +21,7 @@ async function main() {
   await initRuntimeSettings();
 
   const port = Number(process.env.PORT ?? 4001);
+  const respondWorkerConcurrency = resolveRespondWorkerConcurrency();
   const app = express();
   app.use(express.json());
 
@@ -27,6 +29,7 @@ async function main() {
     {
       port,
       respondQueue: QUEUE_NAMES.respond,
+      respondWorkerConcurrency,
       ...buildClaudeAgentRuntimeLogContext(buildClaudeAgentEnv()),
     },
     "agent runtime bootstrapped",
@@ -125,6 +128,7 @@ async function main() {
     },
     {
       connection: getRedisConnection(),
+      concurrency: respondWorkerConcurrency,
     },
   );
 

@@ -21,6 +21,13 @@ const SYSTEM_SETTING_DEFINITIONS = [
     description: "Base URL for the agent runtime service.",
   },
   {
+    settingKey: "agent_runtime_respond_worker_concurrency",
+    envName: "AGENT_RUNTIME_RESPOND_WORKER_CONCURRENCY",
+    defaultValue: "1",
+    summary: "conversation.respond 队列 worker 的并发数。",
+    description: "BullMQ worker concurrency for conversation.respond jobs.",
+  },
+  {
     settingKey: "parser_service_url",
     envName: "PARSER_SERVICE_URL",
     defaultValue: "http://localhost:8001",
@@ -106,6 +113,13 @@ const SYSTEM_SETTING_DEFINITIONS = [
     summary: "限制抓取工具可访问的域名白名单。",
     description:
       "Optional comma-separated domain allowlist for fetch tools. Leave empty to allow any domain.",
+  },
+  {
+    settingKey: "fetch_source_max_concurrency",
+    envName: "FETCH_SOURCE_MAX_CONCURRENCY",
+    defaultValue: "3",
+    summary: "抓取工具 `fetch_source` / `fetch_sources` 的最大并发数。",
+    description: "Maximum in-process concurrency for fetch_source and fetch_sources.",
   },
   {
     settingKey: "web_search_provider",

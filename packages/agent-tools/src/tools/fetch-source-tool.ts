@@ -2,18 +2,11 @@ import { fetchSourceInputSchema } from "@anchordesk/contracts";
 
 import { fetchMarkdownSource } from "../fetch-source";
 import { buildToolFailure } from "../tool-output";
-
-function parseAllowedDomains() {
-  const raw = (process.env.FETCH_ALLOWED_DOMAINS ?? "").trim();
-  if (!raw) {
-    return null;
-  }
-
-  return raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
+import { runWithFetchSourceConcurrencyLimit } from "../tool-concurrency";
+import {
+  buildBlockedDomainFailure,
+  parseAllowedDomains,
+} from "./fetch-source-access";
 
 export async function fetchSourceHandler(input: unknown) {
   const args = fetchSourceInputSchema.parse(input);
@@ -21,19 +14,17 @@ export async function fetchSourceHandler(input: unknown) {
   const allowed = parseAllowedDomains();
 
   if (allowed && !allowed.includes(url.hostname)) {
-    return buildToolFailure(
-      "FETCH_BLOCKED_DOMAIN",
-      `Domain ${url.hostname} is not allowed`,
-      false,
-    );
+    return buildBlockedDomainFailure(url.hostname);
   }
 
   try {
     return {
       ok: true,
-      source: await fetchMarkdownSource({
-        url: args.url,
-      }),
+      source: await runWithFetchSourceConcurrencyLimit(() =>
+        fetchMarkdownSource({
+          url: args.url,
+        }),
+      ),
     };
   } catch (error) {
     const message =

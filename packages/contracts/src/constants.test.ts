@@ -25,6 +25,7 @@ describe("shared constants helpers", () => {
         ASSISTANT_MCP_TOOL.READ_CITATION_ANCHOR,
         ASSISTANT_MCP_TOOL.SEARCH_WEB_GENERAL,
         ASSISTANT_MCP_TOOL.FETCH_SOURCE,
+        ASSISTANT_MCP_TOOL.FETCH_SOURCES,
       ]),
     );
   });

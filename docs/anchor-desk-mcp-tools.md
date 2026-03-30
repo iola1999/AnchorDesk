@@ -1,7 +1,7 @@
 # AnchorDesk MCP Tool 契约
 
-版本：v0.3  
-日期：2026-03-30
+版本：v0.4  
+日期：2026-03-31
 
 > 文档角色说明：
 >
@@ -57,13 +57,21 @@
 - 输出：标题、抓取时间、内容类型、段落数组
 - 约束：网页引用必须基于 `fetch_source` 返回的正文段落进入 grounded evidence；不要直接把搜索结果摘要当成最终引用。
 
-### 3.6 `create_report_outline`
+### 3.6 `fetch_sources`
+
+- 作用：批量抓取多个 URL 的文本内容。
+- 输入：`urls[]`
+- provider：与 `fetch_source` 相同，当前通过 `markdown.new` 获取 `text/markdown`
+- 输出：`sources[]` 与 `failures[]`
+- 约束：批量抓取仍受 `fetch_allowed_domains` 白名单与 `fetch_source_max_concurrency` 并发上限约束；单个 URL 失败不应伪造成功结果，也不应吞掉其他已成功抓取的网页正文。
+
+### 3.7 `create_report_outline`
 
 - 作用：基于当前任务生成报告大纲。
 - 输入：`workspace_id`、`title`、`task`、可选 `evidence_anchor_ids`
 - 输出：标题和 section 列表
 
-### 3.7 `write_report_section`
+### 3.8 `write_report_section`
 
 - 作用：基于指令和证据生成某个章节草稿。
 - 输入：`report_id`、`section_id`、`instruction`、可选 `evidence_anchor_ids`
