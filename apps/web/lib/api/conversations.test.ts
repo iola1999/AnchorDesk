@@ -4,6 +4,7 @@ import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 import {
   applySubmittedConversationToList,
   applySubmittedTurnToConversationMeta,
+  appendCurrentConversationBreadcrumb,
   buildConversationTitleFromPrompt,
   chooseWorkspaceConversation,
   chooseWorkspaceConversationWithMeta,
@@ -13,6 +14,7 @@ import {
   markConversationActivityInList,
   markConversationMetaActivity,
   normalizeConversationTitle,
+  resolveActiveConversationDisplay,
   resolveConversationDeleteRedirect,
 } from "./conversations";
 
@@ -245,6 +247,37 @@ describe("conversation helpers", () => {
     ).toBeNull();
   });
 
+  test("appends the current conversation as the last chat breadcrumb", () => {
+    expect(
+      appendCurrentConversationBreadcrumb({
+        breadcrumbs: [
+          { label: "空间", href: "/workspaces" },
+          { label: "旧村改造" },
+        ],
+        currentConversationTitle: "看下这篇链接的内容是啥",
+      }),
+    ).toEqual([
+      { label: "空间", href: "/workspaces" },
+      { label: "旧村改造" },
+      { label: "看下这篇链接的内容是啥" },
+    ]);
+  });
+
+  test("keeps the base breadcrumbs when there is no active conversation title", () => {
+    expect(
+      appendCurrentConversationBreadcrumb({
+        breadcrumbs: [
+          { label: "空间", href: "/workspaces" },
+          { label: "旧村改造" },
+        ],
+        currentConversationTitle: "   ",
+      }),
+    ).toEqual([
+      { label: "空间", href: "/workspaces" },
+      { label: "旧村改造" },
+    ]);
+  });
+
   test("bumps an existing conversation to the top after a new submitted turn", () => {
     expect(
       applySubmittedConversationToList({
@@ -450,5 +483,69 @@ describe("conversation helpers", () => {
         now: new Date("2026-03-30T11:00:00.000Z"),
       }),
     ).toBe(current);
+  });
+
+  test("resolves the active conversation display from live list data and current meta", () => {
+    expect(
+      resolveActiveConversationDisplay({
+        activeConversationId: "conversation-2",
+        conversations: [
+          {
+            id: "conversation-1",
+            title: "其他会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          },
+          {
+            id: "conversation-2",
+            title: "新的会话标题",
+            status: CONVERSATION_STATUS.ARCHIVED,
+            updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+          },
+        ],
+        current: {
+          id: "conversation-2",
+          title: "旧的会话标题",
+          status: CONVERSATION_STATUS.ACTIVE,
+          createdAt: new Date("2026-03-30T09:00:00.000Z"),
+          updatedAt: new Date("2026-03-30T10:30:00.000Z"),
+          messageCount: 6,
+          attachmentCount: 2,
+        },
+      }),
+    ).toEqual({
+      id: "conversation-2",
+      title: "新的会话标题",
+      status: CONVERSATION_STATUS.ARCHIVED,
+      createdAt: new Date("2026-03-30T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+      messageCount: 6,
+      attachmentCount: 2,
+    });
+  });
+
+  test("returns null when the current meta does not belong to the active conversation", () => {
+    expect(
+      resolveActiveConversationDisplay({
+        activeConversationId: "conversation-2",
+        conversations: [
+          {
+            id: "conversation-2",
+            title: "当前会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+          },
+        ],
+        current: {
+          id: "conversation-1",
+          title: "其他会话",
+          status: CONVERSATION_STATUS.ACTIVE,
+          createdAt: new Date("2026-03-30T09:00:00.000Z"),
+          updatedAt: new Date("2026-03-30T10:30:00.000Z"),
+          messageCount: 6,
+          attachmentCount: 2,
+        },
+      }),
+    ).toBeNull();
   });
 });

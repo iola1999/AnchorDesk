@@ -12,8 +12,10 @@ import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import {
   applySubmittedConversationToList,
   applySubmittedTurnToConversationMeta,
+  appendCurrentConversationBreadcrumb,
   markConversationActivityInList,
   markConversationMetaActivity,
+  resolveActiveConversationDisplay,
   type WorkspaceConversationListItem,
   type WorkspaceConversationMeta,
 } from "@/lib/api/conversations";
@@ -107,13 +109,15 @@ export function WorkspaceChatView({
     );
   }
 
-  const activeConversationListItem = activeConversationId
-    ? conversations.find((conversation) => conversation.id === activeConversationId) ?? null
-    : null;
-  const currentConversationMeta =
-    activeConversationMeta && activeConversationMeta.id === activeConversationId
-      ? activeConversationMeta
-      : null;
+  const currentConversation = resolveActiveConversationDisplay({
+    activeConversationId,
+    conversations,
+    current: activeConversationMeta,
+  });
+  const chatBreadcrumbs = appendCurrentConversationBreadcrumb({
+    breadcrumbs,
+    currentConversationTitle: currentConversation?.title,
+  });
 
   return (
     <WorkspaceShell
@@ -123,24 +127,30 @@ export function WorkspaceChatView({
       activeConversationId={activeConversationId}
       currentUser={currentUser}
       contentScroll="shell"
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={chatBreadcrumbs}
+      currentConversation={
+        currentConversation
+          ? {
+              id: currentConversation.id,
+              title: currentConversation.title,
+            }
+          : undefined
+      }
       topActions={
-        currentConversationMeta ? (
-          <ConversationPageActions
-            conversationId={currentConversationMeta.id}
-            workspaceId={workspaceId}
-            conversationTitle={
-              activeConversationListItem?.title ?? currentConversationMeta.title
-            }
-            conversationStatus={
-              activeConversationListItem?.status ?? currentConversationMeta.status
-            }
-            createdAt={currentConversationMeta.createdAt}
-            updatedAt={activeConversationListItem?.updatedAt ?? currentConversationMeta.updatedAt}
-            creatorLabel={`${currentUser.username}（你）`}
-            messageCount={currentConversationMeta.messageCount}
-            attachmentCount={currentConversationMeta.attachmentCount}
-          />
+        currentConversation ? (
+          <div key={currentConversation.id} className="animate-soft-fade">
+            <ConversationPageActions
+              conversationId={currentConversation.id}
+              workspaceId={workspaceId}
+              conversationTitle={currentConversation.title}
+              conversationStatus={currentConversation.status}
+              createdAt={currentConversation.createdAt}
+              updatedAt={currentConversation.updatedAt}
+              creatorLabel={`${currentUser.username}（你）`}
+              messageCount={currentConversation.messageCount}
+              attachmentCount={currentConversation.attachmentCount}
+            />
+          </div>
         ) : undefined
       }
     >

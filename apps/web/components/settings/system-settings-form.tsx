@@ -133,6 +133,13 @@ export function SystemSettingsForm({
                 <h1 className="text-[1.25rem] font-semibold text-app-text">系统设置</h1>
               </div>
 
+              <Link
+                href="/settings/libraries"
+                className={buttonStyles({ variant: "secondary", size: "sm", block: true })}
+              >
+                管理全局资料库
+              </Link>
+
               {hasSettings ? (
                 <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
                   <nav className="grid gap-0.5" aria-label="系统设置分组导航">

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   CONVERSATION_STREAM_EVENT,
+  KNOWLEDGE_SOURCE_SCOPE_VALUES,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   MESSAGE_STATUS_VALUES,
@@ -13,6 +14,8 @@ const conversationStreamCitationSchema = z.object({
   document_id: z.string().uuid(),
   label: z.string().min(1),
   quote_text: z.string(),
+  source_scope: z.enum(KNOWLEDGE_SOURCE_SCOPE_VALUES).nullable().optional(),
+  library_title: z.string().nullable().optional(),
 });
 
 export const conversationStreamEventSchema = z.discriminatedUnion("type", [

@@ -205,9 +205,9 @@ export const workspaceDirectories = pgTable(
     libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
       onDelete: "cascade",
     }),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     parentId: uuid("parent_id"),
     name: varchar("name", { length: 255 }).notNull(),
     path: text("path").notNull(),

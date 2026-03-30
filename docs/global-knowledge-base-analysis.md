@@ -1,12 +1,12 @@
 # 全局资料库能力系统分析
 
-版本：v0.1  
+版本：v0.2  
 日期：2026-03-30
 
 > 文档角色说明：
 >
-> - 本文基于当前仓库实现，分析“全局资料库”能力的产品与技术设计。
-> - 本文是方案分析，不代表已进入当前实施主线。
+> - 本文记录“全局资料库”能力的长期方案分析、取舍和后续扩展边界。
+> - 当前仓库已采纳该长期方案，并在 2026-03-30 落地第一批实现；本文仍保留方案分析，用于解释为什么采用 library-first 模型。
 > - 当前实现约束仍以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md) 为准。
 
 ## 1. 背景与结论
@@ -29,7 +29,16 @@
 3. 对话检索层继续保留 `search_workspace_knowledge` 这一工具名，但它的语义升级为“检索当前 workspace 可访问的资料范围”，默认包含：
    - 当前 workspace 的私有资料库
    - 当前 workspace 已启用的全局资料库订阅
-4. 由于当前 tracker 仍处于 `P0 对话链路收口优先`，这项能力更适合先完成设计与数据准备，不建议直接插入主线实现。
+4. 该方案已被采纳为正式方向，并已完成第一批实现：`knowledge_libraries` / `workspace_library_subscriptions` 基础模型、library scope 检索与授权、管理员全局资料库 CRUD 与上传、workspace 订阅管理、知识库只读挂载、citation 来源 badge。
+
+状态更新（2026-03-30）：
+
+- 已完成 `knowledge_libraries` + `workspace_library_subscriptions` 基础模型与 `resolveWorkspaceLibraryScope()` 范围解析
+- 已完成 `search_workspace_knowledge`、文档阅读授权和 citation 跳转向 library scope 切换
+- 已完成管理员侧全局资料库管理与上传入口
+- 已完成 workspace 侧订阅管理、知识库只读挂载和 citation 来源展示
+
+以下章节保留方案分析与权衡，帮助理解为什么采用 library-first，而不是“订阅时复制副本”。
 
 ## 2. 当前项目中的资料库是怎么设计的
 

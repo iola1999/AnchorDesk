@@ -6,7 +6,7 @@
 
 开始任何任务前，先按这个顺序阅读需求与设计：
 
-1. [docs/anchordesk-technical-design-nodejs.md](./docs/anchordesk-technical-design-nodejs.md)
+1. [docs/knowledge-assistant-technical-design-nodejs.md](./docs/knowledge-assistant-technical-design-nodejs.md)
    用它作为当前实现的主设计文档和架构/约束文档。
 2. [docs/implementation-tracker.md](./docs/implementation-tracker.md)
    用它作为当前阶段进度、活跃待办和下一步执行顺序文档。
@@ -209,7 +209,7 @@ pnpm verify
 如果改动影响开发流程、CI、测试命令或下一阶段优先级，必须同步更新：
 
 - `AGENTS.md`
-- `docs/anchordesk-technical-design-nodejs.md`
+- `docs/knowledge-assistant-technical-design-nodejs.md`
 - `docs/implementation-tracker.md`
 
 ## 7. 当前重点

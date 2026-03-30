@@ -1,6 +1,10 @@
+import { getDb } from "@anchordesk/db";
+
 import { WorkspaceSettingsForm } from "@/components/workspaces/workspace-settings-form";
+import { WorkspaceLibrarySubscriptions } from "@/components/workspaces/workspace-library-subscriptions";
 import { WorkspaceLifecyclePanel } from "@/components/workspaces/workspace-lifecycle-panel";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
+import { listWorkspaceGlobalLibraryCatalog } from "@/lib/api/workspace-library-subscriptions";
 import { loadWorkspaceShellData } from "@/lib/api/workspace-shell-data";
 import { cn, ui } from "@/lib/ui";
 
@@ -12,6 +16,7 @@ export default async function WorkspaceSettingsPage({
   const { workspaceId } = await params;
   const { workspace, workspaceList, conversationList, user } =
     await loadWorkspaceShellData(workspaceId);
+  const libraryCatalog = await listWorkspaceGlobalLibraryCatalog(workspaceId, getDb());
 
   return (
     <WorkspaceShell
@@ -38,6 +43,13 @@ export default async function WorkspaceSettingsPage({
           initialTitle={workspace.title}
           initialPrompt={workspace.workspacePrompt}
           framed={false}
+        />
+        <WorkspaceLibrarySubscriptions
+          workspaceId={workspace.id}
+          libraries={libraryCatalog.map((library) => ({
+            ...library,
+            updatedAt: library.updatedAt.toISOString(),
+          }))}
         />
         <WorkspaceLifecyclePanel
           workspaceId={workspace.id}

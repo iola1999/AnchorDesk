@@ -132,6 +132,18 @@ export function menuItemStyles({
     : "text-app-muted-strong hover:bg-app-surface-soft/82 hover:text-app-text";
 }
 
+export function breadcrumbSwitcherTriggerStyles({
+  open = false,
+}: {
+  open?: boolean;
+} = {}) {
+  return cn(
+    buttonStyles({ variant: "ghost", size: "xs" }),
+    "min-h-0 max-w-full gap-1.5 px-2 py-1 text-app-muted transition-[background-color,color,transform] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:bg-app-surface-soft/74 hover:text-app-text",
+    open && "bg-app-surface-soft/82 text-app-text",
+  );
+}
+
 export function chipButtonStyles({
   active = false,
   size = "default",

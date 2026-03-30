@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
+import { ChevronDownIcon } from "@/components/icons";
+import { breadcrumbSwitcherTriggerStyles, cn, menuItemStyles, ui } from "@/lib/ui";
 
 type WorkspaceListItem = {
   id: string;
@@ -66,20 +67,25 @@ export function WorkspaceBreadcrumbSwitcher({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className={cn(
-          buttonStyles({ variant: "ghost", size: "xs" }),
-          "min-h-0 gap-1 px-2 py-1 text-app-muted",
-        )}
+        className={breadcrumbSwitcherTriggerStyles({ open })}
       >
-        <span>{workspace.title}</span>
-        <span className={cn("text-[11px] transition", open && "rotate-180")}>▾</span>
+        <span className="truncate">{workspace.title}</span>
+        <ChevronDownIcon
+          className={cn(
+            "size-3.5 text-app-muted transition-transform duration-200 [transition-timing-function:var(--ease-out-quart)]",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {open ? (
         <div
           id={menuId}
           role="menu"
-          className={cn(ui.menu, "absolute left-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-1")}
+          className={cn(
+            ui.menu,
+            "animate-soft-enter absolute left-0 top-[calc(100%+8px)] z-10 grid min-w-[220px] gap-1",
+          )}
         >
           {workspaces.map((workspaceItem) => (
             <Link

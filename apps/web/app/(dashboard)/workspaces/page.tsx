@@ -125,12 +125,20 @@ export default async function WorkspacesPage() {
             账号与安全
           </Link>
           {canAccessSystemSettings ? (
-            <Link
-              href="/settings"
-              className={buttonStyles({ variant: "ghost", size: "sm" })}
-            >
-              系统设置
-            </Link>
+            <>
+              <Link
+                href="/settings/libraries"
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+              >
+                全局资料库
+              </Link>
+              <Link
+                href="/settings"
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+              >
+                系统设置
+              </Link>
+            </>
           ) : null}
           <Link
             href="/workspaces/new"

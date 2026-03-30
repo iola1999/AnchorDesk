@@ -25,7 +25,8 @@ from parser_utils import (
 
 
 class ParseRequest(BaseModel):
-    workspace_id: str
+    workspace_id: str | None = None
+    library_id: str | None = None
     document_version_id: str
     storage_key: str
     sha256: str

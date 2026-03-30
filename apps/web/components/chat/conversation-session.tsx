@@ -52,6 +52,36 @@ type TimelineMessagesByAssistant = ConversationTimelineMessagesByAssistant;
 
 type MessageCitation = ConversationMessageCitation;
 type MessageViewMode = "answer" | "sources";
+type ActionButtonProps = {
+  active?: boolean;
+  children: ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
+};
+type TabButtonProps = {
+  active: boolean;
+  children: ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
+};
+type CitationSourceBadgeProps = {
+  citation: MessageCitation;
+};
+type ConversationSessionProps = {
+  conversationId: string;
+  workspaceId?: string | null;
+  assistantMessageId?: string | null;
+  assistantStatus?: MessageStatus | null;
+  initialMessages: ChatMessage[];
+  initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
+  initialCitations?: MessageCitation[];
+  streamEnabled?: boolean;
+  sourceLinksEnabled?: boolean;
+  readOnly?: boolean;
+  emptyStateMessage?: string;
+  onAssistantTerminalEvent?: (conversationId: string) => void;
+  onSessionStateSync?: (snapshot: ConversationSessionSnapshot) => void;
+};
 
 function flattenTimelineMessageIds(timelineByAssistant: TimelineMessagesByAssistant) {
   return new Set(
@@ -73,12 +103,7 @@ function ActionButton({
   children,
   disabled = false,
   onClick,
-}: {
-  active?: boolean;
-  children: ReactNode;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
+}: ActionButtonProps) {
   return (
     <button
       type="button"
@@ -96,12 +121,7 @@ function TabButton({
   children,
   disabled = false,
   onClick,
-}: {
-  active: boolean;
-  children: ReactNode;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
+}: TabButtonProps) {
   return (
     <button
       type="button"
@@ -132,9 +152,7 @@ function resolveCitationSourceBadge(citation: MessageCitation) {
 
 function CitationSourceBadge({
   citation,
-}: {
-  citation: MessageCitation;
-}) {
+}: CitationSourceBadgeProps) {
   const badge = resolveCitationSourceBadge(citation);
 
   return (
@@ -165,21 +183,7 @@ export function ConversationSession({
   emptyStateMessage = "这一轮还没有消息",
   onAssistantTerminalEvent,
   onSessionStateSync,
-}: {
-  conversationId: string;
-  workspaceId?: string | null;
-  assistantMessageId?: string | null;
-  assistantStatus?: MessageStatus | null;
-  initialMessages: ChatMessage[];
-  initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
-  initialCitations?: MessageCitation[];
-  streamEnabled?: boolean;
-  sourceLinksEnabled?: boolean;
-  readOnly?: boolean;
-  emptyStateMessage?: string;
-  onAssistantTerminalEvent?: (conversationId: string) => void;
-  onSessionStateSync?: (snapshot: ConversationSessionSnapshot) => void;
-}) {
+}: ConversationSessionProps) {
   const [chatMessages, setChatMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
     initialTimelineMessagesByAssistant ?? {},

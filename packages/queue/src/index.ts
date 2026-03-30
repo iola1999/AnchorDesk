@@ -15,7 +15,7 @@ export const QUEUE_NAMES = {
 } as const;
 
 export type IngestJobPayload = {
-  workspaceId: string;
+  workspaceId?: string | null;
   libraryId?: string;
   documentId: string;
   documentVersionId: string;

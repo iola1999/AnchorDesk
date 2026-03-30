@@ -4,6 +4,7 @@ import {
   MESSAGE_STATUS,
   normalizeConversationFailureMessage,
   type ConversationStreamEvent,
+  type KnowledgeSourceScope,
   type MessageStatus,
 } from "@anchordesk/contracts";
 
@@ -28,6 +29,8 @@ type AssistantCitationRow = {
   documentId: string;
   label: string;
   quoteText: string;
+  sourceScope?: KnowledgeSourceScope | null;
+  libraryTitle?: string | null;
 };
 
 type ToolMessageEvent = Extract<
@@ -115,6 +118,8 @@ export function buildAssistantTerminalStreamEvent(input: {
         document_id: citation.documentId,
         label: citation.label,
         quote_text: citation.quoteText,
+        source_scope: citation.sourceScope ?? null,
+        library_title: citation.libraryTitle ?? null,
       })),
     };
   }

@@ -1,6 +1,11 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
-import { documents, getDb, workspaceDirectories } from "@anchordesk/db";
+import {
+  documents,
+  ensureWorkspacePrivateLibrary,
+  getDb,
+  workspaceDirectories,
+} from "@anchordesk/db";
 
 import {
   deleteDocumentSearchIndexAndAssets,
@@ -39,6 +44,7 @@ export async function createWorkspaceDirectory(input: {
   name: string;
 }) {
   const db = getDb();
+  const privateLibrary = await ensureWorkspacePrivateLibrary(input.workspaceId, db);
   const [parentDirectory] = await db
     .select()
     .from(workspaceDirectories)
@@ -87,6 +93,7 @@ export async function createWorkspaceDirectory(input: {
     const [directory] = await db
       .update(workspaceDirectories)
       .set({
+        libraryId: privateLibrary.id,
         parentId: parentDirectory.id,
         name: input.name.trim(),
         updatedAt: new Date(),
@@ -101,6 +108,7 @@ export async function createWorkspaceDirectory(input: {
   const [directory] = await db
     .insert(workspaceDirectories)
     .values({
+      libraryId: privateLibrary.id,
       workspaceId: input.workspaceId,
       parentId: parentDirectory.id,
       name: input.name.trim(),

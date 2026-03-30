@@ -3,15 +3,23 @@ import {
   DEFAULT_PARSE_STATUS,
   DEFAULT_DOCUMENT_INDEXING_MODE,
   DOCUMENT_STATUS,
+  KNOWLEDGE_LIBRARY_TYPE,
   RUN_STATUS,
   type DocumentIndexingMode,
 } from "@anchordesk/contracts";
 
-import { documentJobs, documentVersions, documents, getDb } from "@anchordesk/db";
+import {
+  documentJobs,
+  documentVersions,
+  documents,
+  getDb,
+  knowledgeLibraries,
+} from "@anchordesk/db";
 import { enqueueIngestFlow } from "@anchordesk/queue";
 
 import { auth } from "@/auth";
 import { requireOwnedDocumentJob } from "@/lib/guards/resources";
+import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 
 export const runtime = "nodejs";
 
@@ -25,7 +33,46 @@ export async function POST(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const job = await requireOwnedDocumentJob(jobId, session.user.id);
+  const job =
+    (await requireOwnedDocumentJob(jobId, session.user.id)) ??
+    (isSuperAdminUsername(session.user.username)
+      ? await getDb()
+          .select({
+            id: documentJobs.id,
+            documentVersionId: documentJobs.documentVersionId,
+            stage: documentJobs.stage,
+            status: documentJobs.status,
+            progress: documentJobs.progress,
+            metadataJson: documentVersions.metadataJson,
+            errorCode: documentJobs.errorCode,
+            errorMessage: documentJobs.errorMessage,
+            createdAt: documentJobs.createdAt,
+            updatedAt: documentJobs.updatedAt,
+            startedAt: documentJobs.startedAt,
+            finishedAt: documentJobs.finishedAt,
+            libraryId: documents.libraryId,
+            workspaceId: documents.workspaceId,
+            documentId: documents.id,
+            libraryType: knowledgeLibraries.libraryType,
+          })
+          .from(documentJobs)
+          .innerJoin(
+            documentVersions,
+            eq(documentVersions.id, documentJobs.documentVersionId),
+          )
+          .innerJoin(documents, eq(documents.id, documentVersions.documentId))
+          .leftJoin(knowledgeLibraries, eq(knowledgeLibraries.id, documents.libraryId))
+          .where(eq(documentJobs.id, jobId))
+          .limit(1)
+          .then((rows) => {
+            const row = rows[0] ?? null;
+            if (!row || row.libraryType !== KNOWLEDGE_LIBRARY_TYPE.GLOBAL_MANAGED) {
+              return null;
+            }
+
+            return row;
+          })
+      : null);
   if (!job) {
     return Response.json({ error: "Job not found" }, { status: 404 });
   }
@@ -69,15 +116,8 @@ export async function POST(
       ? (job.metadataJson.indexing_mode as DocumentIndexingMode)
       : DEFAULT_DOCUMENT_INDEXING_MODE;
 
-  if (!job.workspaceId) {
-    return Response.json(
-      { error: "Global library document jobs are not retryable from this route yet" },
-      { status: 400 },
-    );
-  }
-
   await enqueueIngestFlow({
-    workspaceId: job.workspaceId,
+    workspaceId: job.workspaceId ?? null,
     libraryId: job.libraryId ?? undefined,
     documentId: job.documentId,
     documentVersionId: job.documentVersionId,

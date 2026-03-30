@@ -1,18 +1,14 @@
-import { desc, eq, inArray } from "drizzle-orm";
-import { RUN_STATUS } from "@anchordesk/contracts";
-
 import {
-  documentJobs,
-  documentVersions,
-  documents,
+  ensureWorkspacePrivateLibrary,
   getDb,
-  workspaceDirectories,
+  resolveWorkspaceLibraryScope,
 } from "@anchordesk/db";
 
 import { KnowledgeBaseExplorer } from "@/components/workspaces/knowledge-base-explorer";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
-import { KNOWLEDGE_BASE_ROOT_PATH, normalizeDirectoryPath } from "@/lib/api/directory-paths";
-import { ensureWorkspaceRootDirectory } from "@/lib/api/workspace-directories";
+import { loadKnowledgeLibraryExplorerData } from "@/lib/api/knowledge-library-explorer";
+import { filterMountedGlobalLibraries } from "@/lib/api/knowledge-libraries";
+import { listWorkspaceGlobalLibraryCatalog } from "@/lib/api/workspace-library-subscriptions";
 import { loadWorkspaceShellData } from "@/lib/api/workspace-shell-data";
 
 export default async function WorkspaceKnowledgeBasePage({
@@ -20,73 +16,36 @@ export default async function WorkspaceKnowledgeBasePage({
   searchParams,
 }: {
   params: Promise<{ workspaceId: string }>;
-  searchParams: Promise<{ path?: string }>;
+  searchParams: Promise<{ path?: string; libraryId?: string }>;
 }) {
   const { workspaceId } = await params;
-  const { path } = await searchParams;
+  const { path, libraryId } = await searchParams;
   const { workspace, workspaceList, conversationList, user } =
     await loadWorkspaceShellData(workspaceId);
   const db = getDb();
-  await ensureWorkspaceRootDirectory(workspaceId, db);
+  const privateLibrary = await ensureWorkspacePrivateLibrary(workspaceId, db);
+  const scope = await resolveWorkspaceLibraryScope(workspaceId, db);
+  const libraryCatalog = await listWorkspaceGlobalLibraryCatalog(workspaceId, db);
+  const mountedLibraries = filterMountedGlobalLibraries(libraryCatalog).map((library) => ({
+    id: library.id,
+    title: library.title,
+    description: library.description,
+    documentCount: library.documentCount,
+    updatedAt: library.updatedAt.toISOString(),
+    href: `/workspaces/${workspaceId}/knowledge-base?libraryId=${library.id}`,
+  }));
 
-  const [docs, directories] = await Promise.all([
-    db
-      .select()
-      .from(documents)
-      .where(eq(documents.workspaceId, workspaceId))
-      .orderBy(desc(documents.createdAt)),
-    db
-      .select()
-      .from(workspaceDirectories)
-      .where(eq(workspaceDirectories.workspaceId, workspaceId))
-      .orderBy(workspaceDirectories.path),
-  ]);
-
-  const activeDirectories = directories.filter((directory) => !directory.deletedAt);
-  const normalizedPath = normalizeDirectoryPath(path ?? KNOWLEDGE_BASE_ROOT_PATH);
-  const currentDirectory =
-    activeDirectories.find((directory) => directory.path === normalizedPath) ??
-    activeDirectories.find((directory) => directory.path === KNOWLEDGE_BASE_ROOT_PATH) ??
-    null;
-
-  if (!currentDirectory) {
-    throw new Error("Knowledge base root directory is missing");
-  }
-
-  const latestVersionIds = docs
-    .map((doc) => doc.latestVersionId)
-    .filter((value): value is string => Boolean(value));
-
-  const [latestVersions, latestJobs] = await Promise.all([
-    latestVersionIds.length > 0
-      ? db
-          .select()
-          .from(documentVersions)
-          .where(inArray(documentVersions.id, latestVersionIds))
-      : Promise.resolve([]),
-    latestVersionIds.length > 0
-      ? db
-          .select()
-          .from(documentJobs)
-          .where(inArray(documentJobs.documentVersionId, latestVersionIds))
-      : Promise.resolve([]),
-  ]);
-
-  const versionById = new Map(latestVersions.map((version) => [version.id, version]));
-  const jobByVersionId = new Map(latestJobs.map((job) => [job.documentVersionId, job]));
-
-  const docsWithProgress = docs.map((doc) => {
-    const latestVersion = doc.latestVersionId
-      ? versionById.get(doc.latestVersionId) ?? null
-      : null;
-    const latestJob = latestVersion ? jobByVersionId.get(latestVersion.id) ?? null : null;
-
-    return {
-      ...doc,
-      latestVersion,
-      latestJob,
-    };
+  const activeLibraryId =
+    libraryId && scope.accessibleLibraryIds.includes(libraryId) ? libraryId : privateLibrary.id;
+  const explorer = await loadKnowledgeLibraryExplorerData({
+    libraryId: activeLibraryId,
+    path,
+    db,
   });
+  const isViewingSubscribedGlobalLibrary = activeLibraryId !== privateLibrary.id;
+  const selectedGlobalLibrary = isViewingSubscribedGlobalLibrary
+    ? libraryCatalog.find((library) => library.id === activeLibraryId) ?? null
+    : null;
 
   return (
     <WorkspaceShell
@@ -108,48 +67,50 @@ export default async function WorkspaceKnowledgeBasePage({
       ]}
     >
       <KnowledgeBaseExplorer
-        workspaceId={workspace.id}
-        initialCurrentPath={currentDirectory.path}
-        currentDirectoryId={currentDirectory.id}
-        directories={activeDirectories.map((directory) => ({
-          id: directory.id,
-          parentId: directory.parentId,
-          name: directory.name,
-          path: directory.path,
-          createdAt: directory.createdAt.toISOString(),
-          updatedAt: directory.updatedAt.toISOString(),
-        }))}
-        documents={docsWithProgress.map((doc) => ({
-          id: doc.id,
-          title: doc.title,
-          sourceFilename: doc.sourceFilename,
-          logicalPath: doc.logicalPath,
-          directoryPath: doc.directoryPath,
-          mimeType: doc.mimeType,
-          docType: doc.docType,
-          tags: doc.tagsJson ?? [],
-          status: doc.status,
-          createdAt: doc.createdAt.toISOString(),
-          updatedAt: doc.updatedAt.toISOString(),
-          latestVersion: doc.latestVersion
+        initialCurrentPath={explorer.currentDirectory.path}
+        currentDirectoryId={explorer.currentDirectory.id}
+        directories={explorer.directories}
+        documents={explorer.documents}
+        documentHrefBase={`/workspaces/${workspaceId}/documents`}
+        scopeQuery={isViewingSubscribedGlobalLibrary ? { libraryId: activeLibraryId } : {}}
+        presignEndpoint={`/api/workspaces/${workspaceId}/uploads/presign`}
+        documentsEndpoint={
+          isViewingSubscribedGlobalLibrary
+            ? `/api/knowledge-libraries/${activeLibraryId}/documents`
+            : `/api/workspaces/${workspaceId}/documents`
+        }
+        directoriesEndpoint={
+          isViewingSubscribedGlobalLibrary
+            ? null
+            : `/api/workspaces/${workspaceId}/directories`
+        }
+        operationsEndpoint={
+          isViewingSubscribedGlobalLibrary
+            ? null
+            : `/api/workspaces/${workspaceId}/knowledge-base/operations`
+        }
+        downloadEndpoint={
+          isViewingSubscribedGlobalLibrary
+            ? `/api/knowledge-libraries/${activeLibraryId}/knowledge-base/download`
+            : `/api/workspaces/${workspaceId}/knowledge-base/download`
+        }
+        editable={!isViewingSubscribedGlobalLibrary}
+        canManageTasks={!isViewingSubscribedGlobalLibrary}
+        mountedLibraries={isViewingSubscribedGlobalLibrary ? [] : mountedLibraries}
+        readOnlyNotice={
+          isViewingSubscribedGlobalLibrary
+            ? `已挂载只读 · ${selectedGlobalLibrary?.title ?? explorer.library.title}`
+            : null
+        }
+        scopeLabel={isViewingSubscribedGlobalLibrary ? "订阅资料库" : "我的资料"}
+        backLink={
+          isViewingSubscribedGlobalLibrary
             ? {
-                id: doc.latestVersion.id,
-                parseStatus: doc.latestVersion.parseStatus,
-                fileSizeBytes: doc.latestVersion.fileSizeBytes ?? null,
+                href: `/workspaces/${workspaceId}/knowledge-base`,
+                label: "返回我的资料",
               }
-            : null,
-          latestJob: doc.latestJob
-            ? {
-                id: doc.latestJob.id,
-                status: doc.latestJob.status,
-                stage: doc.latestJob.stage,
-                progress: doc.latestJob.progress,
-                updatedAt: doc.latestJob.updatedAt.toISOString(),
-                errorCode: doc.latestJob.errorCode,
-                errorMessage: doc.latestJob.errorMessage,
-              }
-            : null,
-        }))}
+            : null
+        }
       />
     </WorkspaceShell>
   );

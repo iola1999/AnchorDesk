@@ -24,6 +24,10 @@ type WorkspaceShellProps = {
   workspaces: WorkspaceListItem[];
   conversations: ConversationListItem[];
   activeConversationId?: string;
+  currentConversation?: {
+    id: string;
+    title: string;
+  };
   activeView?: "chat" | "settings" | "knowledge-base";
   contentScroll?: "shell" | "contained";
   currentUser: {

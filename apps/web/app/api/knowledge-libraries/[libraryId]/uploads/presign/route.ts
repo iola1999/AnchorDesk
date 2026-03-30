@@ -1,0 +1,83 @@
+import {
+  buildContentAddressedStorageKey,
+  createPresignedUploadUrl,
+  normalizeSha256Hex,
+} from "@anchordesk/storage";
+
+import { auth } from "@/auth";
+import { findManagedKnowledgeLibrary } from "@/lib/api/admin-knowledge-libraries";
+import { hasVerifiedContentAddressedBlob } from "@/lib/api/content-addressed-storage";
+import { validateUploadSupport } from "@/lib/api/upload-policy";
+import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+
+export const runtime = "nodejs";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ libraryId: string }> },
+) {
+  const { libraryId } = await params;
+  const session = await auth();
+  const user = session?.user;
+  if (!user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isSuperAdminUsername(user.username)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const library = await findManagedKnowledgeLibrary(libraryId);
+  if (!library) {
+    return Response.json({ error: "Library not found" }, { status: 404 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as {
+    filename?: string;
+    contentType?: string;
+    directoryPath?: string;
+    sha256?: string;
+  };
+
+  const filename = String(body.filename ?? "").trim();
+  const contentType = String(body.contentType ?? "application/octet-stream");
+  const directoryPath = String(body.directoryPath ?? "").trim();
+  const sha256 = String(body.sha256 ?? "").trim();
+
+  if (!filename || !sha256) {
+    return Response.json({ error: "filename and sha256 are required" }, { status: 400 });
+  }
+
+  const support = validateUploadSupport({ filename, contentType });
+  if (!support.ok) {
+    return Response.json({ error: support.message, code: support.code }, { status: 400 });
+  }
+
+  let key: string;
+  let normalizedSha256: string;
+  try {
+    normalizedSha256 = normalizeSha256Hex(sha256);
+    key = buildContentAddressedStorageKey(normalizedSha256);
+  } catch {
+    return Response.json({ error: "sha256 is invalid" }, { status: 400 });
+  }
+
+  if (await hasVerifiedContentAddressedBlob(normalizedSha256)) {
+    return Response.json({
+      uploadUrl: null,
+      key,
+      bucket: null,
+      alreadyExists: true,
+      directoryPath,
+    });
+  }
+
+  const presigned = await createPresignedUploadUrl({ key, contentType });
+
+  return Response.json({
+    uploadUrl: presigned.url,
+    key: presigned.key,
+    bucket: presigned.bucket,
+    alreadyExists: false,
+    directoryPath,
+  });
+}

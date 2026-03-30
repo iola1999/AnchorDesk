@@ -27,6 +27,11 @@ export type WorkspaceConversationMeta = WorkspaceConversationListItem & {
   attachmentCount: number;
 };
 
+export type WorkspaceBreadcrumbItem = {
+  label: string;
+  href?: string;
+};
+
 function sortConversationsByUpdatedAt(
   conversations: WorkspaceConversationListItem[],
 ) {
@@ -43,6 +48,18 @@ export function buildConversationTitleFromPrompt(content: string) {
 export function normalizeConversationTitle(input: string, fallback: string) {
   const normalized = input.trim().replace(/\s+/g, " ");
   return normalized || fallback;
+}
+
+export function appendCurrentConversationBreadcrumb(input: {
+  breadcrumbs: WorkspaceBreadcrumbItem[];
+  currentConversationTitle?: string | null;
+}) {
+  const normalizedTitle = input.currentConversationTitle?.trim().replace(/\s+/g, " ");
+  if (!normalizedTitle) {
+    return input.breadcrumbs;
+  }
+
+  return [...input.breadcrumbs, { label: normalizedTitle }];
 }
 
 export function applySubmittedConversationToList(input: {
@@ -136,6 +153,31 @@ export function markConversationMetaActivity(input: {
   return {
     ...input.current,
     updatedAt: input.now ?? new Date(),
+  };
+}
+
+export function resolveActiveConversationDisplay(input: {
+  activeConversationId?: string;
+  conversations: WorkspaceConversationListItem[];
+  current?: WorkspaceConversationMeta | null;
+}) {
+  if (!input.activeConversationId) {
+    return null;
+  }
+
+  if (!input.current || input.current.id !== input.activeConversationId) {
+    return null;
+  }
+
+  const listItem = input.conversations.find(
+    (conversation) => conversation.id === input.activeConversationId,
+  );
+
+  return {
+    ...input.current,
+    title: listItem?.title ?? input.current.title,
+    status: listItem?.status ?? input.current.status,
+    updatedAt: listItem?.updatedAt ?? input.current.updatedAt,
   };
 }
 

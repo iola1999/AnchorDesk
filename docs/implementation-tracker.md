@@ -1,13 +1,13 @@
 # 实施跟踪
 
-版本：v0.7
+版本：v0.8
 日期：2026-03-30
 
 > 本文件是项目的执行跟踪文档。
 >
 > - 当前阶段进度、活跃待办和下一步顺序，以本文件为准。
 > - 产品目标以 [anchordesk-prd.md](./anchordesk-prd.md) 为准。
-> - 架构与实现约束以 [anchordesk-technical-design-nodejs.md](./anchordesk-technical-design-nodejs.md) 为准。
+> - 架构与实现约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
 
 ## 1. 当前阶段
 
@@ -23,6 +23,7 @@
 
 - 传统主链路已经具备基础可用性，但当前最需要收口的是对话链路完成态，而不是继续扩 parser 和 retrieval 范围。
 - 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
+- 资料模型已升级为“workspace 私有库 + 可订阅全局库”；对话检索、文档授权和引用跳转开始统一围绕 library scope 组织。
 - 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
 - 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 当前阶段不再接受本地 mock 会话回退；链路联调应直接暴露真实 provider 缺失或调用失败，并保持错误语义稳定。
@@ -32,6 +33,7 @@
 - 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置，Docker 生产部署只需提供 DATABASE_URL、AUTH_SECRET、SUPER_ADMIN_USERNAMES。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
+- 全局资料库第一版已补齐管理员维护、workspace 订阅、资料页只读挂载和 citation 来源展示；后续以回归和细化为主，不单独上调优先级。
 
 当前实现快照：
 
@@ -40,6 +42,8 @@
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
+- 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
+- `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
 - `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
 - 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
@@ -48,11 +52,14 @@
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
+- 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答，前端会先本地重置该轮的回答/citation/工具时间线，再交给 SSE 持续接管。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
+- 管理员侧已补齐 `/settings/libraries` 全局资料库 CRUD、上传、目录整理、任务重试与下载入口；workspace owner 可在工作空间设置页直接订阅、暂停或移除全局资料库。
+- workspace 资料库页会在根层挂出已订阅全局资料库；切入后使用只读挂载视图，workspace 侧不能修改共享资料目录和文件。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
@@ -68,6 +75,11 @@
 
 ## 2. 最近完成
 
+- `working tree` Add super-admin global library CRUD pages, upload/file-manager APIs, and shared library explorer support
+- `working tree` Add workspace global-library subscription API and settings UI with active / paused / revoked states
+- `working tree` Mount subscribed global libraries read-only in workspace knowledge-base root and reuse explorer across private/global scopes
+- `working tree` Surface citation source badges for workspace vs global-library evidence in conversation and share views
+- `working tree` Allow global-library ingest and retry flows to run on library-only jobs without requiring a workspace id
 - `working tree` Stop relying on a terminal-event page refresh; `answer_done` / `run_failed` now update current conversation meta and sidebar activity locally
 - `working tree` When terminal `run_failed` arrives without `message_id`, close the local streaming assistant into a failed state instead of leaving the thread stuck in streaming
 - `working tree` Sync conversation page header meta locally after submit, including title, updated time, message count and attachment count
@@ -165,6 +177,7 @@
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
-- 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库，前端依赖刷新后显示最终版本。
+- 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
+- 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。
 - parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

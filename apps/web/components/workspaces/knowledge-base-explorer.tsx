@@ -103,6 +103,15 @@ type UploadFileIssue = {
   message: string;
 };
 
+type MountedLibraryRecord = {
+  id: string;
+  title: string;
+  description: string | null;
+  documentCount: number;
+  href: string;
+  updatedAt: string;
+};
+
 function formatFileSize(value: number | null) {
   if (!value || value <= 0) {
     return "—";
@@ -161,8 +170,20 @@ function getDocumentStatusLabel(document: DocumentRecord) {
   return "处理中";
 }
 
-function buildPathHref(pathname: string, path: string) {
-  return `${pathname}?path=${encodeURIComponent(path)}`;
+function buildPathHref(
+  pathname: string,
+  path: string,
+  scopeQuery: Record<string, string | undefined> = {},
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(scopeQuery)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+  params.set("path", path);
+
+  return `${pathname}?${params.toString()}`;
 }
 
 function SelectionCheckbox({
@@ -198,11 +219,13 @@ function SelectionCheckbox({
 
 function TableRow({
   row,
-  workspaceId,
+  documentHrefBase,
+  editable,
   onOpenDirectory,
 }: {
   row: Row<ExplorerEntry>;
-  workspaceId: string;
+  documentHrefBase?: string | null;
+  editable: boolean;
   onOpenDirectory: (path: string) => void;
 }) {
   const entry = row.original;
@@ -212,11 +235,12 @@ function TableRow({
       entry.kind === "directory"
         ? { directoryId: entry.id, directoryPath: entry.path }
         : undefined,
-    disabled: entry.kind !== "directory",
+    disabled: !editable || entry.kind !== "directory",
   });
   const draggable = useDraggable({
     id: `entry:${entry.rowId}`,
     data: { entry },
+    disabled: !editable,
   });
 
   return (
@@ -236,13 +260,15 @@ function TableRow({
                 <button
                   ref={draggable.setNodeRef}
                   type="button"
+                  disabled={!editable}
                   className={cn(
                     buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
                     "mt-0.5 size-8 shrink-0 rounded-xl border border-transparent text-app-muted-strong hover:border-app-border hover:bg-app-surface-soft",
                     draggable.isDragging && "opacity-40",
+                    !editable && "cursor-default opacity-30 hover:border-transparent hover:bg-transparent",
                   )}
-                  {...draggable.attributes}
-                  {...draggable.listeners}
+                  {...(editable ? draggable.attributes : {})}
+                  {...(editable ? draggable.listeners : {})}
                 >
                   ⋮⋮
                 </button>
@@ -255,14 +281,16 @@ function TableRow({
                     >
                       {entry.name}
                     </button>
-                  ) : (
+                  ) : documentHrefBase ? (
                     <Link
-                      href={`/workspaces/${workspaceId}/documents/${entry.id}`}
+                      href={`${documentHrefBase}/${entry.id}`}
                       className="truncate font-medium text-app-text hover:text-app-accent"
                       target="_blank"
                     >
                       {entry.name}
                     </Link>
+                  ) : (
+                    <span className="truncate font-medium text-app-text">{entry.name}</span>
                   )}
                   <div className="truncate text-xs text-app-muted">
                     {entry.kind === "directory" ? entry.path : entry.documentPath}
@@ -284,17 +312,41 @@ function TableRow({
 }
 
 export function KnowledgeBaseExplorer({
-  workspaceId,
   initialCurrentPath,
   currentDirectoryId,
   directories,
   documents,
+  documentHrefBase = null,
+  scopeQuery = {},
+  presignEndpoint,
+  documentsEndpoint,
+  directoriesEndpoint = null,
+  operationsEndpoint = null,
+  downloadEndpoint,
+  editable = true,
+  canManageTasks = true,
+  mountedLibraries = [],
+  readOnlyNotice = null,
+  scopeLabel = "我的资料",
+  backLink = null,
 }: {
-  workspaceId: string;
   initialCurrentPath: string;
   currentDirectoryId: string;
   directories: DirectoryRecord[];
   documents: DocumentRecord[];
+  documentHrefBase?: string | null;
+  scopeQuery?: Record<string, string | undefined>;
+  presignEndpoint: string;
+  documentsEndpoint: string;
+  directoriesEndpoint?: string | null;
+  operationsEndpoint?: string | null;
+  downloadEndpoint: string;
+  editable?: boolean;
+  canManageTasks?: boolean;
+  mountedLibraries?: MountedLibraryRecord[];
+  readOnlyNotice?: string | null;
+  scopeLabel?: string;
+  backLink?: { href: string; label: string } | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -327,7 +379,7 @@ export function KnowledgeBaseExplorer({
 
   // Use SWR to handle automatic polling and revalidate-on-focus for RSC payload.
   useSWR(
-    `/workspaces/${workspaceId}/knowledge-base?path=${encodeURIComponent(currentPath)}`,
+    buildPathHref(pathname, currentPath, scopeQuery),
     () => {
       startTransition(() => {
         router.refresh();
@@ -566,7 +618,7 @@ export function KnowledgeBaseExplorer({
     setCurrentDirectory(directory.id);
     setRowSelection({});
     setTargetDirectoryId(directory.id);
-    router.replace(buildPathHref(pathname, directory.path), { scroll: false });
+    router.replace(buildPathHref(pathname, directory.path, scopeQuery), { scroll: false });
   }
 
   function buildSelectionPayload(entry?: ExplorerEntry): DragPayload {
@@ -592,8 +644,12 @@ export function KnowledgeBaseExplorer({
   }
 
   async function runJsonOperation(body: Record<string, unknown>) {
+    if (!operationsEndpoint) {
+      throw new Error("当前视图不支持资料操作");
+    }
+
     setOperationError(null);
-    const response = await fetch(`/api/workspaces/${workspaceId}/knowledge-base/operations`, {
+    const response = await fetch(operationsEndpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -672,8 +728,13 @@ export function KnowledgeBaseExplorer({
   }
 
   async function handleCreateDirectory() {
+    if (!directoriesEndpoint) {
+      setOperationError("当前视图不支持创建目录");
+      return;
+    }
+
     setOperationError(null);
-    const response = await fetch(`/api/workspaces/${workspaceId}/directories`, {
+    const response = await fetch(directoriesEndpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -703,7 +764,7 @@ export function KnowledgeBaseExplorer({
     }
 
     setOperationError(null);
-    const response = await fetch(`/api/workspaces/${workspaceId}/knowledge-base/download`, {
+    const response = await fetch(downloadEndpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -761,7 +822,7 @@ export function KnowledgeBaseExplorer({
           return;
         }
 
-        const presignResponse = await fetch(`/api/workspaces/${workspaceId}/uploads/presign`, {
+        const presignResponse = await fetch(presignEndpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -805,7 +866,7 @@ export function KnowledgeBaseExplorer({
           }
         }
 
-        const documentResponse = await fetch(`/api/workspaces/${workspaceId}/documents`, {
+        const documentResponse = await fetch(documentsEndpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -866,6 +927,25 @@ export function KnowledgeBaseExplorer({
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={cn(ui.panelLarge, "grid gap-5 px-5 py-5 md:px-6")}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="grid gap-1">
+            <span className={ui.eyebrow}>{scopeLabel}</span>
+            {backLink ? (
+              <Link
+                href={backLink.href}
+                className="text-[13px] font-medium text-app-muted-strong transition hover:text-app-text"
+              >
+                {backLink.label}
+              </Link>
+            ) : null}
+          </div>
+          {readOnlyNotice ? (
+            <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-soft px-3 py-1 text-[12px] text-app-muted-strong">
+              {readOnlyNotice}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <div
             className={cn(
@@ -896,29 +976,33 @@ export function KnowledgeBaseExplorer({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              onClick={() => {
-                setUploadStatus(null);
-                setUploadFiles([]);
-                setIsUploading(false);
-                setIsUploadOpen(true);
-              }}
-            >
-              上传
-            </button>
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              onClick={() => {
-                setOperationError(null);
-                setDirectoryName("");
-                setIsCreateDirectoryOpen(true);
-              }}
-            >
-              新建文件夹
-            </button>
+            {editable ? (
+              <>
+                <button
+                  type="button"
+                  className={toolbarButtonClass}
+                  onClick={() => {
+                    setUploadStatus(null);
+                    setUploadFiles([]);
+                    setIsUploading(false);
+                    setIsUploadOpen(true);
+                  }}
+                >
+                  上传
+                </button>
+                <button
+                  type="button"
+                  className={toolbarButtonClass}
+                  onClick={() => {
+                    setOperationError(null);
+                    setDirectoryName("");
+                    setIsCreateDirectoryOpen(true);
+                  }}
+                >
+                  新建文件夹
+                </button>
+              </>
+            ) : null}
             <button
               type="button"
               className={toolbarButtonClass}
@@ -927,34 +1011,40 @@ export function KnowledgeBaseExplorer({
             >
               下载
             </button>
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              disabled={selectedEntries.length === 0}
-              onClick={() => {
-                setTargetDirectoryId(currentDirectory);
-                setIsMoveOpen(true);
-              }}
-            >
-              移动
-            </button>
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              disabled={selectedEntries.length === 0}
-              onClick={() => void handleDeleteSelection()}
-            >
-              删除
-            </button>
+            {editable ? (
+              <>
+                <button
+                  type="button"
+                  className={toolbarButtonClass}
+                  disabled={selectedEntries.length === 0}
+                  onClick={() => {
+                    setTargetDirectoryId(currentDirectory);
+                    setIsMoveOpen(true);
+                  }}
+                >
+                  移动
+                </button>
+                <button
+                  type="button"
+                  className={toolbarButtonClass}
+                  disabled={selectedEntries.length === 0}
+                  onClick={() => void handleDeleteSelection()}
+                >
+                  删除
+                </button>
+              </>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className={toolbarButtonClass}
-              onClick={() => setIsTasksOpen(true)}
-            >
-              处理中任务 {processingDocuments.length > 0 ? `(${processingDocuments.length})` : ""}
-            </button>
+            {canManageTasks ? (
+              <button
+                type="button"
+                className={toolbarButtonClass}
+                onClick={() => setIsTasksOpen(true)}
+              >
+                处理中任务 {processingDocuments.length > 0 ? `(${processingDocuments.length})` : ""}
+              </button>
+            ) : null}
             <button
               type="button"
               className={toolbarButtonClass}
@@ -967,6 +1057,46 @@ export function KnowledgeBaseExplorer({
         </div>
 
         {operationError ? <p className={ui.error}>{operationError}</p> : null}
+
+        {mountedLibraries.length > 0 && currentPath === "资料库" ? (
+          <section className="grid gap-3 rounded-[24px] border border-app-border bg-app-surface-soft/48 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-0.5">
+                <h3 className="text-[15px] font-semibold text-app-text">已挂载全局资料库</h3>
+                <p className="text-[13px] text-app-muted-strong">
+                  在当前工作空间内只读浏览，默认参与对话检索
+                </p>
+              </div>
+              <span className="rounded-full border border-app-border bg-white/90 px-2.5 py-0.5 text-[12px] text-app-muted">
+                {mountedLibraries.length} 个
+              </span>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {mountedLibraries.map((library) => (
+                <Link
+                  key={library.id}
+                  href={library.href}
+                  className="grid gap-2 rounded-[20px] border border-app-border bg-white/88 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="truncate text-[14px] text-app-text">{library.title}</strong>
+                    <span className="shrink-0 text-[12px] text-app-muted">
+                      {library.documentCount} 份资料
+                    </span>
+                  </div>
+                  {library.description ? (
+                    <p className="line-clamp-2 text-[13px] leading-6 text-app-muted-strong">
+                      {library.description}
+                    </p>
+                  ) : null}
+                  <p className="text-[12px] text-app-muted">
+                    更新于 {formatTime(library.updatedAt)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="overflow-hidden rounded-[24px] border border-app-border bg-white">
           <table className="w-full border-collapse text-left">
@@ -1013,7 +1143,8 @@ export function KnowledgeBaseExplorer({
                   <TableRow
                     key={row.id}
                     row={row}
-                    workspaceId={workspaceId}
+                    documentHrefBase={documentHrefBase}
+                    editable={editable}
                     onOpenDirectory={syncPath}
                   />
                 ))
@@ -1214,13 +1345,19 @@ export function KnowledgeBaseExplorer({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid gap-1">
-                    <Link
-                      href={`/workspaces/${workspaceId}/documents/${document.id}`}
-                      className="font-medium text-app-text hover:text-app-accent"
-                      target="_blank"
-                    >
-                      {document.sourceFilename}
-                    </Link>
+                    {documentHrefBase ? (
+                      <Link
+                        href={`${documentHrefBase}/${document.id}`}
+                        className="font-medium text-app-text hover:text-app-accent"
+                        target="_blank"
+                      >
+                        {document.sourceFilename}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-app-text">
+                        {document.sourceFilename}
+                      </span>
+                    )}
                     <p className="text-sm text-app-muted">
                       {document.latestJob?.stage ?? document.latestVersion?.parseStatus ?? document.status}
                       {document.latestJob ? ` · ${document.latestJob.progress}%` : ""}

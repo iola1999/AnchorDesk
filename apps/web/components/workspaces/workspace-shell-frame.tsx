@@ -16,6 +16,7 @@ import {
   resolveWorkspaceShellContentClass,
 } from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
+import { ConversationBreadcrumbSwitcher } from "@/components/workspaces/conversation-breadcrumb-switcher";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
 import { WorkspaceConversationSidebarItem } from "@/components/workspaces/workspace-conversation-sidebar-item";
 import { WorkspaceUserPanel } from "@/components/workspaces/workspace-user-panel";
@@ -37,6 +38,10 @@ export type WorkspaceShellFrameProps = {
   workspaces: WorkspaceListItem[];
   conversations: ConversationListItem[];
   activeConversationId?: string;
+  currentConversation?: {
+    id: string;
+    title: string;
+  };
   activeView?: "chat" | "settings" | "knowledge-base";
   contentScroll?: "shell" | "contained";
   currentUser: {
@@ -66,8 +71,13 @@ type SidebarContentProps = {
 type BreadcrumbTrailProps = {
   workspace: WorkspaceListItem;
   workspaces: WorkspaceListItem[];
+  conversations: ConversationListItem[];
   breadcrumbs: Array<{ label: string; href?: string }>;
   activeView: "chat" | "settings" | "knowledge-base";
+  currentConversation?: {
+    id: string;
+    title: string;
+  };
 };
 
 export function WorkspaceShellFrame({
@@ -75,6 +85,7 @@ export function WorkspaceShellFrame({
   workspaces,
   conversations,
   activeConversationId,
+  currentConversation,
   activeView = "chat",
   contentScroll = "shell",
   currentUser,
@@ -246,8 +257,10 @@ export function WorkspaceShellFrame({
             <BreadcrumbTrail
               workspace={workspace}
               workspaces={workspaces}
+              conversations={conversations}
               breadcrumbs={breadcrumbs}
               activeView={activeView}
+              currentConversation={currentConversation}
             />
 
             {topActions ? (
@@ -261,8 +274,10 @@ export function WorkspaceShellFrame({
             <BreadcrumbTrail
               workspace={workspace}
               workspaces={workspaces}
+              conversations={conversations}
               breadcrumbs={breadcrumbs}
               activeView={activeView}
+              currentConversation={currentConversation}
             />
 
             {topActions ? <div className="flex flex-wrap items-center gap-2">{topActions}</div> : null}
@@ -403,17 +418,27 @@ function WorkspaceSidebarContent({
 function BreadcrumbTrail({
   workspace,
   workspaces,
+  conversations,
   breadcrumbs,
   activeView,
+  currentConversation,
 }: BreadcrumbTrailProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-app-muted" aria-label="Breadcrumb">
       {breadcrumbs.map((item, index) => {
         const isWorkspaceCrumb = item.label === workspace.title;
+        const isCurrentConversationCrumb =
+          Boolean(currentConversation) && index === breadcrumbs.length - 1;
 
         return (
           <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
-            {isWorkspaceCrumb ? (
+            {isCurrentConversationCrumb && currentConversation ? (
+              <ConversationBreadcrumbSwitcher
+                workspaceId={workspace.id}
+                currentConversation={currentConversation}
+                conversations={conversations}
+              />
+            ) : isWorkspaceCrumb ? (
               <WorkspaceBreadcrumbSwitcher
                 workspace={workspace}
                 workspaces={workspaces}

@@ -1,6 +1,6 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.7
+版本：v0.8
 日期：2026-03-30
 
 > 文档角色说明：
@@ -25,7 +25,7 @@
 
 - 单用户账号体系
 - 账号注册开关由 `system_settings` 控制
-- 工作空间级知识库
+- 工作空间私有资料库 + 可订阅全局资料库
 - 工作空间级会话与报告
 - 会话级公开只读分享链接
 - 支持按目录组织资料
@@ -97,10 +97,13 @@ flowchart LR
 - 账号认证仍使用 `Auth.js` 的 JWT session，但服务端会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时执行 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都依赖这层撤销能力。
 - `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页。
 - 工作空间当前不再提供归档入口；删除改为软删除，已删除空间会从默认列表和资源访问链路中隐藏。
+- 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 `workspace_private` 资料库；super admin 可维护 `global_managed` 资料库；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可阅读和可检索的全局资料范围。
+- 管理员侧已补齐全局资料库 CRUD、上传、目录整理、任务管理和下载入口；workspace owner 可在设置页直接订阅、暂停或移除全局资料库。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
 - 工作空间与会话附件上传当前由前端先计算文件 SHA256，再由 Web 下发 `blobs/<sha256>` 的 presigned PUT；若已有已验证 blob 则直接复用，不再按工作空间或目录前缀组织对象。
 - `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，再交给最终 grounded answer renderer。
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
+- `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - `Agent Runtime` 现在会抽取 Claude Agent SDK 的 assistant text delta，并把 assistant draft 持久化回 `messages`，供前端会话气泡实时更新。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
@@ -110,11 +113,14 @@ flowchart LR
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后即时更新，不再只能依赖服务端返回当前页。
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。
+- citation 当前还会基于 `message_citations.source_scope + library_title_snapshot` 展示来源 badge，区分“工作空间资料”和“全局资料库 · <title>”。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 轮询会把过期回答收敛成 `run_failed`，避免前端无限等待。
 - assistant / tool 的失败态 message payload 已收口为共享 helper，消息发送、重试、过期收敛和 worker 失败路径复用同一套错误语义。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建、无文本 PDF 的 OCR 降级入口。
+- 文档页、文档内容 API 和 citation 锚点跳转当前都按“workspace 是否拥有该 library 的访问权”授权，而不是只用 `documents.workspace_id = 当前 workspace` 判断。
+- workspace 资料库页会在根层挂出已订阅的全局资料库；切入后使用只读挂载视图，workspace 侧不能在这些共享资料上执行重命名、移动、删除或上传。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
 - 会话级临时资料会落到 `conversation_attachments`，回答阶段可通过独立 MCP tool 检索，并继续复用 `citation_anchors -> message_citations -> 阅读页跳转` 链路。
 - 文本类临时资料现在会额外保留 line / block locator，前端引用标签和阅读页可显示行号或段号。
@@ -129,6 +135,7 @@ flowchart LR
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。
 - 前端与文案仍存在少量去法律化未收口残留。
 - 会话级临时资料当前只做 parse-only 本地检索，不进入工作空间全局检索，也还没有后台清理任务。
+- 全局资料库当前只支持 super admin 维护、workspace owner 订阅；尚不包含审批流、细粒度 ACL、本地覆盖层或挂载别名。
 - parser / chunking 质量深化在当前阶段只处理阻断会话链路的缺口，不主动扩范围。
 
 ## 4. 运行时分层
@@ -231,6 +238,9 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `users`
 - `workspaces`
+- `knowledge_libraries`
+- `workspace_library_subscriptions`
+- `workspace_directories`
 - `documents`
 - `document_versions`
 - `document_jobs`
@@ -262,29 +272,32 @@ bootstrap env-only（不进入 `system_settings`）：
 
 检索原则：
 
-- 工作空间是最小隔离边界。
+- `workspace` 是会话与授权入口，`library` 是资料归属、目录组织和检索过滤的主边界。
+- `resolveWorkspaceLibraryScope()` 会计算当前 workspace 的 `privateLibraryId`、`accessibleLibraryIds` 和 `searchableLibraryIds`。
+- 私有资料库始终参与默认检索；全局资料库只有在订阅为 `active` 且 `search_enabled = true` 时才进入默认召回，`paused` 订阅保留只读访问但不参与搜索。
 - 目录树只影响过滤和展示，不改变底层 chunk 平铺索引。
 - 对象存储不承担工作空间隔离或目录表达；这两层语义只存在于数据库 metadata。
-- 回答引用落到 `citation_anchors`。
+- 回答引用落到 `citation_anchors`；终态 citation 还会在 `message_citations` 中持久化 `library_id`、`source_scope` 和 `library_title_snapshot`，供前端 badge 与分享页复用。
 
 ### 6.1 对象存储布局
 
 对象存储采用“单 bucket + 内容寻址 blob”模型：
 
 - 原始文件对象统一写到 `blobs/<sha256>`。
-- 工作空间、目录树、逻辑路径、软删除和权限判断全部由 PostgreSQL 中的 `workspaces`、`workspace_directories`、`documents`、`document_versions` 等表维护，不从对象 key 反推。
+- 资料库、工作空间可访问范围、目录树、逻辑路径、软删除和权限判断全部由 PostgreSQL 中的 `knowledge_libraries`、`workspace_library_subscriptions`、`workspace_directories`、`documents`、`document_versions` 等表维护，不从对象 key 反推。
 - 上传链路采用两段式：
   1. 前端计算文件 SHA256
   2. Web 基于 SHA256 下发 `blobs/<sha256>` 的 presigned PUT；若数据库中已有已验证 blob，可直接跳过上传
   3. 前端提交 `sha256 + 目录路径 + 文件元数据` 创建 `documents` / `document_versions` 并入队
   4. Worker 读取 `blobs/<sha256>`，复核实际 SHA256 与 `storage_key` 是否一致，再写入 `file_size_bytes` 并继续 parse / chunk / index
+- 工作空间私有资料和管理员全局资料都复用同一条 ingest 链路；全局资料库作业允许只带 `libraryId` 入队，不再要求始终附带 `workspaceId`。
 - `document_versions.sha256` 在 finalize 时即写入客户端声明的 SHA256；worker 必须复核内容和 key 是否匹配，不允许在正式 key 上静默改写成其他 hash。
 - 删除资料时不能只看当前 document 是否被删；必须先检查同一个 `storage_key` 是否仍被其他 `document_versions` 引用，只有最后一个引用消失时才删除 blob。
 
 数据库关系约束保持不变：
 
 - 对象 key 扁平化不等于放弃关系完整性。
-- `documents -> workspaces`、`document_versions -> documents`、`document_jobs -> document_versions`、`conversation_attachments -> document_versions / documents` 等核心链路继续保留外键。
+- `documents -> knowledge_libraries / workspaces`、`document_versions -> documents`、`document_jobs -> document_versions`、`conversation_attachments -> document_versions / documents` 等核心链路继续保留外键。
 - 这些外键的职责是防止悬挂版本、悬挂任务和悬挂附件；对象存储已经不再表达层级归属后，数据库更需要保留这层硬约束。
 
 ## 7. Tool 设计
@@ -304,6 +317,8 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `search_statutes` 是保留的专项工具，用于法律条文或法规引用场景。
 - 其他工具和主流程都以通用知识库助手为中心组织。
+- `search_workspace_knowledge` 的输入仍以 `workspace_id` 为上下文键，但内部语义已升级为“检索当前 workspace 可访问的资料范围”，默认覆盖私有库 + 已启用检索的全局订阅库。
+- `read_citation_anchor` 与文档/内容访问链路统一走 accessible library scope 授权；取消订阅后历史 citation 文本仍可显示，但内部跳转不再保证可打开。
 - 当前阶段要求 `search_web_general`、`search_statutes`、报告生成相关工具按真实 provider 或明确失败语义运行；输出契约必须稳定，且不得伪造 citation。
 
 ## 8. 当前阶段关注点

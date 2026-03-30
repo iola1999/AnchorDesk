@@ -19,6 +19,7 @@
   --border-strong: #ddd5c8;
   --shadow-soft: 0 12px 28px rgba(23, 22, 18, 0.04);
   --shadow-card: 0 20px 44px rgba(23, 22, 18, 0.06);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 @theme inline {
@@ -203,5 +204,41 @@
   .app-markdown a::after {
     font-size: 0.72em;
     vertical-align: top;
+  }
+}
+
+@layer utilities {
+  @keyframes app-soft-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.985);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes app-soft-fade {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-soft-enter {
+      animation: app-soft-enter 180ms var(--ease-out-quart) both;
+    }
+
+    .animate-soft-fade {
+      animation: app-soft-fade 220ms var(--ease-out-quart) both;
+    }
   }
 }

@@ -123,6 +123,17 @@ class ParserMainTestCase(unittest.TestCase):
         parse_text.assert_called_once_with("# 项目范围".encode("utf-8"))
         self.assertEqual(result, {"ok": True})
 
+    def test_parse_request_allows_library_only_payloads(self):
+        request = ParseRequest(
+            library_id="lib_123",
+            document_version_id="dv_123",
+            storage_key="libraries/lib_123/source.bin",
+            sha256="abc123",
+        )
+
+        self.assertIsNone(request.workspace_id)
+        self.assertEqual(request.library_id, "lib_123")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,1 @@
+ALTER TABLE "workspace_directories" ALTER COLUMN "workspace_id" DROP NOT NULL;
