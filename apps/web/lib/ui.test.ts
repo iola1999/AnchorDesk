@@ -8,6 +8,7 @@ import {
   messageStyles,
   menuItemStyles,
   navItemStyles,
+  textSelectionStyles,
   tabButtonStyles,
   workspaceTileStyles,
 } from "./ui";
@@ -162,5 +163,15 @@ describe("workspaceTileStyles", () => {
     expect(classes).toContain("justify-items-center");
     expect(classes).toContain("text-center");
     expect(classes).toContain("border-dashed");
+  });
+});
+
+describe("textSelectionStyles", () => {
+  it("keeps app chrome non-selectable by default", () => {
+    expect(textSelectionStyles.chrome).toBe("select-none");
+  });
+
+  it("keeps actual content explicitly selectable", () => {
+    expect(textSelectionStyles.content).toBe("select-text");
   });
 });

@@ -22,7 +22,7 @@ import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { readCitationLocator } from "@/lib/api/document-metadata";
 import { buildDocumentViewerPages } from "@/lib/api/document-view";
 import { documentTypeOptions } from "@/lib/api/document-metadata";
-import { cn, ui } from "@/lib/ui";
+import { cn, textSelectionStyles, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
   params,
@@ -178,7 +178,14 @@ export default async function DocumentPage({
       {anchor ? (
         <div className="grid gap-2 rounded-2xl border border-app-accent/20 bg-app-accent/5 p-4 mix-blend-multiply mb-6">
           <h3 className="text-[13px] font-semibold text-app-accent">当前引用定位：{anchor.anchorLabel}</h3>
-          <p className="text-[14px] leading-relaxed text-app-text">{anchor.anchorText}</p>
+          <p
+            className={cn(
+              textSelectionStyles.content,
+              "text-[14px] leading-relaxed text-app-text",
+            )}
+          >
+            {anchor.anchorText}
+          </p>
         </div>
       ) : null}
 
@@ -267,7 +274,14 @@ export default async function DocumentPage({
                         {block.headingPath.join(" / ")}
                       </div>
                     ) : null}
-                    <div className="leading-6 text-[14px] text-app-text">{block.text}</div>
+                    <div
+                      className={cn(
+                        textSelectionStyles.content,
+                        "leading-6 text-[14px] text-app-text",
+                      )}
+                    >
+                      {block.text}
+                    </div>
                   </article>
                 ))}
               </div>

@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 
 import { tokenizeTextWithLinks } from "@/lib/linkified-text";
-import { cn } from "@/lib/ui";
+import { cn, textSelectionStyles } from "@/lib/ui";
 
 export function LinkifiedText({
   text,
@@ -13,7 +13,7 @@ export function LinkifiedText({
   const lines = text.split("\n");
 
   return (
-    <div className={cn("whitespace-pre-wrap", className)}>
+    <div className={cn(textSelectionStyles.content, "whitespace-pre-wrap", className)}>
       {lines.map((line, lineIndex) => {
         const segments = tokenizeTextWithLinks(line);
 

@@ -8,7 +8,7 @@ import {
   resolveInitialPdfPage,
   splitHighlightedText,
 } from "@/lib/api/pdf-viewer";
-import { buttonStyles, cn, ui } from "@/lib/ui";
+import { buttonStyles, cn, textSelectionStyles, ui } from "@/lib/ui";
 
 type PdfDocumentProxy = {
   numPages: number;
@@ -314,10 +314,20 @@ export function PdfViewer({
             <strong className="text-[13px] font-medium text-app-text">第 {currentPage} 页文本</strong>
             {highlightedText ? <span className="text-[12px] text-app-muted">已按引用内容高亮</span> : null}
           </div>
-            <div className="rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm">
+          <div
+            className={cn(
+              textSelectionStyles.content,
+              "rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm",
+            )}
+          >
             {highlightedSegments.map((segment, index) =>
               segment.highlighted ? (
-                <mark key={`${segment.text}-${index}`} className="bg-yellow-200/80 text-black font-medium rounded-sm px-0.5">{segment.text}</mark>
+                <mark
+                  key={`${segment.text}-${index}`}
+                  className="rounded-sm bg-yellow-200/80 px-0.5 font-medium text-black"
+                >
+                  {segment.text}
+                </mark>
               ) : (
                 <span key={`${segment.text}-${index}`}>{segment.text}</span>
               ),

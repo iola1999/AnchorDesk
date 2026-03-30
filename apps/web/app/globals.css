@@ -95,6 +95,14 @@
     font: inherit;
   }
 
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   button:not(:disabled) {
     cursor: pointer;
   }
@@ -108,6 +116,11 @@
     background: color-mix(in srgb, var(--accent) 18%, white);
     color: var(--text);
     padding-inline: 0.125rem;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 22%, white);
+    color: var(--text);
   }
 
   .app-markdown {

@@ -2,6 +2,11 @@ export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+export const textSelectionStyles = {
+  chrome: "select-none",
+  content: "select-text",
+} as const;
+
 type FieldSize = "md" | "compact";
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "dangerGhost";
 type ButtonSize = "md" | "sm" | "xs";
@@ -13,6 +18,7 @@ export type MessageTone = "info" | "success" | "error";
 
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
+    textSelectionStyles.content,
     "w-full border border-app-border bg-app-surface-soft text-app-text outline-none transition placeholder:text-app-muted focus:border-app-border-strong focus:ring-app-accent/10",
     size === "compact"
       ? "h-10 rounded-[18px] px-3.5 text-[14px] focus:ring-[3px]"
@@ -22,6 +28,7 @@ export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
 
 export function textareaStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
+    textSelectionStyles.content,
     "w-full border border-app-border bg-app-surface-soft text-app-text outline-none transition placeholder:text-app-muted focus:border-app-border-strong focus:ring-app-accent/10",
     size === "compact"
       ? "rounded-[18px] px-3.5 py-2.5 text-[14px] focus:ring-[3px]"
@@ -31,6 +38,7 @@ export function textareaStyles({ size = "md" }: { size?: FieldSize } = {}) {
 
 export function selectStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
+    textSelectionStyles.content,
     "w-full cursor-pointer border border-app-border bg-app-surface-soft text-app-text outline-none transition focus:border-app-border-strong focus:ring-app-accent/10",
     size === "compact"
       ? "h-10 rounded-[18px] px-3.5 text-[14px] focus:ring-[3px]"

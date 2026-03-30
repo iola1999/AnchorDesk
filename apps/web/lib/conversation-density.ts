@@ -24,7 +24,7 @@ export const conversationDensityClassNames = {
   payloadDisclosure:
     "group/payload min-w-0 max-w-full overflow-hidden rounded-xl border border-app-border/65 bg-white/78 px-3 py-2",
   payloadPre:
-    "min-w-0 max-w-full max-h-[220px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] rounded-xl bg-app-surface-soft px-3 py-2 text-[11px] leading-5 text-app-muted-strong",
+    "min-w-0 max-w-full max-h-[220px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-xl bg-app-surface-soft px-3 py-2 text-[11px] leading-5 text-app-muted-strong",
   composerShell:
     "sticky bottom-0 z-10 shrink-0 px-1 pb-3 pt-3 min-[720px]:pb-4 min-[720px]:pt-4",
   composerCard:

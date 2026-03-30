@@ -44,7 +44,7 @@ import {
   restartAssistantSessionSnapshotForRetry,
 } from "@/lib/api/conversation-session";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
-import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
+import { chipButtonStyles, cn, tabButtonStyles, textSelectionStyles, ui } from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
 
@@ -646,11 +646,21 @@ export function ConversationSession({
                               资料 {index + 1}
                             </span>
                             <CitationSourceBadge citation={citation} />
-                            <span className="text-[13px] leading-5 text-app-text">
+                            <span
+                              className={cn(
+                                textSelectionStyles.content,
+                                "text-[13px] leading-5 text-app-text",
+                              )}
+                            >
                               {citation.label}
                             </span>
                             {citation.quoteText.trim() ? (
-                              <span className="line-clamp-4 text-[12px] leading-5 text-app-muted-strong">
+                              <span
+                                className={cn(
+                                  textSelectionStyles.content,
+                                  "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
+                                )}
+                              >
                                 {citation.quoteText}
                               </span>
                             ) : null}
@@ -669,11 +679,21 @@ export function ConversationSession({
                               资料 {index + 1}
                             </span>
                             <CitationSourceBadge citation={citation} />
-                            <span className="text-[13px] leading-5 text-app-text">
+                            <span
+                              className={cn(
+                                textSelectionStyles.content,
+                                "text-[13px] leading-5 text-app-text",
+                              )}
+                            >
                               {citation.label}
                             </span>
                             {citation.quoteText.trim() ? (
-                              <span className="line-clamp-4 text-[12px] leading-5 text-app-muted-strong">
+                              <span
+                                className={cn(
+                                  textSelectionStyles.content,
+                                  "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
+                                )}
+                              >
                                 {citation.quoteText}
                               </span>
                             ) : null}

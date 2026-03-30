@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { XMarkdown } from "@ant-design/x-markdown/es";
 
-import { cn } from "../../lib/ui";
+import { cn, textSelectionStyles } from "../../lib/ui";
 
 export function MarkdownContent({
   content,
@@ -16,7 +16,7 @@ export function MarkdownContent({
 }) {
   return createElement(XMarkdown, {
     content,
-    className: cn("x-markdown-light app-markdown", className),
+    className: cn("x-markdown-light app-markdown", textSelectionStyles.content, className),
     openLinksInNewTab: true,
     streaming: streaming
       ? {

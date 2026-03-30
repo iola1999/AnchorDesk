@@ -30,6 +30,7 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.payloadDisclosure).toContain("overflow-hidden");
     expect(conversationDensityClassNames.payloadPre).toContain("max-w-full");
     expect(conversationDensityClassNames.payloadPre).toContain("break-all");
+    expect(conversationDensityClassNames.payloadPre).toContain("select-text");
     expect(conversationDensityClassNames.payloadDisclosure).toContain("rounded-xl");
   });
 

@@ -33,6 +33,7 @@ describe("MarkdownContent", () => {
       );
     });
 
+    expect(container.querySelector(".app-markdown")?.className).toContain("select-text");
     expect(container.querySelector("h1")?.textContent).toBe("标题");
     expect(container.querySelectorAll("ul li")).toHaveLength(2);
     expect(container.querySelector("pre code")?.textContent).toContain("const a = 1;");
