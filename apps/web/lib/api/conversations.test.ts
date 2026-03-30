@@ -3,6 +3,7 @@ import { CONVERSATION_STATUS } from "@anchordesk/contracts";
 
 import {
   applySubmittedConversationToList,
+  applySubmittedTurnToConversationMeta,
   buildConversationTitleFromPrompt,
   chooseWorkspaceConversation,
   chooseWorkspaceConversationWithMeta,
@@ -314,5 +315,53 @@ describe("conversation helpers", () => {
         updatedAt: "2026-03-30T10:00:00.000Z",
       },
     ]);
+  });
+
+  test("updates active conversation meta after a submitted turn on an existing conversation", () => {
+    expect(
+      applySubmittedTurnToConversationMeta({
+        current: {
+          id: "conversation-1",
+          title: "当前会话",
+          status: CONVERSATION_STATUS.ACTIVE,
+          createdAt: new Date("2026-03-30T09:00:00.000Z"),
+          updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          messageCount: 4,
+          attachmentCount: 1,
+        },
+        conversationId: "conversation-1",
+        promptContent: "继续补充风险清单",
+        attachmentCount: 1,
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }),
+    ).toEqual({
+      id: "conversation-1",
+      title: "当前会话",
+      status: CONVERSATION_STATUS.ACTIVE,
+      createdAt: new Date("2026-03-30T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+      messageCount: 6,
+      attachmentCount: 1,
+    });
+  });
+
+  test("builds active conversation meta for a newly created conversation after the first turn", () => {
+    expect(
+      applySubmittedTurnToConversationMeta({
+        current: null,
+        conversationId: "conversation-2",
+        promptContent: "请总结新版发布流程的关键变化",
+        attachmentCount: 2,
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }),
+    ).toEqual({
+      id: "conversation-2",
+      title: "请总结新版发布流程的关键变化",
+      status: CONVERSATION_STATUS.ACTIVE,
+      createdAt: new Date("2026-03-30T11:00:00.000Z"),
+      updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+      messageCount: 2,
+      attachmentCount: 2,
+    });
   });
 });

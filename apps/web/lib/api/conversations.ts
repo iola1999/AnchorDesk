@@ -21,6 +21,12 @@ export type WorkspaceConversationListItem = {
   updatedAt: Date;
 };
 
+export type WorkspaceConversationMeta = WorkspaceConversationListItem & {
+  createdAt: Date;
+  messageCount: number;
+  attachmentCount: number;
+};
+
 export function buildConversationTitleFromPrompt(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
   return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
@@ -55,6 +61,35 @@ export function applySubmittedConversationToList(input: {
       (conversation) => conversation.id !== input.conversationId,
     ),
   ].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+}
+
+export function applySubmittedTurnToConversationMeta(input: {
+  attachmentCount: number;
+  conversationId: string;
+  current?: WorkspaceConversationMeta | null;
+  now?: Date;
+  promptContent: string;
+}): WorkspaceConversationMeta {
+  const now = input.now ?? new Date();
+
+  if (!input.current || input.current.id !== input.conversationId) {
+    return {
+      id: input.conversationId,
+      title: buildConversationTitleFromPrompt(input.promptContent),
+      status: CONVERSATION_STATUS.ACTIVE,
+      createdAt: now,
+      updatedAt: now,
+      messageCount: 2,
+      attachmentCount: input.attachmentCount,
+    };
+  }
+
+  return {
+    ...input.current,
+    updatedAt: now,
+    messageCount: input.current.messageCount + 2,
+    attachmentCount: Math.max(input.current.attachmentCount, input.attachmentCount),
+  };
 }
 
 export function chooseWorkspaceConversation(

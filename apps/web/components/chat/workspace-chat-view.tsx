@@ -11,7 +11,9 @@ import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversa
 import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import {
   applySubmittedConversationToList,
+  applySubmittedTurnToConversationMeta,
   type WorkspaceConversationListItem,
+  type WorkspaceConversationMeta,
 } from "@/lib/api/conversations";
 import {
   type ConversationChatMessage,
@@ -20,16 +22,6 @@ import {
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 
 type TimelineMessagesByAssistant = Record<string, AssistantProcessMessage[]>;
-
-type ActiveConversationMeta = {
-  id: string;
-  title: string;
-  status: ConversationStatus;
-  createdAt: Date;
-  updatedAt: Date;
-  messageCount: number;
-  attachmentCount: number;
-};
 
 export function WorkspaceChatView({
   workspace,
@@ -59,7 +51,7 @@ export function WorkspaceChatView({
   };
   breadcrumbs: Array<{ label: string; href?: string }>;
   workspaceId: string;
-  activeConversation?: ActiveConversationMeta | null;
+  activeConversation?: WorkspaceConversationMeta | null;
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialMessages?: ConversationChatMessage[];
   initialCitations?: ConversationMessageCitation[];
@@ -69,11 +61,15 @@ export function WorkspaceChatView({
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>(
     activeConversation?.id,
   );
+  const [activeConversationMeta, setActiveConversationMeta] = useState<
+    WorkspaceConversationMeta | null
+  >(activeConversation ?? null);
 
   useEffect(() => {
     setConversations(initialConversations);
     setActiveConversationId(activeConversation?.id);
-  }, [activeConversation?.id, initialConversations]);
+    setActiveConversationMeta(activeConversation ?? null);
+  }, [activeConversation, initialConversations]);
 
   function handleSubmittedTurn(turn: ComposerSubmittedTurn) {
     setConversations((current) =>
@@ -84,13 +80,23 @@ export function WorkspaceChatView({
       }),
     );
     setActiveConversationId(turn.conversationId);
+    setActiveConversationMeta((current) =>
+      applySubmittedTurnToConversationMeta({
+        current,
+        conversationId: turn.conversationId,
+        promptContent: turn.userMessage.contentMarkdown,
+        attachmentCount: turn.attachments.length,
+      }),
+    );
   }
 
   const activeConversationListItem = activeConversationId
     ? conversations.find((conversation) => conversation.id === activeConversationId) ?? null
     : null;
-  const canShowServerTopActions =
-    Boolean(activeConversation) && activeConversation?.id === activeConversationId;
+  const currentConversationMeta =
+    activeConversationMeta && activeConversationMeta.id === activeConversationId
+      ? activeConversationMeta
+      : null;
 
   return (
     <WorkspaceShell
@@ -102,17 +108,21 @@ export function WorkspaceChatView({
       contentScroll="contained"
       breadcrumbs={breadcrumbs}
       topActions={
-        canShowServerTopActions && activeConversation ? (
+        currentConversationMeta ? (
           <ConversationPageActions
-            conversationId={activeConversation.id}
+            conversationId={currentConversationMeta.id}
             workspaceId={workspaceId}
-            conversationTitle={activeConversationListItem?.title ?? activeConversation.title}
-            conversationStatus={activeConversationListItem?.status ?? activeConversation.status}
-            createdAt={activeConversation.createdAt}
-            updatedAt={activeConversationListItem?.updatedAt ?? activeConversation.updatedAt}
+            conversationTitle={
+              activeConversationListItem?.title ?? currentConversationMeta.title
+            }
+            conversationStatus={
+              activeConversationListItem?.status ?? currentConversationMeta.status
+            }
+            createdAt={currentConversationMeta.createdAt}
+            updatedAt={activeConversationListItem?.updatedAt ?? currentConversationMeta.updatedAt}
             creatorLabel={`${currentUser.username}（你）`}
-            messageCount={activeConversation.messageCount}
-            attachmentCount={activeConversation.attachmentCount}
+            messageCount={currentConversationMeta.messageCount}
+            attachmentCount={currentConversationMeta.attachmentCount}
           />
         ) : undefined
       }
