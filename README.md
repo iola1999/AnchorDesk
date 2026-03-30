@@ -17,8 +17,8 @@
 
 ## 启动与运行
 
-请参考 `docs/development-setup.md` 和 `docs/anchordesk-technical-design-nodejs.md` 了解架构与本地启动方式。
+参考 `docs/development-setup.md` 和 `docs/anchordesk-technical-design-nodejs.md` 了解架构与本地启动方式。
 
 ## 开源协议
 
-本项目采用 **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** 许可协议进行授权。详情请参考 `LICENSE` 文件。
+本项目采用 **MIT** 许可协议进行授权。详情请参考 `LICENSE` 文件。
