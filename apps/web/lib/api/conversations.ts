@@ -27,6 +27,14 @@ export type WorkspaceConversationMeta = WorkspaceConversationListItem & {
   attachmentCount: number;
 };
 
+function sortConversationsByUpdatedAt(
+  conversations: WorkspaceConversationListItem[],
+) {
+  return [...conversations].sort(
+    (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+  );
+}
+
 export function buildConversationTitleFromPrompt(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
   return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
@@ -55,12 +63,12 @@ export function applySubmittedConversationToList(input: {
     updatedAt: now,
   };
 
-  return [
+  return sortConversationsByUpdatedAt([
     nextConversation,
     ...input.conversations.filter(
       (conversation) => conversation.id !== input.conversationId,
     ),
-  ].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+  ]);
 }
 
 export function applySubmittedTurnToConversationMeta(input: {
@@ -89,6 +97,45 @@ export function applySubmittedTurnToConversationMeta(input: {
     updatedAt: now,
     messageCount: input.current.messageCount + 2,
     attachmentCount: Math.max(input.current.attachmentCount, input.attachmentCount),
+  };
+}
+
+export function markConversationActivityInList(input: {
+  conversationId: string;
+  conversations: WorkspaceConversationListItem[];
+  now?: Date;
+}) {
+  const existingConversation = input.conversations.find(
+    (conversation) => conversation.id === input.conversationId,
+  );
+
+  if (!existingConversation) {
+    return input.conversations;
+  }
+
+  return sortConversationsByUpdatedAt([
+    {
+      ...existingConversation,
+      updatedAt: input.now ?? new Date(),
+    },
+    ...input.conversations.filter(
+      (conversation) => conversation.id !== input.conversationId,
+    ),
+  ]);
+}
+
+export function markConversationMetaActivity(input: {
+  conversationId: string;
+  current?: WorkspaceConversationMeta | null;
+  now?: Date;
+}) {
+  if (!input.current || input.current.id !== input.conversationId) {
+    return input.current ?? null;
+  }
+
+  return {
+    ...input.current,
+    updatedAt: input.now ?? new Date(),
   };
 }
 

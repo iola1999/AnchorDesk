@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   CONVERSATION_STREAM_EVENT,
@@ -138,6 +137,7 @@ export function ConversationSession({
   sourceLinksEnabled = true,
   readOnly = false,
   emptyStateMessage = "这一轮还没有消息",
+  onAssistantTerminalEvent,
 }: {
   conversationId: string;
   workspaceId?: string | null;
@@ -150,9 +150,8 @@ export function ConversationSession({
   sourceLinksEnabled?: boolean;
   readOnly?: boolean;
   emptyStateMessage?: string;
+  onAssistantTerminalEvent?: (conversationId: string) => void;
 }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
   const [chatMessages, setChatMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
     initialTimelineMessagesByAssistant ?? {},
@@ -313,10 +312,8 @@ export function ConversationSession({
       setMessageCitations(nextState.citations);
       setRuntimeStatus("回答已生成");
       setRegeneratingMessageId(null);
+      onAssistantTerminalEvent?.(conversationId);
       source.close();
-      startTransition(() => {
-        router.refresh();
-      });
     };
 
     const handleRunFailed = (event: MessageEvent<string>) => {
@@ -336,10 +333,8 @@ export function ConversationSession({
       setMessageCitations(nextState.citations);
       setRuntimeStatus(`运行失败：${payload.error}`);
       setRegeneratingMessageId(null);
+      onAssistantTerminalEvent?.(conversationId);
       source.close();
-      startTransition(() => {
-        router.refresh();
-      });
     };
 
     source.addEventListener(
@@ -372,7 +367,7 @@ export function ConversationSession({
     return () => {
       source.close();
     };
-  }, [conversationId, router, streamEnabled, streamingAssistantMessageId]);
+  }, [conversationId, onAssistantTerminalEvent, streamEnabled, streamingAssistantMessageId]);
 
   const citationsByMessage = new Map<string, MessageCitation[]>();
   for (const citation of messageCitations) {

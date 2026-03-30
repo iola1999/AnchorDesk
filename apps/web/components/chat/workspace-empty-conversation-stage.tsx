@@ -21,10 +21,12 @@ export function WorkspaceEmptyConversationStage({
   workspaceId,
   workspaceTitle,
   onSubmittedTurn,
+  onAssistantTerminalEvent,
 }: {
   workspaceId: string;
   workspaceTitle: string;
   onSubmittedTurn?: (turn: ComposerSubmittedTurn) => void;
+  onAssistantTerminalEvent?: (conversationId: string) => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -57,6 +59,7 @@ export function WorkspaceEmptyConversationStage({
         initialMessages={pendingConversation.messages}
         initialCitations={[]}
         initialAttachments={pendingConversation.attachments}
+        onAssistantTerminalEvent={onAssistantTerminalEvent}
       />
     );
   }

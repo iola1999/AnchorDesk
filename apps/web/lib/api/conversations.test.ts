@@ -10,6 +10,8 @@ import {
   formatConversationMetaTimestamp,
   formatConversationSidebarUpdatedAt,
   groupWorkspaceConversations,
+  markConversationActivityInList,
+  markConversationMetaActivity,
   normalizeConversationTitle,
   resolveConversationDeleteRedirect,
 } from "./conversations";
@@ -363,5 +365,90 @@ describe("conversation helpers", () => {
       messageCount: 2,
       attachmentCount: 2,
     });
+  });
+
+  test("bumps the terminally updated conversation to the top without changing its title", () => {
+    expect(
+      markConversationActivityInList({
+        conversations: [
+          {
+            id: "conversation-1",
+            title: "较新会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:30:00.000Z"),
+          },
+          {
+            id: "conversation-2",
+            title: "当前会话",
+            status: CONVERSATION_STATUS.ACTIVE,
+            updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          },
+        ],
+        conversationId: "conversation-2",
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }).map((item) => ({
+        ...item,
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+    ).toEqual([
+      {
+        id: "conversation-2",
+        title: "当前会话",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T11:00:00.000Z",
+      },
+      {
+        id: "conversation-1",
+        title: "较新会话",
+        status: CONVERSATION_STATUS.ACTIVE,
+        updatedAt: "2026-03-30T10:30:00.000Z",
+      },
+    ]);
+  });
+
+  test("updates only the active conversation meta timestamp after a terminal event", () => {
+    expect(
+      markConversationMetaActivity({
+        current: {
+          id: "conversation-2",
+          title: "当前会话",
+          status: CONVERSATION_STATUS.ACTIVE,
+          createdAt: new Date("2026-03-30T09:00:00.000Z"),
+          updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+          messageCount: 6,
+          attachmentCount: 2,
+        },
+        conversationId: "conversation-2",
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }),
+    ).toEqual({
+      id: "conversation-2",
+      title: "当前会话",
+      status: CONVERSATION_STATUS.ACTIVE,
+      createdAt: new Date("2026-03-30T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-30T11:00:00.000Z"),
+      messageCount: 6,
+      attachmentCount: 2,
+    });
+  });
+
+  test("leaves unrelated conversation meta unchanged on a terminal event", () => {
+    const current = {
+      id: "conversation-1",
+      title: "其他会话",
+      status: CONVERSATION_STATUS.ACTIVE,
+      createdAt: new Date("2026-03-30T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-30T10:00:00.000Z"),
+      messageCount: 4,
+      attachmentCount: 1,
+    };
+
+    expect(
+      markConversationMetaActivity({
+        current,
+        conversationId: "conversation-2",
+        now: new Date("2026-03-30T11:00:00.000Z"),
+      }),
+    ).toBe(current);
   });
 });

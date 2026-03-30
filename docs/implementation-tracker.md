@@ -45,7 +45,7 @@
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
-- `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
@@ -67,6 +67,7 @@
 
 ## 2. 最近完成
 
+- `working tree` Stop relying on a terminal-event page refresh; `answer_done` / `run_failed` now update current conversation meta and sidebar activity locally
 - `working tree` Sync conversation page header meta locally after submit, including title, updated time, message count and attachment count
 - `working tree` Sync sidebar conversation ordering, latest title and active selection locally when a submitted turn creates or advances a conversation
 - `working tree` Let first-message conversation creation switch locally into the new thread immediately after submit, then sync the URL in background
@@ -121,7 +122,7 @@
   - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话与最新失败回答重试都已支持直接本地恢复 streaming
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
   - 仍需继续收口除重试外更完整的失败恢复体验，以及更少依赖服务端返回的收尾断层
-  - grounded final answer、citations 和引用跳转已能在终态事件到达后先本地切换，后续仍需继续减少刷新带来的其余断层
+  - grounded final answer、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示

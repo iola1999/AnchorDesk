@@ -107,7 +107,7 @@ flowchart LR
 - 发送新消息后，前端会先本地插入新的 user turn 与 assistant placeholder，然后再由 SSE 接上工具时间线和回答流式更新；如果这是首条消息创建新会话，前端会先切进本地线程，再在后台补上 URL 切换。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，而不是只能等页面刷新后才对齐。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后即时更新，不再只能依赖服务端返回当前页。
-- `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations，前端会先切到本地最终态，再做后台刷新以保持页面其余部分一致。
+- `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 轮询会把过期回答收敛成 `run_failed`，避免前端无限等待。
@@ -121,7 +121,7 @@ flowchart LR
 当前已知缺口：
 
 - 当前回答流式仍是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport。
-- 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能同步本地状态；但页面其余部分的一致性和更完整的失败恢复路径仍需要继续收口。
+- 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
 - 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
 - OCR 真实 provider 尚未接入；当前仅支持关闭，并继续保持 disabled 直到商业 API 方案确定。

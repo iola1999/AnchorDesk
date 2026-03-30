@@ -12,6 +12,8 @@ import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
 import {
   applySubmittedConversationToList,
   applySubmittedTurnToConversationMeta,
+  markConversationActivityInList,
+  markConversationMetaActivity,
   type WorkspaceConversationListItem,
   type WorkspaceConversationMeta,
 } from "@/lib/api/conversations";
@@ -90,6 +92,21 @@ export function WorkspaceChatView({
     );
   }
 
+  function handleAssistantTerminalEvent(conversationId: string) {
+    setConversations((current) =>
+      markConversationActivityInList({
+        conversations: current,
+        conversationId,
+      }),
+    );
+    setActiveConversationMeta((current) =>
+      markConversationMetaActivity({
+        current,
+        conversationId,
+      }),
+    );
+  }
+
   const activeConversationListItem = activeConversationId
     ? conversations.find((conversation) => conversation.id === activeConversationId) ?? null
     : null;
@@ -136,12 +153,14 @@ export function WorkspaceChatView({
           initialCitations={initialCitations ?? []}
           initialAttachments={initialAttachments ?? []}
           onSubmittedTurn={handleSubmittedTurn}
+          onAssistantTerminalEvent={handleAssistantTerminalEvent}
         />
       ) : (
         <WorkspaceEmptyConversationStage
           workspaceId={workspaceId}
           workspaceTitle={workspace.title}
           onSubmittedTurn={handleSubmittedTurn}
+          onAssistantTerminalEvent={handleAssistantTerminalEvent}
         />
       )}
     </WorkspaceShell>
