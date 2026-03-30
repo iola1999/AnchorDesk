@@ -33,11 +33,10 @@ cp .env.production.example .env.production
 - `docker compose` 默认只会自动读取项目根目录的 `.env`，不会自动读取 `.env.production`。
 - 本文后续所有命令都必须显式带上 `--env-file .env.production`，否则 `web` / `worker` / `agent-runtime` 拿到的 `DATABASE_URL`、`AUTH_SECRET` 会变成空字符串。
 
-必须提供的 bootstrap 变量（web / worker / agent-runtime 只需要这三项）：
+必须提供的 bootstrap 变量（web / worker / agent-runtime 只需要这两项）：
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `SUPER_ADMIN_USERNAMES`
 
 以下变量由 `upgrade` 服务在首次启动时写入 `system_settings`，后续可通过 `/settings` 管理；
 `parser`（Python）仍直接读取 S3 相关环境变量：

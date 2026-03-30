@@ -1,4 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { KNOWLEDGE_LIBRARY_TYPE } from "@anchordesk/contracts";
 
 import {
   citationAnchors,
@@ -9,6 +10,7 @@ import {
   findWorkspaceAccessibleAnchor,
   findWorkspaceAccessibleDocument,
   getDb,
+  knowledgeLibraries,
   reports,
   workspaces,
 } from "@anchordesk/db";
@@ -103,23 +105,7 @@ export async function requireOwnedAnchor(anchorId: string, userId: string) {
 export async function requireOwnedDocumentJob(jobId: string, userId: string) {
   const db = getDb();
   const result = await db
-    .select({
-      id: documentJobs.id,
-      documentVersionId: documentJobs.documentVersionId,
-      stage: documentJobs.stage,
-      status: documentJobs.status,
-      progress: documentJobs.progress,
-      metadataJson: documentVersions.metadataJson,
-      errorCode: documentJobs.errorCode,
-      errorMessage: documentJobs.errorMessage,
-      createdAt: documentJobs.createdAt,
-      updatedAt: documentJobs.updatedAt,
-      startedAt: documentJobs.startedAt,
-      finishedAt: documentJobs.finishedAt,
-      libraryId: documents.libraryId,
-      workspaceId: documents.workspaceId,
-      documentId: documents.id,
-    })
+    .select(selectDocumentJobColumns())
     .from(documentJobs)
     .innerJoin(
       documentVersions,
@@ -137,4 +123,50 @@ export async function requireOwnedDocumentJob(jobId: string, userId: string) {
     .limit(1);
 
   return result[0] ?? null;
+}
+
+export async function requireSuperAdminManagedDocumentJob(jobId: string) {
+  const db = getDb();
+  const result = await db
+    .select({
+      ...selectDocumentJobColumns(),
+      libraryType: knowledgeLibraries.libraryType,
+    })
+    .from(documentJobs)
+    .innerJoin(
+      documentVersions,
+      eq(documentVersions.id, documentJobs.documentVersionId),
+    )
+    .innerJoin(documents, eq(documents.id, documentVersions.documentId))
+    .leftJoin(knowledgeLibraries, eq(knowledgeLibraries.id, documents.libraryId))
+    .where(eq(documentJobs.id, jobId))
+    .limit(1);
+
+  const job = result[0] ?? null;
+  if (!job || job.libraryType !== KNOWLEDGE_LIBRARY_TYPE.GLOBAL_MANAGED) {
+    return null;
+  }
+
+  const { libraryType: _libraryType, ...accessibleJob } = job;
+  return accessibleJob;
+}
+
+function selectDocumentJobColumns() {
+  return {
+    id: documentJobs.id,
+    documentVersionId: documentJobs.documentVersionId,
+    stage: documentJobs.stage,
+    status: documentJobs.status,
+    progress: documentJobs.progress,
+    metadataJson: documentVersions.metadataJson,
+    errorCode: documentJobs.errorCode,
+    errorMessage: documentJobs.errorMessage,
+    createdAt: documentJobs.createdAt,
+    updatedAt: documentJobs.updatedAt,
+    startedAt: documentJobs.startedAt,
+    finishedAt: documentJobs.finishedAt,
+    libraryId: documents.libraryId,
+    workspaceId: documents.workspaceId,
+    documentId: documents.id,
+  };
 }

@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.9
-日期：2026-03-30
+版本：v0.10
+日期：2026-03-31
 
 > 文档角色说明：
 >
@@ -95,6 +95,7 @@ flowchart LR
 
 - `Next.js BFF` 已经承接注册登录、工作空间、上传签名、文档管理、会话消息落库、报告基础操作和文档阅读页。
 - 账号认证仍使用 `Auth.js` 的 JWT session，但服务端会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时执行 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都依赖这层撤销能力。
+- 第一个注册成功的用户会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 与全局资料库管理入口统一读取该标记授权，不再依赖用户名 env 白名单。
 - `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页。
 - 工作空间当前不再提供归档入口；删除改为软删除，已删除空间会从默认列表和资源访问链路中隐藏。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 `workspace_private` 资料库；super admin 可维护 `global_managed` 资料库；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可阅读和可检索的全局资料范围。
@@ -173,7 +174,6 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `SUPER_ADMIN_USERNAMES`
 
 其余所有 provider / 基础设施参数（Redis、S3、Qdrant、Anthropic、DashScope 等）均存储在 `system_settings`，可通过 `/settings` 管理。变更后需重启相关进程。
 
@@ -329,6 +329,7 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - `search_statutes` 是保留的专项工具，用于法律条文或法规引用场景。
 - 其他工具和主流程都以通用知识库助手为中心组织。
+- 开发协作期可额外使用 `Context7` 查询第三方开源库文档与示例；它只用于工程实现阶段核对外部依赖，不属于产品运行时 `assistant` MCP server 或最终用户可见工具集合。
 - `search_workspace_knowledge` 的输入仍以 `workspace_id` 为上下文键，但内部语义已升级为“检索当前 workspace 可访问的资料范围”，默认覆盖私有库 + 已启用检索的全局订阅库。
 - `read_citation_anchor` 与文档/内容访问链路统一走 accessible library scope 授权；取消订阅后历史 citation 文本仍可显示，但内部跳转不再保证可打开。
 - `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 或 `fetch_sources` 获取正文后，才能进入 grounded answer 的可引用证据集。

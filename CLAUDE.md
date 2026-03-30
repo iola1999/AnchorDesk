@@ -24,7 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - After editing `services/parser/**`, restart `pnpm dev`.
 
 ## Configuration
-- Bootstrap env-only (never stored in DB): `DATABASE_URL`, `AUTH_SECRET`, `SUPER_ADMIN_USERNAMES`.
+- Bootstrap env-only (never stored in DB): `DATABASE_URL`, `AUTH_SECRET`.
+- The first successfully registered user becomes the persisted super admin (`users.is_super_admin = true`); `/settings` and global library management no longer rely on an env allowlist.
 - All other runtime settings (Redis, S3, Qdrant, Anthropic, DashScope, etc.) live in `system_settings` and are loaded into `process.env` at startup via `initRuntimeSettings()` (`packages/db/src/runtime-settings.ts`). Restart managed processes after changing them.
 - Priority: explicit env var > DB value > module default. Env vars still override DB for debugging/migration.
 - Docker production: `web`, `worker`, `agent-runtime` only receive bootstrap env; `upgrade` and `parser` still use the full `.env.production`.

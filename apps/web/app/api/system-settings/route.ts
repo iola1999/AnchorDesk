@@ -7,7 +7,7 @@ import {
   normalizeSystemSettingUpdates,
   systemSettingsUpdateSchema,
 } from "@/lib/api/system-settings";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export const runtime = "nodejs";
 
@@ -39,7 +39,7 @@ export async function GET() {
   if (!user?.id) {
     return unauthorizedResponse();
   }
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     return forbiddenResponse();
   }
 
@@ -54,7 +54,7 @@ export async function PATCH(request: Request) {
   if (!user?.id) {
     return unauthorizedResponse();
   }
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     return forbiddenResponse();
   }
 

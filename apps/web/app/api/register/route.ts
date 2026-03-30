@@ -4,6 +4,7 @@ import { hashPassword } from "@anchordesk/auth";
 import { getDb, users } from "@anchordesk/db";
 
 import { readRegistrationEnabled } from "@/lib/auth/registration";
+import { registerUser } from "@/lib/auth/register-user";
 
 export const runtime = "nodejs";
 
@@ -30,28 +31,50 @@ export async function POST(request: Request) {
   }
 
   const db = getDb();
-  const existing = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.username, username))
-    .limit(1);
-
-  if (existing[0]) {
-    return Response.json({ error: "Username already exists." }, { status: 409 });
-  }
-
   const passwordHash = await hashPassword(password);
-  const [user] = await db
-    .insert(users)
-    .values({
+  const result = await registerUser(
+    {
       username,
       passwordHash,
       displayName: displayName || username,
-    })
-    .returning({
-      id: users.id,
-      username: users.username,
-    });
+    },
+    {
+      usernameExists: async (candidateUsername) => {
+        const existing = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.username, candidateUsername))
+          .limit(1);
 
-  return Response.json({ user }, { status: 201 });
+        return Boolean(existing[0]);
+      },
+      superAdminExists: async () => {
+        const existing = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.isSuperAdmin, true))
+          .limit(1);
+
+        return Boolean(existing[0]);
+      },
+      insertUser: async (values) => {
+        const [user] = await db
+          .insert(users)
+          .values(values)
+          .returning({
+            id: users.id,
+            username: users.username,
+            isSuperAdmin: users.isSuperAdmin,
+          });
+
+        return user;
+      },
+    },
+  );
+
+  if (!result.ok) {
+    return Response.json({ error: "Username already exists." }, { status: 409 });
+  }
+
+  return Response.json({ user: result.user }, { status: 201 });
 }

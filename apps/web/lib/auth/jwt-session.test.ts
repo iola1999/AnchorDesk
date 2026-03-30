@@ -15,6 +15,7 @@ describe("syncAuthSessionToken", () => {
         id: "user-1",
         name: "Alice",
         username: "alice",
+        isSuperAdmin: true,
       },
       registry: {
         registerSession,
@@ -27,6 +28,7 @@ describe("syncAuthSessionToken", () => {
     expect(token.sub).toBe("user-1");
     expect(token.name).toBe("Alice");
     expect(token.username).toBe("alice");
+    expect(token.isSuperAdmin).toBe(true);
     expect(token.sessionId).toBe("session-1");
     expect(registerSession).toHaveBeenCalledWith({
       sessionId: "session-1",
@@ -44,6 +46,7 @@ describe("syncAuthSessionToken", () => {
         sub: "user-1",
         username: "alice",
         name: "Alice",
+        isSuperAdmin: true,
         jti: "authjs-jti-1",
       },
       registry: {
@@ -69,6 +72,7 @@ describe("syncAuthSessionToken", () => {
         sub: "user-1",
         username: "alice",
         name: "Alice",
+        isSuperAdmin: false,
         sessionId: "session-1",
       },
       registry: {
@@ -82,6 +86,7 @@ describe("syncAuthSessionToken", () => {
       sub: "user-1",
       username: "alice",
       name: "Alice",
+      isSuperAdmin: false,
       sessionId: "session-1",
     });
     expect(touchSession).toHaveBeenCalledWith({
@@ -97,6 +102,7 @@ describe("syncAuthSessionToken", () => {
         sub: "user-1",
         username: "alice",
         name: "Alice",
+        isSuperAdmin: false,
         sessionId: "session-1",
       },
       registry: {
@@ -115,6 +121,7 @@ describe("syncAuthSessionToken", () => {
         sub: "user-1",
         username: "alice",
         name: "Alice",
+        isSuperAdmin: true,
         sessionId: "session-1",
       },
       trigger: "update",
@@ -133,5 +140,6 @@ describe("syncAuthSessionToken", () => {
     })) as JWT;
 
     expect(token.name).toBe("Alice Cooper");
+    expect(token.isSuperAdmin).toBe(true);
   });
 });

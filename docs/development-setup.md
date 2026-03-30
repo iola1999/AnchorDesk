@@ -1,7 +1,7 @@
 # 本地开发指引
 
-版本：v0.3
-日期：2026-03-30
+版本：v0.4
+日期：2026-03-31
 
 ## 1. 推荐做法
 
@@ -18,6 +18,16 @@
 
 不推荐开发期把整套 Web/Worker/Parser 也都装进 Docker 再做热更新，除非你正在排查容器化问题。  
 当前项目最合适的方式仍然是“应用在本机，依赖在容器”。
+
+### 1.1 开发期第三方文档查询
+
+当前协作者环境可使用 `Context7` 查询常见开源库 / 框架的最新文档与示例。
+
+使用原则：
+
+- 涉及第三方库 API、配置项、版本差异、迁移说明或废弃行为时，先查 `Context7`，再动代码或更新仓库文档。
+- `Context7` 查不到或结果不够具体时，再回到对应库的官方文档、源码或 release note 交叉确认。
+- `Context7` 仅用于开发期查外部资料，不属于 AnchorDesk 产品运行时依赖，也不属于 `assistant` MCP server 对最终用户暴露的工具集合。
 
 ## 2. 首次启动
 
@@ -39,7 +49,7 @@ AUTH_SECRET=dev-auth-secret
 
 - `AUTH_SECRET` 不会自动生成，也不会被回写到本地 env 文件。
 - 仓库根目录的 `.env.example` 已给出可直接启动的开发默认值，通常你只需要按本机环境改 `DATABASE_URL`。
-- `SUPER_ADMIN_USERNAMES` 也是 env-only 配置，但它只控制 `/settings` 的可见范围，不阻塞启动。
+- 第一个注册成功的用户会自动成为 super admin；`/settings` 与全局资料库入口会直接读取 `users.is_super_admin`，不需要额外 env 白名单。
 - 其他大部分运行参数会在数据库的 `system_settings` 表中维护。
 
 ## 3. 启动基础设施
@@ -193,14 +203,14 @@ pnpm app:upgrade:check # 只检查是否还有 blocking pending upgrades
 推荐改法：
 
 1. 先启动 `pnpm dev`
-2. 在 env 中设置 `SUPER_ADMIN_USERNAMES=<注册用户名1,注册用户名2>`
+2. 使用第一个注册成功的账号登录
 3. 打开 `http://localhost:3000/settings`
 4. 在页面里修改系统参数
 5. 保存后重启 `pnpm dev`
 
 说明：
 
-- `/settings` 只有 `SUPER_ADMIN_USERNAMES` 中声明的注册用户名可以访问。
+- `/settings` 只有 `users.is_super_admin = true` 的账号可以访问；默认就是第一个注册成功的用户。
 - `web` / `worker` / `agent-runtime` 会在启动时调用 `initRuntimeSettings()`；`parser` 进程本身仍直接读取 env，但在 `pnpm dev` 下会由启动脚本注入解析后的系统参数。
 - 保存数据库配置后不会热更新到已运行进程，所以需要重启开发进程。
 

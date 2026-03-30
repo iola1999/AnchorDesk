@@ -58,6 +58,7 @@ export default async function WorkspaceKnowledgeBasePage({
       currentUser={{
         name: user.name,
         username: user.username,
+        isSuperAdmin: user.isSuperAdmin,
       }}
       activeView="knowledge-base"
       breadcrumbs={[

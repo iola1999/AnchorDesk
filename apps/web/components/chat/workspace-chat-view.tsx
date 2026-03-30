@@ -52,6 +52,7 @@ export function WorkspaceChatView({
   currentUser: {
     name?: string | null;
     username: string;
+    isSuperAdmin: boolean;
   };
   breadcrumbs: Array<{ label: string; href?: string }>;
   workspaceId: string;

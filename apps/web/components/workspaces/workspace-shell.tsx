@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { type ConversationStatus } from "@anchordesk/contracts";
 
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
 import {
   WorkspaceShellFrame,
   type WorkspaceShellFrameProps,
@@ -33,6 +32,7 @@ type WorkspaceShellProps = {
   currentUser: {
     name?: string | null;
     username: string;
+    isSuperAdmin: boolean;
   };
   breadcrumbs: Array<{ label: string; href?: string }>;
   topActions?: ReactNode;
@@ -46,7 +46,7 @@ export function WorkspaceShell({
   const frameProps: WorkspaceShellFrameProps = {
     ...props,
     currentUser,
-    canAccessSystemSettings: isSuperAdminUsername(currentUser.username),
+    canAccessSystemSettings: currentUser.isSuperAdmin,
   };
 
   return <WorkspaceShellFrame {...frameProps} />;

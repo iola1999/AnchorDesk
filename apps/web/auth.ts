@@ -51,6 +51,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           id: user.id,
           name: user.displayName ?? user.username,
           username: user.username,
+          isSuperAdmin: user.isSuperAdmin,
         };
       },
     }),
@@ -67,6 +68,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
               id: user.id,
               name: user.name,
               username: user.username,
+              isSuperAdmin: user.isSuperAdmin === true,
             }
           : undefined;
 
@@ -82,6 +84,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.username = typeof token.username === "string" ? token.username : "";
+        session.user.isSuperAdmin = token.isSuperAdmin === true;
         session.user.name = typeof token.name === "string" ? token.name : null;
       }
       return session;

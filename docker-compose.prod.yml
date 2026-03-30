@@ -83,7 +83,6 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       AUTH_SECRET: ${AUTH_SECRET}
-      SUPER_ADMIN_USERNAMES: ${SUPER_ADMIN_USERNAMES:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -7,10 +7,12 @@ export type SessionJwtUser = {
   id: string;
   name?: string | null;
   username: string;
+  isSuperAdmin: boolean;
 };
 
 export type AuthSessionJwt = JWT & {
   sessionId?: string;
+  isSuperAdmin?: boolean;
 };
 
 export type AuthSessionRegistry = {
@@ -54,6 +56,7 @@ export async function syncAuthSessionToken({
     token.sub = user.id;
     token.name = user.name;
     token.username = user.username;
+    token.isSuperAdmin = user.isSuperAdmin;
   }
 
   if (trigger === "update" && typeof session?.user?.name === "string") {

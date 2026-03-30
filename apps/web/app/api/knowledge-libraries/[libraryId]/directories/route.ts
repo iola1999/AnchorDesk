@@ -3,7 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { findManagedKnowledgeLibrary } from "@/lib/api/admin-knowledge-libraries";
 import { createKnowledgeLibraryDirectory } from "@/lib/api/knowledge-library-actions";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export const runtime = "nodejs";
 
@@ -22,7 +22,7 @@ export async function POST(
   if (!user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

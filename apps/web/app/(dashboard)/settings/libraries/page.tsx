@@ -12,12 +12,12 @@ import {
   formatKnowledgeLibraryStatus,
 } from "@/lib/api/knowledge-libraries";
 import { requireSessionUser } from "@/lib/auth/require-user";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 import { ui } from "@/lib/ui";
 
 export default async function GlobalLibrariesPage() {
   const user = await requireSessionUser();
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     notFound();
   }
 

@@ -55,11 +55,17 @@ export const users = pgTable(
     passwordHash: text("password_hash").notNull(),
     displayName: varchar("display_name", { length: 120 }),
     isActive: boolean("is_active").notNull().default(true),
+    isSuperAdmin: boolean("is_super_admin").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   },
-  (table) => [uniqueIndex("users_username_uid").on(table.username)],
+  (table) => [
+    uniqueIndex("users_username_uid").on(table.username),
+    uniqueIndex("users_single_super_admin_uid")
+      .on(table.isSuperAdmin)
+      .where(sql`${table.isSuperAdmin} = true`),
+  ],
 );
 
 export const sessions = pgTable(

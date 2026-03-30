@@ -52,6 +52,7 @@ export type WorkspaceShellFrameProps = {
   currentUser: {
     name?: string | null;
     username: string;
+    isSuperAdmin: boolean;
   };
   canAccessSystemSettings: boolean;
   breadcrumbs: Array<{ label: string; href?: string }>;
@@ -67,6 +68,7 @@ type SidebarContentProps = {
   currentUser: {
     name?: string | null;
     username: string;
+    isSuperAdmin: boolean;
   };
   canAccessSystemSettings: boolean;
   onNavigate?: () => void;

@@ -1,5 +1,9 @@
 import { auth } from "@/auth";
-import { requireOwnedDocumentJob } from "@/lib/guards/resources";
+import {
+  requireOwnedDocumentJob,
+  requireSuperAdminManagedDocumentJob,
+} from "@/lib/guards/resources";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export const runtime = "nodejs";
 
@@ -13,7 +17,11 @@ export async function GET(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const job = await requireOwnedDocumentJob(jobId, session.user.id);
+  const job =
+    (await requireOwnedDocumentJob(jobId, session.user.id)) ??
+    (isSuperAdmin(session.user)
+      ? await requireSuperAdminManagedDocumentJob(jobId)
+      : null);
   if (!job) {
     return Response.json({ error: "Job not found" }, { status: 404 });
   }

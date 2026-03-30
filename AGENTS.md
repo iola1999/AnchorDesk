@@ -30,6 +30,7 @@
 - 如果 `technical-design-nodejs` 和其他文档冲突，以 `technical-design-nodejs` 为准。
 - 如果任务优先级、当前阶段状态、最近完成与其他文档冲突，以 `implementation-tracker` 为准。
 - 如果文档和现有代码冲突，先确认哪边代表最新决策，再动代码。
+- 仓库外的第三方框架 / SDK / 开源库事实来源，优先使用 `Context7` 查询对应官方文档与示例；不要只凭记忆猜 API。
 - 不要跳过代码检查直接按文档想象实现。
 
 ## 2. 怎么看需求
@@ -85,6 +86,7 @@
 - 避免在业务代码里直接散落魔法字符串，尤其是 status、stage、event type、provider subtype、错误码和模式值这类会跨模块复用的领域字面量；凡是会被复用、参与分支判断、需要对齐契约或存在拼写漂移风险的值，都应优先提取为 `const as const` 或 enum，并从单一来源复用。
 - 不为通过测试而写虚假实现；证据不足时宁可明确失败，也不要伪造成功结果。
 - 当前阶段不再为非核心工具提供本地 mock 实现来打通链路；应直接开发真实 provider，或在证据/配置不足时明确失败。
+- 涉及第三方开源库、框架、SDK 的 API、配置项、版本差异或弃用行为时，优先用 `Context7` 核对最新文档；`Context7` 仍不足以确认时，再回到该库官方文档、源码或 release note 交叉确认。
 - 对上传、检索、回答、引用、导出这五条主链路的改动，必须伴随测试或补充测试计划。
 
 前端 / UI 额外要求：
@@ -190,7 +192,7 @@ pnpm verify
 - 大部分 provider / infra 参数放进 `system_settings` 表管理。
 - `DATABASE_URL` 仍是启动根配置，必须在进程外提供。
 - `AUTH_SECRET` 不放入业务数据库，也不做自动生成或本地回写；开发环境同样要求显式从 env / `.env.local` 提供。
-- `SUPER_ADMIN_USERNAMES` 通过 env 控制 `/settings` 与系统参数接口的访问权限，值使用注册用户名，不进入数据库。
+- 第一个注册成功的用户会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 与全局资料库入口都依赖这个数据库标记授权，不再读取额外 env 白名单。
 - 改 schema 时必须同时提交 `packages/db/drizzle/**` 中对应的 versioned SQL migration。
 - `system_settings` 默认值在建表后立即补齐；日常优先通过 `/settings` 页面维护，而不是直接改库。
 

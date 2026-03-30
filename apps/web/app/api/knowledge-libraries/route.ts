@@ -13,7 +13,7 @@ import {
   normalizeKnowledgeLibrarySlug,
 } from "@/lib/api/knowledge-libraries";
 import { ensureKnowledgeLibraryRootDirectory } from "@/lib/api/workspace-directories";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export const runtime = "nodejs";
 
@@ -33,7 +33,7 @@ async function requireSuperAdminUser() {
     return { error: unauthorizedResponse() } as const;
   }
 
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     return { error: forbiddenResponse() } as const;
   }
 

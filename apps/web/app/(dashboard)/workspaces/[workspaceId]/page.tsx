@@ -132,6 +132,7 @@ export default async function WorkspacePage({
       currentUser={{
         name: user.name,
         username: user.username,
+        isSuperAdmin: user.isSuperAdmin,
       }}
       breadcrumbs={[
         { label: "空间", href: "/workspaces" },

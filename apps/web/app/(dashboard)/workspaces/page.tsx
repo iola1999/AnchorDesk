@@ -11,7 +11,7 @@ import {
 import { AnchorDeskLogo } from "@/components/icons";
 import { WorkspacesHeaderActions } from "@/components/workspaces/workspaces-header-actions";
 import { auth } from "@/auth";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 import { formatRelativeWorkspaceActivity } from "@/lib/api/workspace-overview";
 import { workspaceBranding } from "@/lib/branding";
 import { cn, ui, workspaceTileStyles } from "@/lib/ui";
@@ -56,7 +56,7 @@ export default async function WorkspacesPage() {
         ])
       : [[], []];
   const username = session?.user?.username ?? "";
-  const canAccessSystemSettings = isSuperAdminUsername(username);
+  const canAccessSystemSettings = isSuperAdmin(session?.user);
   const conversationCountByWorkspace = new Map<string, number>();
   const documentCountByWorkspace = new Map<string, number>();
   const latestActivityByWorkspace = new Map<string, Date>();

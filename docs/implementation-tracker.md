@@ -30,7 +30,7 @@
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
-- 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置，Docker 生产部署只需提供 DATABASE_URL、AUTH_SECRET、SUPER_ADMIN_USERNAMES。
+- 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置，Docker 生产部署只需提供 `DATABASE_URL`、`AUTH_SECRET`。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 - 全局资料库第一版已补齐管理员维护、workspace 订阅、资料页只读挂载和 citation 来源展示；后续以回归和细化为主，不单独上调优先级。
@@ -41,6 +41,7 @@
 - `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
+- 第一个注册成功的用户现在会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 和全局资料库入口统一读取该标记授权，不再依赖 `SUPER_ADMIN_USERNAMES`。
 - 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
@@ -74,7 +75,7 @@
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
-- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL`、`AUTH_SECRET`、`SUPER_ADMIN_USERNAMES` 继续保持 env-only。
+- 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；`DATABASE_URL`、`AUTH_SECRET` 继续保持 env-only。
 - web / worker / agent-runtime 启动时通过 `initRuntimeSettings()` 从 DB 加载运行时配置到 `process.env`；Docker 生产部署中这三个服务只需 bootstrap env。
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
 - parser 已有无文本 PDF 的 OCR 降级路径，但真实 OCR provider 仍未接入；当前仅保持 `disabled`。

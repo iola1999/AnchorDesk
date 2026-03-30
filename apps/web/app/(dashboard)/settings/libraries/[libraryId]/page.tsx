@@ -16,7 +16,7 @@ import {
 } from "@/lib/api/admin-knowledge-libraries";
 import { loadKnowledgeLibraryExplorerData } from "@/lib/api/knowledge-library-explorer";
 import { requireSessionUser } from "@/lib/auth/require-user";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export default async function GlobalLibraryDetailPage({
   params,
@@ -26,7 +26,7 @@ export default async function GlobalLibraryDetailPage({
   searchParams: Promise<{ path?: string }>;
 }) {
   const user = await requireSessionUser();
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     notFound();
   }
 

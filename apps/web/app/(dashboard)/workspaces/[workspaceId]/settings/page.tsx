@@ -29,6 +29,7 @@ export default async function WorkspaceSettingsPage({
       currentUser={{
         name: user.name,
         username: user.username,
+        isSuperAdmin: user.isSuperAdmin,
       }}
       activeView="settings"
       breadcrumbs={[

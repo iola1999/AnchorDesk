@@ -6,11 +6,11 @@ import { getDb, systemSettings } from "@anchordesk/db";
 import { SystemSettingsForm } from "@/components/settings/system-settings-form";
 import { buildSystemSettingSections } from "@/lib/api/system-settings";
 import { requireSessionUser } from "@/lib/auth/require-user";
-import { isSuperAdminUsername } from "@/lib/auth/super-admin";
+import { isSuperAdmin } from "@/lib/auth/super-admin";
 
 export default async function SettingsPage() {
   const user = await requireSessionUser();
-  if (!isSuperAdminUsername(user.username)) {
+  if (!isSuperAdmin(user)) {
     notFound();
   }
 
