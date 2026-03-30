@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@ant-design/x-markdown/themes/light.css";
 
 :root {
   color-scheme: light;
@@ -106,5 +107,101 @@
     background: color-mix(in srgb, var(--accent) 18%, white);
     color: var(--text);
     padding-inline: 0.125rem;
+  }
+
+  .app-markdown {
+    --font-size: inherit;
+    --primary-color: var(--accent);
+    --primary-color-hover: color-mix(in srgb, var(--accent) 72%, var(--text));
+    --heading-color: var(--text);
+    --text-color: var(--text);
+    --border-color: color-mix(in srgb, var(--border) 86%, white);
+    --line-color: color-mix(in srgb, var(--border) 78%, transparent);
+    --light-bg: color-mix(in srgb, var(--surface-soft) 90%, white);
+    --table-head-bg: color-mix(in srgb, var(--surface-soft) 84%, white);
+    --table-body-bg: color-mix(in srgb, var(--surface) 94%, var(--surface-soft));
+    --cite-bg: color-mix(in srgb, var(--surface-soft) 78%, var(--surface-strong));
+    --cite-hover-bg: color-mix(in srgb, var(--surface-soft) 58%, var(--surface-strong));
+    --border-radius-middle: 16px;
+    --border-radius-small: 10px;
+    --td-th-padding: 10px 12px;
+    --margin-block: 0 0 0.85rem 0;
+    --padding-ul-ol: 0 0 0 0.35rem;
+    --margin-ul-ol: 0 0 0.9rem 1.5rem;
+    --margin-li: 0.125rem 0;
+    --hr-margin: 1.1rem 0;
+    --table-margin: 0 0 1rem 0;
+    --margin-pre: 0 0 0.95rem 0;
+    --padding-code: 0.95rem 1rem;
+    --xmd-tail-color: var(--accent);
+  }
+
+  .app-markdown > :first-child {
+    margin-top: 0;
+  }
+
+  .app-markdown > :last-child {
+    margin-bottom: 0;
+  }
+
+  .app-markdown h1,
+  .app-markdown h2,
+  .app-markdown h3,
+  .app-markdown h4 {
+    letter-spacing: -0.03em;
+  }
+
+  .app-markdown h1 {
+    font-size: 1.35rem;
+    line-height: 1.45;
+  }
+
+  .app-markdown h2 {
+    font-size: 1.15rem;
+    line-height: 1.55;
+  }
+
+  .app-markdown h3,
+  .app-markdown h4 {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .app-markdown p,
+  .app-markdown li,
+  .app-markdown blockquote {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .app-markdown blockquote {
+    color: var(--muted-strong);
+  }
+
+  .app-markdown pre code:not([class$="-highlightCode-code"] pre code) {
+    border: 1px solid color-mix(in srgb, var(--border) 88%, white);
+    font-family: "SFMono-Regular", SFMono-Regular, ui-monospace, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    line-height: 1.75;
+  }
+
+  .app-markdown code:not([class$="-highlightCode-code"] code):not(pre code) {
+    font-family: "SFMono-Regular", SFMono-Regular, ui-monospace, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+  }
+
+  .app-markdown table {
+    border-radius: 16px;
+  }
+
+  .app-markdown a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+
+  .app-markdown a::after {
+    font-size: 0.72em;
+    vertical-align: top;
   }
 }

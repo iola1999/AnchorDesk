@@ -20,6 +20,7 @@ import {
 } from "@/components/icons";
 import { ConversationTimeline } from "@/components/chat/conversation-timeline";
 import { LinkifiedText } from "@/components/shared/linkified-text";
+import { MarkdownContent } from "@/components/shared/markdown-content";
 import {
   canShowAssistantResultPanel,
   describeAssistantStreamingStatus,
@@ -686,9 +687,10 @@ export function ConversationSession({
                     </div>
                   ) : (
                     <div className="grid gap-3">
-                      <LinkifiedText
-                        text={answerText}
+                      <MarkdownContent
+                        content={answerText}
                         className={conversationDensityClassNames.answerText}
+                        streaming={isStreamingAssistant}
                       />
                     </div>
                   )}
