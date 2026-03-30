@@ -30,26 +30,24 @@ import {
 } from "@/lib/api/conversation-retry";
 import {
   applyAssistantTerminalEvent,
+  applyAssistantTerminalEventToSessionSnapshot,
   buildConversationExportFilename,
   type ConversationChatMessage,
   type ConversationMessageCitation,
+  type ConversationSessionSnapshot,
+  type ConversationTimelineMessagesByAssistant,
   findLatestAssistantMessageId,
   resolveConversationStreamingAssistantMessageId,
-  restartAssistantMessageForRetry,
+  restartAssistantSessionSnapshotForRetry,
 } from "@/lib/api/conversation-session";
+import { conversationDensityClassNames } from "@/lib/conversation-density";
 import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
 
 type ChatMessage = ConversationChatMessage;
 
-type TimelineMessage = {
-  id: string;
-  status: MessageStatus;
-  contentMarkdown: string;
-  createdAt: string;
-  structuredJson?: Record<string, unknown> | null;
-};
+type TimelineMessage = ConversationTimelineMessagesByAssistant[string][number];
 
-type TimelineMessagesByAssistant = Record<string, TimelineMessage[]>;
+type TimelineMessagesByAssistant = ConversationTimelineMessagesByAssistant;
 
 type MessageCitation = ConversationMessageCitation;
 type MessageViewMode = "answer" | "sources";
@@ -85,7 +83,7 @@ function ActionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={chipButtonStyles({ active })}
+      className={chipButtonStyles({ active, size: "compact" })}
     >
       {children}
     </button>
@@ -108,10 +106,47 @@ function TabButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={tabButtonStyles({ active })}
+      className={tabButtonStyles({ active, size: "compact" })}
     >
       {children}
     </button>
+  );
+}
+
+function resolveCitationSourceBadge(citation: MessageCitation) {
+  if (citation.sourceScope === "global_library") {
+    return {
+      label: citation.libraryTitle?.trim()
+        ? `全局资料库 · ${citation.libraryTitle.trim()}`
+        : "全局资料库",
+      tone: "global" as const,
+    };
+  }
+
+  return {
+    label: "工作空间资料",
+    tone: "workspace" as const,
+  };
+}
+
+function CitationSourceBadge({
+  citation,
+}: {
+  citation: MessageCitation;
+}) {
+  const badge = resolveCitationSourceBadge(citation);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px]",
+        badge.tone === "global"
+          ? "border-app-border bg-app-surface-soft text-app-text"
+          : "border-app-border bg-white text-app-muted-strong",
+      )}
+    >
+      {badge.label}
+    </span>
   );
 }
 
@@ -128,6 +163,7 @@ export function ConversationSession({
   readOnly = false,
   emptyStateMessage = "这一轮还没有消息",
   onAssistantTerminalEvent,
+  onSessionStateSync,
 }: {
   conversationId: string;
   workspaceId?: string | null;
@@ -141,6 +177,7 @@ export function ConversationSession({
   readOnly?: boolean;
   emptyStateMessage?: string;
   onAssistantTerminalEvent?: (conversationId: string) => void;
+  onSessionStateSync?: (snapshot: ConversationSessionSnapshot) => void;
 }) {
   const [chatMessages, setChatMessages] = useState(initialMessages);
   const [timelineMessagesByAssistant, setTimelineMessagesByAssistant] = useState(
@@ -168,6 +205,7 @@ export function ConversationSession({
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
   const chatMessagesRef = useRef(initialMessages);
   const messageCitationsRef = useRef(initialCitations ?? []);
+  const timelineMessagesByAssistantRef = useRef(initialTimelineMessagesByAssistant ?? {});
   const seenTimelineIdsRef = useRef(
     flattenTimelineMessageIds(initialTimelineMessagesByAssistant ?? {}),
   );
@@ -183,6 +221,7 @@ export function ConversationSession({
     setRegeneratingMessageId(null);
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
+    timelineMessagesByAssistantRef.current = initialTimelineMessagesByAssistant ?? {};
     const nextStreamingAssistantMessageId = resolveConversationStreamingAssistantMessageId({
       assistantMessageId,
       assistantStatus,
@@ -250,10 +289,10 @@ export function ConversationSession({
       }
 
       seenTimelineIdsRef.current.add(payload.message_id);
-      setTimelineMessagesByAssistant((current) => ({
-        ...current,
+      const nextTimelineMessagesByAssistant = {
+        ...timelineMessagesByAssistantRef.current,
         [streamingAssistantMessageId]: [
-          ...(current[streamingAssistantMessageId] ?? []),
+          ...(timelineMessagesByAssistantRef.current[streamingAssistantMessageId] ?? []),
           {
             id: payload.message_id,
             status: payload.status,
@@ -262,7 +301,9 @@ export function ConversationSession({
             structuredJson: payload.structured ?? null,
           },
         ],
-      }));
+      };
+      timelineMessagesByAssistantRef.current = nextTimelineMessagesByAssistant;
+      setTimelineMessagesByAssistant(nextTimelineMessagesByAssistant);
     };
 
     const handleAnswerDelta = (event: MessageEvent<string>) => {
@@ -297,10 +338,18 @@ export function ConversationSession({
         event: payload,
         fallbackMessageId: streamingAssistantMessageId,
       });
+      const nextSnapshot = applyAssistantTerminalEventToSessionSnapshot({
+        messages: chatMessagesRef.current,
+        citations: messageCitationsRef.current,
+        timelineMessagesByAssistant: timelineMessagesByAssistantRef.current,
+        event: payload,
+        fallbackMessageId: streamingAssistantMessageId,
+      });
       chatMessagesRef.current = nextState.messages;
       messageCitationsRef.current = nextState.citations;
       setChatMessages(nextState.messages);
       setMessageCitations(nextState.citations);
+      onSessionStateSync?.(nextSnapshot);
       setRuntimeStatus("回答已生成");
       setRegeneratingMessageId(null);
       onAssistantTerminalEvent?.(conversationId);
@@ -319,10 +368,18 @@ export function ConversationSession({
         event: payload,
         fallbackMessageId: streamingAssistantMessageId,
       });
+      const nextSnapshot = applyAssistantTerminalEventToSessionSnapshot({
+        messages: chatMessagesRef.current,
+        citations: messageCitationsRef.current,
+        timelineMessagesByAssistant: timelineMessagesByAssistantRef.current,
+        event: payload,
+        fallbackMessageId: streamingAssistantMessageId,
+      });
       chatMessagesRef.current = nextState.messages;
       messageCitationsRef.current = nextState.citations;
       setChatMessages(nextState.messages);
       setMessageCitations(nextState.citations);
+      onSessionStateSync?.(nextSnapshot);
       setRuntimeStatus(`运行失败：${payload.error}`);
       setRegeneratingMessageId(null);
       onAssistantTerminalEvent?.(conversationId);
@@ -444,24 +501,25 @@ export function ConversationSession({
         return;
       }
 
-      const nextState = restartAssistantMessageForRetry({
+      const nextSnapshot = restartAssistantSessionSnapshotForRetry({
         assistantMessageId: messageId,
         citations: messageCitationsRef.current,
         messages: chatMessagesRef.current,
+        timelineMessagesByAssistant: timelineMessagesByAssistantRef.current,
       });
-      chatMessagesRef.current = nextState.messages;
-      messageCitationsRef.current = nextState.citations;
-      setChatMessages(nextState.messages);
-      setMessageCitations(nextState.citations);
-      setTimelineMessagesByAssistant((current) => {
-        const nextTimelineMessagesByAssistant = { ...current };
-        delete nextTimelineMessagesByAssistant[messageId];
-        seenTimelineIdsRef.current = flattenTimelineMessageIds(nextTimelineMessagesByAssistant);
-        return nextTimelineMessagesByAssistant;
-      });
+      timelineMessagesByAssistantRef.current = nextSnapshot.timelineMessagesByAssistant;
+      chatMessagesRef.current = nextSnapshot.messages;
+      messageCitationsRef.current = nextSnapshot.citations;
+      setChatMessages(nextSnapshot.messages);
+      setMessageCitations(nextSnapshot.citations);
+      setTimelineMessagesByAssistant(nextSnapshot.timelineMessagesByAssistant);
+      seenTimelineIdsRef.current = flattenTimelineMessageIds(
+        nextSnapshot.timelineMessagesByAssistant,
+      );
+      onSessionStateSync?.(nextSnapshot);
       setRuntimeStatus(
         describeAssistantStreamingStatus(
-          readAssistantMessageContent(nextState.messages, messageId),
+          readAssistantMessageContent(nextSnapshot.messages, messageId),
         ),
       );
     } catch {
@@ -471,7 +529,7 @@ export function ConversationSession({
   }
 
   return (
-    <div className="grid gap-7 pb-4 min-[720px]:gap-10 min-[720px]:pb-6 md:gap-12 md:pb-8">
+    <div className={conversationDensityClassNames.sessionStack}>
       {chatMessages.length > 0 ? (
         chatMessages.map((message) => {
           const isUser = message.role === MESSAGE_ROLE.USER;
@@ -504,11 +562,11 @@ export function ConversationSession({
 
           if (isUser) {
             return (
-              <article key={message.id} className="ml-auto w-full max-w-[720px]">
-                <div className="rounded-[24px] border border-app-border/60 bg-app-surface-strong/58 px-4 py-3.5 shadow-[0_14px_36px_rgba(23,22,18,0.035)] min-[720px]:rounded-[28px] min-[720px]:px-5 min-[720px]:py-4">
+              <article key={message.id} className={conversationDensityClassNames.userWrap}>
+                <div className={conversationDensityClassNames.userBubble}>
                   <LinkifiedText
                     text={message.contentMarkdown}
-                    className="text-[15px] leading-8 text-app-text md:text-[16px]"
+                    className={conversationDensityClassNames.userText}
                   />
                 </div>
               </article>
@@ -516,7 +574,7 @@ export function ConversationSession({
           }
 
           return (
-            <article key={message.id} className="grid gap-4">
+            <article key={message.id} className={conversationDensityClassNames.assistantSection}>
               <ConversationTimeline
                 timelineMessages={processMessages}
                 runtimeStatus={isCurrentAssistant ? runtimeStatus : null}
@@ -524,32 +582,59 @@ export function ConversationSession({
               />
 
               {showResultPanel ? (
-                <div className="grid gap-4 min-[720px]:gap-5">
-                  <div className="flex flex-wrap items-center gap-4 border-b border-app-border/60 pb-2 min-[720px]:gap-5">
-                    <TabButton
-                      active={selectedView === "answer"}
-                      onClick={() => setMessageView(message.id, "answer")}
-                    >
-                      <AnswerIcon />
-                      结果
-                    </TabButton>
-                    <TabButton
-                      active={selectedView === "sources"}
-                      disabled={!hasSources}
-                      onClick={() => setMessageView(message.id, "sources")}
-                    >
-                      <SourceIcon />
-                      参考资料
-                      {hasSources ? (
-                        <span className="rounded-full bg-app-surface-strong/72 px-2 py-0.5 text-[11px] text-app-muted-strong">
-                          {citations.length}
-                        </span>
+                <div className={conversationDensityClassNames.resultPanel}>
+                  <div className={conversationDensityClassNames.resultHeader}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <TabButton
+                        active={selectedView === "answer"}
+                        onClick={() => setMessageView(message.id, "answer")}
+                      >
+                        <AnswerIcon />
+                        结果
+                      </TabButton>
+                      <TabButton
+                        active={selectedView === "sources"}
+                        disabled={!hasSources}
+                        onClick={() => setMessageView(message.id, "sources")}
+                      >
+                        <SourceIcon />
+                        参考资料
+                        {hasSources ? (
+                          <span className="rounded-full bg-app-surface-strong/72 px-1.5 py-0.5 text-[10px] text-app-muted-strong">
+                            {citations.length}
+                          </span>
+                        ) : null}
+                      </TabButton>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1">
+                      {canExportOrCopy ? (
+                        <>
+                          <ActionButton onClick={() => handleExportMessage(message.id, answerText)}>
+                            <ExportIcon />
+                            导出
+                          </ActionButton>
+                          <ActionButton onClick={() => handleCopyMessage(message.id, answerText)}>
+                            <CopyIcon />
+                            {copiedMessageId === message.id ? "已复制" : "复制"}
+                          </ActionButton>
+                        </>
                       ) : null}
-                    </TabButton>
+
+                      {canRegenerate ? (
+                        <ActionButton
+                          disabled={regeneratingMessageId === message.id}
+                          onClick={() => handleRegenerateMessage(message.id)}
+                        >
+                          <RegenerateIcon />
+                          {regeneratingMessageId === message.id ? "重新生成中" : "重新生成"}
+                        </ActionButton>
+                      ) : null}
+                    </div>
                   </div>
 
                   {selectedView === "sources" ? (
-                    <div className="grid gap-2.5">
+                    <div className={conversationDensityClassNames.sourcesList}>
                       {citations.map((citation, index) => (
                         sourceLinksEnabled &&
                         workspaceId &&
@@ -558,16 +643,17 @@ export function ConversationSession({
                           <Link
                             key={citation.id}
                             href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                            className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
+                            className={conversationDensityClassNames.sourceCard}
                           >
                             <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
                               资料 {index + 1}
                             </span>
-                            <span className="text-[14px] leading-6 text-app-text">
+                            <CitationSourceBadge citation={citation} />
+                            <span className="text-[13px] leading-5 text-app-text">
                               {citation.label}
                             </span>
                             {citation.quoteText.trim() ? (
-                              <span className="line-clamp-4 text-[13px] leading-6 text-app-muted-strong">
+                              <span className="line-clamp-4 text-[12px] leading-5 text-app-muted-strong">
                                 {citation.quoteText}
                               </span>
                             ) : null}
@@ -577,16 +663,20 @@ export function ConversationSession({
                             key={citation.id}
                             aria-disabled="true"
                             title={sourceLinksEnabled ? undefined : "公开页不提供资料跳转"}
-                            className="grid gap-1 rounded-[20px] border border-app-border/55 bg-white/70 px-4 py-3 text-left"
+                            className={cn(
+                              conversationDensityClassNames.sourceCard,
+                              "cursor-default hover:border-app-border/55 hover:bg-white/72",
+                            )}
                           >
                             <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
                               资料 {index + 1}
                             </span>
-                            <span className="text-[14px] leading-6 text-app-text">
+                            <CitationSourceBadge citation={citation} />
+                            <span className="text-[13px] leading-5 text-app-text">
                               {citation.label}
                             </span>
                             {citation.quoteText.trim() ? (
-                              <span className="line-clamp-4 text-[13px] leading-6 text-app-muted-strong">
+                              <span className="line-clamp-4 text-[12px] leading-5 text-app-muted-strong">
                                 {citation.quoteText}
                               </span>
                             ) : null}
@@ -595,56 +685,16 @@ export function ConversationSession({
                       ))}
                     </div>
                   ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                       <LinkifiedText
                         text={answerText}
-                        className="max-w-none text-[15px] leading-[2] text-app-text md:text-[16px]"
+                        className={conversationDensityClassNames.answerText}
                       />
                     </div>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-1.5 border-t border-app-border/55 pt-3">
-                    {canExportOrCopy ? (
-                      <>
-                        <ActionButton onClick={() => handleExportMessage(message.id, answerText)}>
-                          <ExportIcon />
-                          导出
-                        </ActionButton>
-                        <ActionButton onClick={() => handleCopyMessage(message.id, answerText)}>
-                          <CopyIcon />
-                          {copiedMessageId === message.id ? "已复制" : "复制"}
-                        </ActionButton>
-                      </>
-                    ) : null}
-
-                    {canRegenerate ? (
-                      <ActionButton
-                        disabled={regeneratingMessageId === message.id}
-                        onClick={() => handleRegenerateMessage(message.id)}
-                      >
-                        <RegenerateIcon />
-                        {regeneratingMessageId === message.id ? "重新生成中" : "重新生成"}
-                      </ActionButton>
-                    ) : null}
-
-                    {hasSources ? (
-                      <ActionButton
-                        active={selectedView === "sources"}
-                        onClick={() =>
-                          setMessageView(
-                            message.id,
-                            selectedView === "sources" ? "answer" : "sources",
-                          )
-                        }
-                      >
-                        <SourceIcon />
-                        {citations.length} 条资料
-                      </ActionButton>
-                    ) : null}
-                  </div>
-
                   {actionStatusByMessage[message.id] ? (
-                    <p className="text-[13px] leading-6 text-app-muted">
+                    <p className={conversationDensityClassNames.actionStatus}>
                       {actionStatusByMessage[message.id]}
                     </p>
                   ) : null}

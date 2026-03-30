@@ -9,6 +9,7 @@ import {
 } from "@/components/chat/composer";
 import { ConversationSession } from "@/components/chat/conversation-session";
 import { type AssistantProcessMessage } from "@/lib/api/conversation-process";
+import { conversationDensityClassNames } from "@/lib/conversation-density";
 import {
   appendSubmittedConversationTurn,
   findLatestAssistantMessageId,
@@ -77,9 +78,19 @@ export function WorkspaceConversationPanel({
     onSubmittedTurn?.(turn);
   }
 
+  function handleSessionStateSync(input: {
+    messages: ConversationChatMessage[];
+    citations: ConversationMessageCitation[];
+    timelineMessagesByAssistant: TimelineMessagesByAssistant;
+  }) {
+    setMessages(input.messages);
+    setCitations(input.citations);
+    setTimelineMessagesByAssistant(input.timelineMessagesByAssistant);
+  }
+
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] flex-col overflow-visible">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3 pr-1 min-[720px]:py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2 pr-1 min-[720px]:py-3">
         <ConversationSession
           conversationId={conversationId}
           workspaceId={workspaceId}
@@ -89,10 +100,11 @@ export function WorkspaceConversationPanel({
           initialMessages={messages}
           initialCitations={citations}
           onAssistantTerminalEvent={onAssistantTerminalEvent}
+          onSessionStateSync={handleSessionStateSync}
         />
       </div>
 
-      <div className="shrink-0 border-app-border/60 pb-4 pt-3 min-[720px]:pb-6 min-[720px]:pt-4">
+      <div className={conversationDensityClassNames.composerShell}>
         <Composer
           conversationId={conversationId}
           workspaceId={workspaceId}

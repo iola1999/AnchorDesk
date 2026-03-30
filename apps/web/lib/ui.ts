@@ -8,6 +8,7 @@ type ButtonSize = "md" | "sm" | "xs";
 type ButtonShape = "rounded" | "pill" | "icon";
 type MenuTone = "default" | "danger";
 type WorkspaceTileVariant = "default" | "create";
+type ConversationControlSize = "default" | "compact";
 
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
@@ -131,18 +132,32 @@ export function menuItemStyles({
     : "text-app-muted-strong hover:bg-app-surface-soft/82 hover:text-app-text";
 }
 
-export function chipButtonStyles({ active = false }: { active?: boolean } = {}) {
+export function chipButtonStyles({
+  active = false,
+  size = "default",
+}: {
+  active?: boolean;
+  size?: ConversationControlSize;
+} = {}) {
   return cn(
-    "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex cursor-pointer items-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50",
+    size === "compact" ? "gap-1.5 px-2.5 py-1 text-[12px]" : "gap-2 px-3 py-1.5 text-[13px]",
     active
       ? "border-app-border-strong bg-app-surface-strong/65 text-app-text"
       : "border-transparent bg-transparent text-app-muted-strong hover:border-app-border/80 hover:bg-white/70 hover:text-app-text",
   );
 }
 
-export function tabButtonStyles({ active }: { active: boolean }) {
+export function tabButtonStyles({
+  active,
+  size = "default",
+}: {
+  active: boolean;
+  size?: ConversationControlSize;
+}) {
   return cn(
-    "inline-flex cursor-pointer items-center gap-2 border-b px-1 pb-2 text-[13px] transition disabled:cursor-not-allowed disabled:opacity-45",
+    "inline-flex cursor-pointer items-center border-b transition disabled:cursor-not-allowed disabled:opacity-45",
+    size === "compact" ? "gap-1.5 px-0.5 pb-1.5 text-[12px]" : "gap-2 px-1 pb-2 text-[13px]",
     active
       ? "border-app-text text-app-text"
       : "border-transparent text-app-muted-strong hover:text-app-text",

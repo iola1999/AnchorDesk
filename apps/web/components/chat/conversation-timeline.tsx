@@ -9,6 +9,11 @@ import {
   canShowAssistantProcess,
   describeAssistantProcessSummary,
 } from "@/lib/api/conversation-process";
+import { conversationDensityClassNames } from "@/lib/conversation-density";
+import {
+  canExpandConversationTimelineEntry,
+  describeConversationTimelineEntryDetailsLabel,
+} from "@/lib/conversation-timeline";
 import { cn, ui } from "@/lib/ui";
 
 type TimelineMessage = {
@@ -123,7 +128,7 @@ function describePayloadPreview(value: unknown) {
   return String(value);
 }
 
-function ToolPayloadDisclosure({
+function ToolPayloadBlock({
   label,
   value,
 }: {
@@ -131,21 +136,65 @@ function ToolPayloadDisclosure({
   value: unknown;
 }) {
   return (
-    <details className="group/payload rounded-[18px] border border-app-border/65 bg-white/78 px-3.5 py-2.5">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[12px] text-app-muted-strong">
-        <span className="inline-flex items-center gap-2 font-medium text-app-text">
-          <span className="text-sm leading-none transition group-open/payload:rotate-90">›</span>
-          {label}
-        </span>
+    <div className={conversationDensityClassNames.payloadDisclosure}>
+      <div className="flex items-center justify-between gap-3 text-[11px] text-app-muted-strong">
+        <span className="font-medium text-app-text">{label}</span>
         <span className="truncate text-app-muted">{describePayloadPreview(value)}</span>
-      </summary>
+      </div>
 
       <div className="mt-2 border-t border-app-border/60 pt-2">
-        <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-app-surface-soft px-3 py-2.5 text-[12px] leading-6 text-app-muted-strong">
+        <pre className={conversationDensityClassNames.payloadPre}>
           {formatPayloadValue(value)}
         </pre>
       </div>
-    </details>
+    </div>
+  );
+}
+
+function TimelineEntrySummary({
+  entry,
+  expandable = false,
+}: {
+  entry: ReturnType<typeof buildAssistantProcessTimelineEntries>[number];
+  expandable?: boolean;
+}) {
+  return (
+    <div className={conversationDensityClassNames.timelineEntrySummary}>
+      <div className="grid gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {expandable ? (
+            <span className="text-sm leading-none text-app-muted transition group-open/timeline-entry:rotate-90">
+              ›
+            </span>
+          ) : null}
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+              getTimelineTone(entry.status),
+            )}
+          >
+            {describeEntryStatus(entry.status)}
+          </span>
+          {entry.toolName ? <span className={ui.codeChip}>{entry.toolName}</span> : null}
+        </div>
+        <p className="text-[12px] leading-5 text-app-muted-strong">
+          {describeEntryHeadline({
+            toolName: entry.toolName,
+            status: entry.status,
+            error: entry.error,
+            contentMarkdown: entry.contentMarkdown,
+          })}
+        </p>
+        {expandable ? (
+          <span className={conversationDensityClassNames.timelineEntryMeta}>
+            {describeConversationTimelineEntryDetailsLabel(entry)}
+          </span>
+        ) : null}
+      </div>
+      <span className="shrink-0 pt-0.5 text-[11px] text-app-muted">
+        {formatTimeRange(entry.createdAt, entry.completedAt)}
+      </span>
+    </div>
   );
 }
 
@@ -183,72 +232,60 @@ export function ConversationTimeline({
 
   return (
     <details
-      className="group rounded-[22px] border border-app-border/60 bg-white/68 px-4 py-3 shadow-[0_8px_24px_rgba(23,22,18,0.035)]"
+      className={conversationDensityClassNames.timelineShell}
       open={open}
       onToggle={(event) => {
         setOpen(event.currentTarget.open);
       }}
     >
-      <summary className="flex cursor-pointer list-none items-center gap-3 text-sm text-app-muted-strong">
+      <summary className="flex cursor-pointer list-none items-center gap-2.5 text-[13px] text-app-muted-strong">
         <span className="inline-flex items-center gap-2 font-medium text-app-text">
-          <span className="text-base leading-none transition group-open:rotate-90">›</span>
+          <span className="text-sm leading-none transition group-open:rotate-90">›</span>
           {summary}
         </span>
       </summary>
 
       {timelineEntries.length > 0 ? (
-        <div className="mt-3 grid gap-3 border-t border-app-border/55 pt-3">
-          {timelineEntries.map((entry) => (
-            <article
-              key={entry.id}
-              className="grid gap-3 rounded-[20px] border border-app-border/60 bg-app-surface-soft/72 px-4 py-3.5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="grid gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                        getTimelineTone(entry.status),
-                      )}
-                    >
-                      {describeEntryStatus(entry.status)}
-                    </span>
-                    {entry.toolName ? (
-                      <span className={ui.codeChip}>{entry.toolName}</span>
-                    ) : null}
-                  </div>
-                  <p className="text-[13px] leading-6 text-app-muted-strong">
-                    {describeEntryHeadline({
-                      toolName: entry.toolName,
-                      status: entry.status,
-                      error: entry.error,
-                      contentMarkdown: entry.contentMarkdown,
-                    })}
-                  </p>
-                </div>
-                <span className="text-[12px] text-app-muted">
-                  {formatTimeRange(entry.createdAt, entry.completedAt)}
-                </span>
-              </div>
+        <div className={conversationDensityClassNames.timelineList}>
+          {timelineEntries.map((entry) => {
+            const expandable = canExpandConversationTimelineEntry(entry);
 
-              {entry.kind === "tool_call" && (entry.input !== null || entry.output !== null) ? (
-                <div className="grid gap-2 border-t border-app-border/55 pt-3">
+            if (!expandable) {
+              return (
+                <article key={entry.id} className={conversationDensityClassNames.timelineEntry}>
+                  <TimelineEntrySummary entry={entry} />
+                </article>
+              );
+            }
+
+            return (
+              <details
+                key={entry.id}
+                className={cn(
+                  conversationDensityClassNames.timelineEntry,
+                  "group/timeline-entry rounded-r-lg",
+                )}
+              >
+                <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
+                  <TimelineEntrySummary entry={entry} expandable />
+                </summary>
+
+                <div className={conversationDensityClassNames.timelineEntryDetails}>
                   {entry.input !== null ? (
-                    <ToolPayloadDisclosure label="入参" value={entry.input} />
+                    <ToolPayloadBlock label="入参" value={entry.input} />
                   ) : null}
                   {entry.output !== null ? (
-                    <ToolPayloadDisclosure label="结果" value={entry.output} />
+                    <ToolPayloadBlock label="结果" value={entry.output} />
                   ) : null}
                 </div>
-              ) : null}
-            </article>
-          ))}
+              </details>
+            );
+          })}
         </div>
       ) : null}
 
       {timelineEntries.length === 0 && runtimeStatus ? (
-        <p className={cn(ui.muted, "mt-3 border-t border-app-border/55 pt-3 text-[13px]")}>
+        <p className={cn(ui.muted, "mt-2 border-t border-app-border/55 pt-2.5 text-[12px]")}>
           {runtimeStatus}
         </p>
       ) : null}

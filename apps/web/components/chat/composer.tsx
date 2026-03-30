@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/composer";
 import { computeFileSha256 } from "@/lib/api/file-digests";
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
+import { conversationDensityClassNames } from "@/lib/conversation-density";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 import type { ConversationChatMessage } from "@/lib/api/conversation-session";
 
@@ -126,7 +127,7 @@ export function Composer({
   const stageTextareaSizing = resolveComposerStageTextareaSizing(rows);
   const isSubmitDisabled = isPending || hasPendingAttachments;
   const stageActionButtonBase =
-    "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-55";
+    "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-55";
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));
@@ -599,8 +600,8 @@ export function Composer({
         onChange={onFileChange}
       />
       {isStage ? (
-        <div className="grid gap-3">
-          <div className="grid gap-3 rounded-[28px] border border-app-border/80 bg-white/94 px-5 py-4 shadow-[0_10px_24px_rgba(23,22,18,0.045)] md:px-6 md:py-5">
+        <div className="grid gap-2.5">
+          <div className={conversationDensityClassNames.composerCard}>
             <textarea
               ref={textareaRef}
               required
@@ -610,12 +611,12 @@ export function Composer({
               onKeyDown={onTextareaKeyDown}
               placeholder={placeholder}
               className={cn(
-                "w-full resize-none bg-transparent px-0 py-0 text-[15px] leading-7 text-app-text outline-none placeholder:text-app-muted md:text-[16px]",
+                conversationDensityClassNames.composerText,
                 textareaClassName,
               )}
             />
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <div className="flex min-h-10 items-center gap-2">
+            <div className="flex items-center justify-between gap-2.5 pt-0.5">
+              <div className="flex min-h-9 items-center gap-2">
                 {workspaceId ? (
                   <button
                     type="button"
@@ -629,7 +630,7 @@ export function Composer({
                     <PlusIcon className="size-5" aria-hidden="true" />
                   </button>
                 ) : (
-                  <div className="size-10 shrink-0" aria-hidden="true" />
+                  <div className="size-9 shrink-0" aria-hidden="true" />
                 )}
               </div>
               <button
@@ -647,7 +648,7 @@ export function Composer({
           </div>
 
           {attachments.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 px-1">
+            <div className={conversationDensityClassNames.composerAttachments}>
               {attachments.map((attachment) => {
                 const tone =
                   attachment.status === COMPOSER_ATTACHMENT_STATUS.READY
@@ -659,7 +660,7 @@ export function Composer({
                 const content = (
                   <span
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px]",
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium",
                       tone,
                     )}
                   >

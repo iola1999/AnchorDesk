@@ -85,11 +85,27 @@ describe("conversation action helpers", () => {
     expect(classes).toContain("bg-app-surface-strong/65");
   });
 
+  it("supports a compact chip density for dense conversation toolbars", () => {
+    const classes = chipButtonStyles({ size: "compact" });
+
+    expect(classes).toContain("px-2.5");
+    expect(classes).toContain("py-1");
+    expect(classes).toContain("text-[12px]");
+  });
+
   it("keeps inactive tabs understated", () => {
     const classes = tabButtonStyles({ active: false });
 
     expect(classes).toContain("border-transparent");
     expect(classes).toContain("text-app-muted-strong");
+  });
+
+  it("supports compact tabs for tighter answer/source switching", () => {
+    const classes = tabButtonStyles({ active: true, size: "compact" });
+
+    expect(classes).toContain("gap-1.5");
+    expect(classes).toContain("pb-1.5");
+    expect(classes).toContain("text-[12px]");
   });
 });
 
