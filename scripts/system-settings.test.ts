@@ -113,7 +113,7 @@ describe("system settings env resolution", () => {
     expect(
       buildRuntimeEnvironment(
         {
-          DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+          DATABASE_URL: "postgres://postgres:postgres@localhost:5432/anchor_desk",
         },
         [
           {
@@ -123,7 +123,7 @@ describe("system settings env resolution", () => {
         ],
       ),
     ).toMatchObject({
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/anchor_desk",
       APP_URL: "http://127.0.0.1:3000",
       REDIS_URL: "redis://localhost:6379",
     });

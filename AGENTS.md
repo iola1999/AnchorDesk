@@ -6,21 +6,21 @@
 
 开始任何任务前，先按这个顺序阅读需求与设计：
 
-1. [docs/knowledge-assistant-technical-design-nodejs.md](./docs/knowledge-assistant-technical-design-nodejs.md)
+1. [docs/anchor-desk-technical-design-nodejs.md](./docs/anchor-desk-technical-design-nodejs.md)
    用它作为当前实现的主设计文档和架构/约束文档。
 2. [docs/implementation-tracker.md](./docs/implementation-tracker.md)
    用它作为当前阶段进度、活跃待办和下一步执行顺序文档。
 3. [docs/development-setup.md](./docs/development-setup.md)
    当任务涉及本地启动、Docker 依赖、开发环境配置或系统参数时必读。
-4. [docs/anchordesk-prd.md](./docs/anchordesk-prd.md)
+4. [docs/anchor-desk-prd.md](./docs/anchor-desk-prd.md)
    用它确认 P0/P1 范围、业务目标、用户场景和验收口径。
-5. [docs/anchordesk-erd.md](./docs/anchordesk-erd.md)
+5. [docs/anchor-desk-erd.md](./docs/anchor-desk-erd.md)
    当任务涉及 schema、索引、检索、引用链路时必读。
-6. [docs/anchordesk-mcp-tools.md](./docs/anchordesk-mcp-tools.md)
+6. [docs/anchor-desk-mcp-tools.md](./docs/anchor-desk-mcp-tools.md)
    当任务涉及 agent tool、返回结构、错误模型时必读。
-7. [docs/anchordesk-nextjs-app-structure.md](./docs/anchordesk-nextjs-app-structure.md)
+7. [docs/anchor-desk-nextjs-app-structure.md](./docs/anchor-desk-nextjs-app-structure.md)
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
-8. [docs/anchordesk-architecture.md](./docs/anchordesk-architecture.md)
+8. [docs/anchor-desk-architecture.md](./docs/anchor-desk-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
 9. [.impeccable.md](./.impeccable.md)
    **任何涉及前端 UI、视觉风格、组件样式的任务必读。** 它定义了色彩系统、圆角/阴影/间距的具体数值、弹出面板/按钮/菜单项等组件的精确规格，以及文案规则。改 UI 前必须先读这个文件，确保新代码与已有视觉体系一致。
@@ -209,7 +209,7 @@ pnpm verify
 如果改动影响开发流程、CI、测试命令或下一阶段优先级，必须同步更新：
 
 - `AGENTS.md`
-- `docs/knowledge-assistant-technical-design-nodejs.md`
+- `docs/anchor-desk-technical-design-nodejs.md`
 - `docs/implementation-tracker.md`
 
 ## 7. 当前重点

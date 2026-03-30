@@ -1,7 +1,7 @@
 # AnchorDesk Next.js App Router 结构
 
-版本：v0.5
-日期：2026-03-29
+版本：v0.6
+日期：2026-03-30
 
 > 文档角色说明：
 >
@@ -11,7 +11,8 @@
 ## 1. 目标
 
 - Next.js 同时承担 Web UI 与轻量 BFF。
-- 所有知识库和会话入口围绕 `workspaceId`。
+- `workspace` 仍是会话与授权入口；知识库管理同时覆盖 workspace 内入口和 super-admin 全局 library 入口。
+- Route Handler 保持薄接线层，核心规则尽量下沉到 `apps/web/lib/api/**`。
 - Server/Client 边界尽量清晰。
 
 ## 2. 主要页面
@@ -22,12 +23,16 @@
   - 空间选择页
 - `/settings`
   - 系统参数维护页
+- `/settings/libraries`
+  - super admin 全局资料库列表与创建入口
+- `/settings/libraries/[libraryId]`
+  - super admin 全局资料库详情、上传、目录整理与任务管理
 - `/workspaces/[workspaceId]`
   - 空间内问答工作台
 - `/workspaces/[workspaceId]/settings`
-  - 当前空间设置
+  - 当前空间设置与全局资料库订阅管理
 - `/workspaces/[workspaceId]/knowledge-base`
-  - 当前空间资料库
+  - 当前空间资料库；根层同时挂出已订阅全局资料库的只读视图
 - `/workspaces/[workspaceId]/documents/[documentId]`
   - 单文档阅读页
 - `/workspaces/[workspaceId]/reports/[reportId]`
@@ -38,7 +43,17 @@
 ## 3. 主要 API
 
 - `/api/account/password`
+- `/api/account/display-name`
 - `/api/system-settings`
+- `/api/knowledge-libraries`
+  - super admin 全局资料库列表与创建
+- `/api/knowledge-libraries/[libraryId]`
+  - super admin 全局资料库详情与更新
+- `/api/knowledge-libraries/[libraryId]/uploads/presign`
+- `/api/knowledge-libraries/[libraryId]/documents`
+- `/api/knowledge-libraries/[libraryId]/directories`
+- `/api/knowledge-libraries/[libraryId]/knowledge-base/operations`
+- `/api/knowledge-libraries/[libraryId]/knowledge-base/download`
 - `/api/workspaces`
 - `/api/workspaces/[workspaceId]`
 - `/api/workspaces/[workspaceId]/uploads/presign`
@@ -51,6 +66,8 @@
 - `/api/workspaces/[workspaceId]/knowledge-base/operations`
 - `/api/workspaces/[workspaceId]/knowledge-base/download`
 - `/api/workspaces/[workspaceId]/tree`
+- `/api/workspaces/[workspaceId]/library-subscriptions`
+  - 管理当前 workspace 对全局资料库的订阅、暂停和移除
 - `/api/workspaces/[workspaceId]/conversations`
 - `/api/conversations/[conversationId]/messages`
   - 写入 user message
@@ -62,6 +79,9 @@
   - `answer_done` / `run_failed` 终态事件会附带最终 assistant 内容、structured state 和当前 message citations，供前端直接切到本地最终态，并同步更新当前会话的本地 meta
 - `/api/conversations/[conversationId]/retry`
   - 当最新 assistant 消息为 failed 时，复用上一条 user prompt 重新入队当前回答
+- `/api/conversations/[conversationId]/stop`
+  - 将当前 streaming assistant 收口为 completed，并保留已生成片段
+  - `agent-runtime` 会在发现该 assistant 不再处于 streaming 时协作停止后续持久化
 - `/api/conversations/[conversationId]/share`
   - 查询当前会话分享状态
   - 创建或撤销公开分享链接
@@ -75,6 +95,7 @@
 Server Components：
 
 - 工作空间列表首屏
+- 全局资料库管理页首屏
 - 工作空间主舞台首屏
 - 文档详情首屏
 - 报告详情首屏
@@ -86,6 +107,8 @@ Client Components：
 - ConversationSession
 - ConversationTimeline
 - ConversationSharePopover
+- WorkspaceLibrarySubscriptions
+- KnowledgeBaseExplorer
 - PDF Viewer
 - 临时附件上传与轮询状态
 - 上传表单

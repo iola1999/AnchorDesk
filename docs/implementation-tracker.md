@@ -1,13 +1,13 @@
 # 实施跟踪
 
-版本：v0.8
+版本：v0.9
 日期：2026-03-30
 
 > 本文件是项目的执行跟踪文档。
 >
 > - 当前阶段进度、活跃待办和下一步顺序，以本文件为准。
-> - 产品目标以 [anchordesk-prd.md](./anchordesk-prd.md) 为准。
-> - 架构与实现约束以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 为准。
+> - 产品目标以 [anchor-desk-prd.md](./anchor-desk-prd.md) 为准。
+> - 架构与实现约束以 [anchor-desk-technical-design-nodejs.md](./anchor-desk-technical-design-nodejs.md) 为准。
 
 ## 1. 当前阶段
 
@@ -51,6 +51,7 @@
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
+- streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming，`agent-runtime` 会在发现该消息不再处于 streaming 时协作停止后续落库。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
@@ -75,6 +76,7 @@
 
 ## 2. 最近完成
 
+- `working tree` Add stop action in composer and let `/api/conversations/[conversationId]/stop` finalize the active streaming assistant with its partial content
 - `working tree` Add super-admin global library CRUD pages, upload/file-manager APIs, and shared library explorer support
 - `working tree` Add workspace global-library subscription API and settings UI with active / paused / revoked states
 - `working tree` Mount subscribed global libraries read-only in workspace knowledge-base root and reuse explorer across private/global scopes
@@ -133,8 +135,9 @@
 
 - 主会话链路完成态收口
   - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
-  - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话与最新失败回答重试都已支持直接本地恢复 streaming
+  - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话、主动停止生成与最新失败回答重试都已支持直接本地恢复或收口 streaming
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
+  - 当前“停止生成”仍是基于数据库状态的协作式 stop，不是 provider-side cancel；更完整的中断语义仍待后续收口
   - 仍需继续收口除重试外更完整的失败恢复体验，以及更少依赖服务端返回的收尾断层
   - grounded final answer、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
@@ -178,6 +181,7 @@
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
 - 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
+- 当前“停止生成”通过把 streaming assistant 收口为 completed 并让 `agent-runtime` 停止后续持久化实现，不是 provider-side cancel。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。
 - parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

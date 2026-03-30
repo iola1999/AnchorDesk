@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_DB: knowledge_assistant
+      POSTGRES_DB: anchor_desk
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:

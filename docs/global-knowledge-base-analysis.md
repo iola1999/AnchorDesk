@@ -7,7 +7,7 @@
 >
 > - 本文记录“全局资料库”能力的长期方案分析、取舍和后续扩展边界。
 > - 当前仓库已采纳该长期方案，并在 2026-03-30 落地第一批实现；本文仍保留方案分析，用于解释为什么采用 library-first 模型。
-> - 当前实现约束仍以 [knowledge-assistant-technical-design-nodejs.md](./knowledge-assistant-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md) 为准。
+> - 当前实现约束仍以 [anchor-desk-technical-design-nodejs.md](./anchor-desk-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md) 为准。
 
 ## 1. 背景与结论
 

@@ -53,7 +53,7 @@ describe("getManagedServices", () => {
 describe("loadResolvedSystemEnvironment", () => {
   it("queries system settings without pre-seeding module defaults into the child env", async () => {
     const baseEnv = {
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/anchor_desk",
       PATH: "/usr/bin",
     };
 
@@ -72,7 +72,7 @@ describe("loadResolvedSystemEnvironment", () => {
     });
 
     expect(capturedEnv).toMatchObject({
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/anchor_desk",
       PATH: "/usr/bin",
     });
     expect(capturedEnv).not.toHaveProperty("ANTHROPIC_API_KEY");
@@ -86,7 +86,7 @@ describe("loadResolvedSystemEnvironment", () => {
   it("falls back to the default-composed runtime environment when DB resolution fails", async () => {
     const resolved = await loadResolvedSystemEnvironment(
       {
-        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/knowledge_assistant",
+        DATABASE_URL: "postgres://postgres:postgres@localhost:5432/anchor_desk",
       },
       {
         runCommandCapture: async () => {

@@ -1,7 +1,7 @@
 # 本地开发指引
 
-版本：v0.2
-日期：2026-03-29
+版本：v0.3
+日期：2026-03-30
 
 ## 1. 推荐做法
 
@@ -31,7 +31,7 @@
 环境变量最小化后，必须保留在进程外的启动根配置只有：
 
 ```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/knowledge_assistant
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/anchor_desk
 AUTH_SECRET=dev-auth-secret
 ```
 
@@ -82,10 +82,11 @@ pnpm dev
 
 1. 检查 `node_modules` 和 `.venv`
 2. 执行 SQL migrations + safe blocking app upgrades
-3. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
-4. 自动确保 S3 bucket 存在
-5. 在启动受管进程前重建 `/tmp/anchordesk-dev/logs`
-6. 拉起 `web` / `worker` / `agent-runtime` / `parser`
+3. 从数据库解析 `system_settings` 并生成受管进程运行时环境
+4. 校验 PostgreSQL / Redis / Qdrant / MinIO 连通性
+5. 自动确保 S3 bucket 存在
+6. 在启动受管进程前重建 `/tmp/anchordesk-dev/logs`
+7. 拉起 `web` / `worker` / `agent-runtime` / `parser`
 
 补充说明：
 
@@ -200,7 +201,7 @@ pnpm app:upgrade:check # 只检查是否还有 blocking pending upgrades
 说明：
 
 - `/settings` 只有 `SUPER_ADMIN_USERNAMES` 中声明的注册用户名可以访问。
-- `web` / `worker` / `agent-runtime` / `parser` 当前都在启动时读取系统参数。
+- `web` / `worker` / `agent-runtime` 会在启动时调用 `initRuntimeSettings()`；`parser` 进程本身仍直接读取 env，但在 `pnpm dev` 下会由启动脚本注入解析后的系统参数。
 - 保存数据库配置后不会热更新到已运行进程，所以需要重启开发进程。
 
 如果你想确认当前已有的注册用户名，可以在 PostgreSQL 中查看：
@@ -216,7 +217,7 @@ order by created_at desc;
 如果 PostgreSQL 是通过 Docker Compose 启动的，可以直接进入数据库：
 
 ```bash
-docker compose exec postgres psql -U postgres -d knowledge_assistant
+docker compose exec postgres psql -U postgres -d anchor_desk
 ```
 
 查看当前系统参数：
@@ -253,7 +254,7 @@ where setting_key = 's3_endpoint';
 
 修改后重启相关进程即可生效。
 
-## 6. 为什么不是“所有配置都进 DB”
+## 7. 为什么不是“所有配置都进 DB”
 
 当前只保留极少数启动根配置在进程外：
 

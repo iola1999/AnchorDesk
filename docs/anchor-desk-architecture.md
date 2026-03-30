@@ -1,10 +1,10 @@
 # AnchorDesk架构背景
 
-版本：v0.2  
-日期：2026-03-28
+版本：v0.3  
+日期：2026-03-30
 
 > 本文件保留为宏观背景与备选方案说明，不作为当前实施口径。
-> 当前实施请优先参考 [anchordesk-technical-design-nodejs.md](./anchordesk-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md)。
+> 当前实施请优先参考 [anchor-desk-technical-design-nodejs.md](./anchor-desk-technical-design-nodejs.md) 和 [implementation-tracker.md](./implementation-tracker.md)。
 
 ## 1. 总体方向
 
@@ -12,7 +12,8 @@
 
 - 上传与异步消化
 - 结构化解析
-- 工作空间隔离检索
+- 工作空间上下文驱动、library scope 授权的检索
+- workspace 私有资料库 + 可订阅全局资料库
 - 可点击、可回溯的引用
 - 受控的最终回答
 

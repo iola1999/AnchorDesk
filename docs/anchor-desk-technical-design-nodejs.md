@@ -1,6 +1,6 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.8
+版本：v0.9
 日期：2026-03-30
 
 > 文档角色说明：
@@ -114,6 +114,7 @@ flowchart LR
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。
 - citation 当前还会基于 `message_citations.source_scope + library_title_snapshot` 展示来源 badge，区分“工作空间资料”和“全局资料库 · <title>”。
+- streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 会把当前 streaming assistant 收口为 completed 并保留已生成片段，`agent-runtime` 随后会在发现该 assistant 已不再处于 streaming 时停止后续持久化。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 轮询会把过期回答收敛成 `run_failed`，避免前端无限等待。
 - assistant / tool 的失败态 message payload 已收口为共享 helper，消息发送、重试、过期收敛和 worker 失败路径复用同一套错误语义。
@@ -128,6 +129,7 @@ flowchart LR
 当前已知缺口：
 
 - 当前回答流式仍是“数据库轮询 + assistant draft 持久化”链路，不是 provider 直连 token transport。
+- 当前“停止生成”是基于数据库状态的协作式收口，不是 provider-side cancel；外部模型请求可能仍在后台跑完，只是不再继续写回当前消息。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
 - 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
