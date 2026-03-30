@@ -83,6 +83,25 @@ export function findStreamingAssistantMessageId(messages: ConversationChatMessag
   return null;
 }
 
+export function resolveConversationStreamingAssistantMessageId(input: {
+  assistantMessageId?: string | null;
+  assistantStatus?: MessageStatus | null;
+  messages: ConversationChatMessage[];
+}) {
+  const localStreamingAssistantMessageId = findStreamingAssistantMessageId(input.messages);
+  if (localStreamingAssistantMessageId) {
+    return localStreamingAssistantMessageId;
+  }
+
+  if (input.messages.length > 0) {
+    return null;
+  }
+
+  return input.assistantStatus === MESSAGE_STATUS.STREAMING
+    ? input.assistantMessageId ?? null
+    : null;
+}
+
 export function restartAssistantMessageForRetry(input: {
   assistantMessageId: string;
   citations: ConversationMessageCitation[];

@@ -3,9 +3,12 @@ import { describe, expect, test } from "vitest";
 import {
   LOG_LEVEL,
   buildLoggerOptions,
+  createServiceLogger,
   isProductionEnvironment,
   isTestEnvironment,
+  normalizePrettyTransportTarget,
   parseLogLevel,
+  resolvePrettyTransportTarget,
   resolveLogLevel,
   serializeErrorForLog,
   shouldPrettyPrintLogs,
@@ -52,21 +55,21 @@ describe("resolveLogLevel", () => {
 });
 
 describe("buildLoggerOptions", () => {
-  test("adds a pretty transport outside production", () => {
-    expect(
-      buildLoggerOptions({
-        service: "web",
-        env: { NODE_ENV: "development" },
-      }),
-    ).toMatchObject({
+  test("adds a resolved pretty transport outside production", () => {
+    const options = buildLoggerOptions({
+      service: "web",
+      env: { NODE_ENV: "development" },
+    });
+
+    expect(options).toMatchObject({
       level: LOG_LEVEL.DEBUG,
       base: {
         service: "web",
         environment: "development",
       },
-      transport: {
-        target: "pino-pretty",
-      },
+    });
+    expect(options.transport).toMatchObject({
+      target: resolvePrettyTransportTarget(),
     });
   });
 
@@ -82,6 +85,25 @@ describe("buildLoggerOptions", () => {
       environment: "production",
     });
     expect(options.transport).toBeUndefined();
+  });
+
+  test("skips pretty transport when the target is a bundler external marker", () => {
+    expect(
+      normalizePrettyTransportTarget(
+        "[externals]/pino-pretty [external] (pino-pretty, cjs, [project]/node_modules/pino-pretty)",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("createServiceLogger", () => {
+  test("can initialize a development logger with the pretty transport", () => {
+    expect(() =>
+      createServiceLogger({
+        service: "web",
+        env: { NODE_ENV: "development" },
+      }),
+    ).not.toThrow();
   });
 });
 

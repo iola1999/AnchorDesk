@@ -6,6 +6,7 @@ import {
   applyAssistantTerminalEvent,
   findLatestAssistantMessageId,
   findStreamingAssistantMessageId,
+  resolveConversationStreamingAssistantMessageId,
   restartAssistantMessageForRetry,
 } from "./conversation-session";
 
@@ -220,6 +221,36 @@ describe("findStreamingAssistantMessageId", () => {
         },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("resolveConversationStreamingAssistantMessageId", () => {
+  test("prefers the local chat state over stale streaming props", () => {
+    expect(
+      resolveConversationStreamingAssistantMessageId({
+        assistantMessageId: "assistant-1",
+        assistantStatus: MESSAGE_STATUS.STREAMING,
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "已完成",
+            structuredJson: null,
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  test("falls back to streaming props only before local messages are available", () => {
+    expect(
+      resolveConversationStreamingAssistantMessageId({
+        assistantMessageId: "assistant-1",
+        assistantStatus: MESSAGE_STATUS.STREAMING,
+        messages: [],
+      }),
+    ).toBe("assistant-1");
   });
 });
 

@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import pino, { type Logger, type LoggerOptions } from "pino";
 
 export const LOG_LEVEL = {
@@ -15,6 +16,9 @@ export const LOG_LEVEL_VALUES = Object.values(LOG_LEVEL);
 export type LogLevel = (typeof LOG_LEVEL_VALUES)[number];
 
 type RuntimeEnv = Record<string, string | undefined>;
+
+const loggingPackageRequire = createRequire(import.meta.url);
+const BUNDLED_EXTERNAL_TARGET_PREFIX = "[externals]/";
 
 function normalizeRuntimeValue(value: string | undefined) {
   const normalized = value?.trim();
@@ -42,6 +46,27 @@ export function isTestEnvironment(env: RuntimeEnv = process.env) {
 
 export function shouldPrettyPrintLogs(env: RuntimeEnv = process.env) {
   return !isProductionEnvironment(env) && !isTestEnvironment(env);
+}
+
+export function normalizePrettyTransportTarget(target: string | null | undefined) {
+  const normalized = normalizeRuntimeValue(target ?? undefined);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (
+    normalized.startsWith(BUNDLED_EXTERNAL_TARGET_PREFIX) ||
+    normalized.includes(" [external] ")
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
+export function resolvePrettyTransportTarget() {
+  return normalizePrettyTransportTarget(loggingPackageRequire.resolve("pino-pretty"));
 }
 
 export function resolveLogLevel(env: RuntimeEnv = process.env): LogLevel {
@@ -81,9 +106,13 @@ export function buildLoggerOptions(input: {
     },
   };
 
-  if (shouldPrettyPrintLogs(env)) {
+  const prettyTransportTarget = shouldPrettyPrintLogs(env)
+    ? resolvePrettyTransportTarget()
+    : null;
+
+  if (prettyTransportTarget) {
     options.transport = {
-      target: "pino-pretty",
+      target: prettyTransportTarget,
       options: {
         colorize: false,
         singleLine: true,

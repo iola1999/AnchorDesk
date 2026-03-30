@@ -33,7 +33,7 @@ import {
   type ConversationChatMessage,
   type ConversationMessageCitation,
   findLatestAssistantMessageId,
-  findStreamingAssistantMessageId,
+  resolveConversationStreamingAssistantMessageId,
   restartAssistantMessageForRetry,
 } from "@/lib/api/conversation-session";
 import { chipButtonStyles, cn, tabButtonStyles, ui } from "@/lib/ui";
@@ -66,17 +66,6 @@ function readAssistantMessageContent(
   assistantMessageId?: string | null,
 ) {
   return messages.find((message) => message.id === assistantMessageId)?.contentMarkdown ?? "";
-}
-
-function resolveStreamingAssistantMessageId(input: {
-  assistantMessageId?: string | null;
-  assistantStatus?: MessageStatus | null;
-  messages: ChatMessage[];
-}) {
-  return (
-    findStreamingAssistantMessageId(input.messages) ??
-    (input.assistantStatus === MESSAGE_STATUS.STREAMING ? input.assistantMessageId ?? null : null)
-  );
 }
 
 function ActionButton({
@@ -158,7 +147,7 @@ export function ConversationSession({
   );
   const [messageCitations, setMessageCitations] = useState(initialCitations ?? []);
   const [runtimeStatus, setRuntimeStatus] = useState<string | null>(() => {
-    const initialStreamingAssistantMessageId = resolveStreamingAssistantMessageId({
+    const initialStreamingAssistantMessageId = resolveConversationStreamingAssistantMessageId({
       assistantMessageId,
       assistantStatus,
       messages: initialMessages,
@@ -193,7 +182,7 @@ export function ConversationSession({
     setRegeneratingMessageId(null);
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
-    const nextStreamingAssistantMessageId = resolveStreamingAssistantMessageId({
+    const nextStreamingAssistantMessageId = resolveConversationStreamingAssistantMessageId({
       assistantMessageId,
       assistantStatus,
       messages: initialMessages,
@@ -218,7 +207,7 @@ export function ConversationSession({
 
   const activeAssistantMessageId =
     findLatestAssistantMessageId(chatMessages) ?? assistantMessageId ?? null;
-  const streamingAssistantMessageId = resolveStreamingAssistantMessageId({
+  const streamingAssistantMessageId = resolveConversationStreamingAssistantMessageId({
     assistantMessageId,
     assistantStatus,
     messages: chatMessages,
