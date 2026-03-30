@@ -53,6 +53,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: upgrade-runtime
     env_file:
       - .env.production
     depends_on:
@@ -64,7 +65,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade && pnpm --filter @anchordesk/storage exec node scripts/ensure-dev-bucket.mjs"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "node packages/db/scripts/run-upgrades.mjs --mode=apply-blocking && node packages/storage/scripts/ensure-dev-bucket.mjs",
+      ]
     restart: "no"
 
   # App services only need bootstrap env; all other runtime config is
@@ -73,6 +79,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: web-runtime
     environment:
       DATABASE_URL: ${DATABASE_URL}
       AUTH_SECRET: ${AUTH_SECRET}
@@ -86,7 +93,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade:check && node apps/web/server.js"]
+    command: ["sh", "-lc", "node packages/db/scripts/run-upgrades.mjs --mode=check && node apps/web/server.js"]
     ports:
       - "3000:3000"
     healthcheck:
@@ -99,6 +106,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: worker-runtime
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PORT: 4002
@@ -111,7 +119,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @anchordesk/worker start"]
+    command: ["sh", "-lc", "node packages/db/scripts/run-upgrades.mjs --mode=check && node --import tsx src/index.ts"]
     ports:
       - "4002:4002"
     healthcheck:
@@ -124,6 +132,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: agent-runtime-runtime
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PORT: 4001
@@ -136,7 +145,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    command: ["sh", "-lc", "pnpm app:upgrade:check && pnpm --filter @anchordesk/agent-runtime start"]
+    command:
+      [
+        "sh",
+        "-lc",
+        "node packages/db/scripts/run-upgrades.mjs --mode=check && node --import tsx src/index.ts",
+      ]
     ports:
       - "4001:4001"
     healthcheck:

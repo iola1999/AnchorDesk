@@ -18,7 +18,8 @@
     "@anchordesk/queue": "workspace:*",
     "bullmq": "^5.63.1",
     "drizzle-orm": "^0.45.2",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.3"

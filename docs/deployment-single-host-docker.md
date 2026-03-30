@@ -61,6 +61,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml build
 当前仓库就是通过 `docker compose build` 构建生产镜像。
 
 - Node 侧服务复用根目录 `Dockerfile`
+  - `web` 使用 `web-runtime` target，只复制 Next standalone 产物和升级检查所需最小文件
+  - `worker` / `agent-runtime` 使用各自的 deploy target，只携带该服务的生产依赖和启动前 upgrade check 所需文件
+  - `upgrade` 使用独立 target，只携带 `packages/db`、`packages/storage` 和根 `scripts/`
 - Parser 使用 `services/parser/Dockerfile`
 
 ## 4. 启动基础设施

@@ -182,6 +182,7 @@ bootstrap env-only（不进入 `system_settings`）：
 生产部署目标为单机 Docker 多容器。
 
 - Node 侧服务复用根目录 `Dockerfile`
+- `Dockerfile` 按服务拆分 target：`web` 使用 Next standalone 精简运行时，`worker` / `agent-runtime` 使用按服务 deploy 的生产依赖切片，`upgrade` 只携带升级所需最小文件集
 - Parser 使用独立 Python 镜像
 - Web 采用 Next.js `output: "standalone"`
 - `upgrade` 容器负责执行 SQL migrations + blocking app upgrades + bucket ensure
