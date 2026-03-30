@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildComposerSubmittedTurn,
   COMPOSER_ENTER_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
@@ -41,6 +42,79 @@ describe("resolveComposerSubmitStatus", () => {
     expect(resolveComposerSubmitStatus("queue offline")).toBe(
       "消息已保存，但 Agent 处理失败：queue offline",
     );
+  });
+});
+
+describe("buildComposerSubmittedTurn", () => {
+  it("returns the submitted turn when both saved messages are present", () => {
+    expect(
+      buildComposerSubmittedTurn({
+        conversationId: "conversation-1",
+        userMessage: {
+          id: "user-1",
+          role: "user",
+          status: "completed",
+          contentMarkdown: "第一条问题",
+          structuredJson: null,
+        },
+        assistantMessage: {
+          id: "assistant-1",
+          role: "assistant",
+          status: "streaming",
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-30T12:00:00.000Z",
+          },
+        },
+      }),
+    ).toEqual({
+      conversationId: "conversation-1",
+      userMessage: {
+        id: "user-1",
+        role: "user",
+        status: "completed",
+        contentMarkdown: "第一条问题",
+        structuredJson: null,
+      },
+      assistantMessage: {
+        id: "assistant-1",
+        role: "assistant",
+        status: "streaming",
+        contentMarkdown: "",
+        structuredJson: {
+          run_started_at: "2026-03-30T12:00:00.000Z",
+        },
+      },
+    });
+  });
+
+  it("returns null when any saved message is missing", () => {
+    expect(
+      buildComposerSubmittedTurn({
+        conversationId: "conversation-1",
+        userMessage: null,
+        assistantMessage: {
+          id: "assistant-1",
+          role: "assistant",
+          status: "streaming",
+          contentMarkdown: "",
+          structuredJson: null,
+        },
+      }),
+    ).toBeNull();
+    expect(
+      buildComposerSubmittedTurn({
+        conversationId: "conversation-1",
+        userMessage: {
+          id: "user-1",
+          role: "user",
+          status: "completed",
+          contentMarkdown: "第一条问题",
+          structuredJson: null,
+        },
+        assistantMessage: null,
+      }),
+    ).toBeNull();
   });
 });
 

@@ -13,6 +13,7 @@ import {
   type ComposerAttachmentStatus,
 } from "@/lib/api/conversation-attachments";
 import {
+  buildComposerSubmittedTurn,
   COMPOSER_ENTER_ACTION,
   resolveComposerEnterKeyAction,
   resolveComposerHeading,
@@ -39,6 +40,7 @@ export type ComposerAttachment = {
 
 export type ComposerSubmittedTurn = {
   assistantMessage: ConversationChatMessage;
+  attachments: ComposerAttachment[];
   conversationId: string;
   userMessage: ConversationChatMessage;
 };
@@ -524,16 +526,16 @@ export function Composer({
         | null;
       setContent("");
       setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
-      if (
-        conversationId &&
-        body?.userMessage &&
-        body?.assistantMessage &&
-        onSubmitted
-      ) {
+      const submittedTurn = buildComposerSubmittedTurn({
+        conversationId: targetConversationId,
+        userMessage: body?.userMessage ?? null,
+        assistantMessage: body?.assistantMessage ?? null,
+      });
+
+      if (submittedTurn && onSubmitted) {
         onSubmitted({
-          assistantMessage: body.assistantMessage,
-          conversationId: targetConversationId,
-          userMessage: body.userMessage,
+          ...submittedTurn,
+          attachments,
         });
       } else {
         startTransition(() => {

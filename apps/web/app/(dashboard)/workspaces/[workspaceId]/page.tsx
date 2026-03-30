@@ -15,14 +15,13 @@ import {
 } from "@anchordesk/db";
 
 import { auth } from "@/auth";
-import { Composer } from "@/components/chat/composer";
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
+import { WorkspaceEmptyConversationStage } from "@/components/chat/workspace-empty-conversation-stage";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
-import { ui } from "@/lib/ui";
 
 export default async function WorkspacePage({
   params,
@@ -207,27 +206,10 @@ export default async function WorkspacePage({
           }))}
         />
       ) : (
-        <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-6 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-2 min-[720px]:py-8">
-          <div className="grid w-full max-w-[860px] gap-6 text-center">
-            <div className="grid justify-items-center gap-3">
-              <p className={ui.eyebrow}>New Question</p>
-              <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-app-text md:text-[40px]">
-                {workspace.title}
-              </h1>
-            </div>
-
-            <Composer
-              workspaceId={workspaceId}
-              variant="stage"
-              rows={2}
-              placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
-              submitLabel="开始对话"
-              className="mx-auto w-full max-w-[920px] text-left"
-              textareaClassName="bg-transparent"
-              initialAttachments={[]}
-            />
-          </div>
-        </div>
+        <WorkspaceEmptyConversationStage
+          workspaceId={workspaceId}
+          workspaceTitle={workspace.title}
+        />
       )}
     </WorkspaceShell>
   );

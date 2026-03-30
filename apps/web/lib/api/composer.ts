@@ -1,3 +1,5 @@
+import type { ConversationChatMessage } from "@/lib/api/conversation-session";
+
 export function resolveComposerHeading(input: {
   title?: string | null;
   description?: string | null;
@@ -68,4 +70,20 @@ export function resolveComposerSubmitStatus(agentError?: string | null) {
   }
 
   return `消息已保存，但 Agent 处理失败：${agentError}`;
+}
+
+export function buildComposerSubmittedTurn(input: {
+  assistantMessage?: ConversationChatMessage | null;
+  conversationId: string;
+  userMessage?: ConversationChatMessage | null;
+}) {
+  if (!input.userMessage || !input.assistantMessage) {
+    return null;
+  }
+
+  return {
+    conversationId: input.conversationId,
+    userMessage: input.userMessage,
+    assistantMessage: input.assistantMessage,
+  };
 }
