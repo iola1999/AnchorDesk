@@ -1,6 +1,6 @@
 # 本地开发指引
 
-版本：v0.4
+版本：v0.5
 日期：2026-03-31
 
 ## 1. 推荐做法
@@ -108,6 +108,7 @@ pnpm dev
   - PID 文件在 `/tmp/anchordesk-dev/pids`
 - 应用层日志当前统一走结构化 stdout/stderr；开发期由 `pnpm dev` 捕获到上述日志目录，生产环境默认输出 JSON 到容器 stdout。
 - 可选通过 `LOG_LEVEL` 调整日志级别；默认行为是开发期 `debug`、生产期 `info`、测试期 `silent`。
+- 如果当前问题集中在 grounded answer、citation、sources panel 或引用落库链路，优先查看 [anchor-desk-citation-debugging.md](./anchor-desk-citation-debugging.md)。
 - 这样可以避免在仓库内留下 `.dev` 状态目录，减少对前端 dev watch 的干扰。
 
 当前对象存储 key 布局：

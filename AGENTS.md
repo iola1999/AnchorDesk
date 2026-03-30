@@ -18,11 +18,13 @@
    当任务涉及 schema、索引、检索、引用链路时必读。
 6. [docs/anchor-desk-mcp-tools.md](./docs/anchor-desk-mcp-tools.md)
    当任务涉及 agent tool、返回结构、错误模型时必读。
-7. [docs/anchor-desk-nextjs-app-structure.md](./docs/anchor-desk-nextjs-app-structure.md)
+7. [docs/anchor-desk-citation-debugging.md](./docs/anchor-desk-citation-debugging.md)
+   当任务涉及 grounded answer、citation、source panel、阅读器引用跳转或相关排障时必读。
+8. [docs/anchor-desk-nextjs-app-structure.md](./docs/anchor-desk-nextjs-app-structure.md)
    当任务涉及页面、Route Handler、SSE、组件边界时必读。
-8. [docs/anchor-desk-architecture.md](./docs/anchor-desk-architecture.md)
+9. [docs/anchor-desk-architecture.md](./docs/anchor-desk-architecture.md)
    这是通用背景文档；需要宏观权衡时参考，不要优先于 Node.js 技术设计文档。
-9. [.impeccable.md](./.impeccable.md)
+10. [.impeccable.md](./.impeccable.md)
    **任何涉及前端 UI、视觉风格、组件样式的任务必读。** 它定义了色彩系统、圆角/阴影/间距的具体数值、弹出面板/按钮/菜单项等组件的精确规格，以及文案规则。改 UI 前必须先读这个文件，确保新代码与已有视觉体系一致。
 
 原则：
