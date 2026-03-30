@@ -1,13 +1,31 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const webAppRoot = fileURLToPath(new URL("./apps/web", import.meta.url));
+
 export default defineConfig({
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "react",
+    },
+  },
+  resolve: {
+    alias: [
+      {
+        find: /^@\//,
+        replacement: `${webAppRoot}/`,
+      },
+    ],
+  },
   test: {
     environment: "node",
+    setupFiles: ["./vitest.setup.ts"],
     include: [
-      "apps/**/src/**/*.test.ts",
-      "apps/**/lib/**/*.test.ts",
-      "packages/**/src/**/*.test.ts",
-      "scripts/**/*.test.ts",
+      "apps/**/src/**/*.test.{ts,tsx}",
+      "apps/**/lib/**/*.test.{ts,tsx}",
+      "packages/**/src/**/*.test.{ts,tsx}",
+      "scripts/**/*.test.{ts,tsx}",
     ],
     exclude: ["**/node_modules/**", "**/.next/**", "**/dist/**"],
     restoreMocks: true,
