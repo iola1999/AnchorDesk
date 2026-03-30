@@ -162,6 +162,8 @@ describe("buildAssistantProcessTimelineEntries", () => {
           ],
         },
         error: null,
+        progressText: null,
+        elapsedSeconds: null,
       },
       {
         id: "tool-use-2",
@@ -176,6 +178,8 @@ describe("buildAssistantProcessTimelineEntries", () => {
         },
         output: null,
         error: "timeout",
+        progressText: null,
+        elapsedSeconds: null,
       },
     ]);
   });
@@ -206,6 +210,8 @@ describe("buildAssistantProcessTimelineEntries", () => {
         input: null,
         output: null,
         error: "queue offline",
+        progressText: null,
+        elapsedSeconds: null,
       },
     ]);
   });

@@ -22,8 +22,11 @@ const mocks = vi.hoisted(() => {
   };
 
   const inserts: Array<{ table: unknown; values: unknown }> = [];
+  const insertReturningQueue: Array<Array<Record<string, unknown>>> = [];
   const updates: Array<{ table: unknown; values: unknown }> = [];
   const runAgentResponse = vi.fn();
+  const renderGroundedAnswer = vi.fn();
+  const appendConversationStreamEvent = vi.fn(async () => "1743490000000-0");
   const loggerChild = {
     debug: vi.fn(),
     info: vi.fn(),
@@ -57,9 +60,11 @@ const mocks = vi.hoisted(() => {
       })),
     })),
     insert: vi.fn((table: unknown) => ({
-      values: vi.fn(async (values: unknown) => {
+      values: vi.fn((values: unknown) => {
         inserts.push({ table, values });
-        return [];
+        return {
+          returning: vi.fn(async () => insertReturningQueue.shift() ?? []),
+        };
       }),
     })),
     update: vi.fn((table: unknown) => ({
@@ -74,9 +79,12 @@ const mocks = vi.hoisted(() => {
 
   return {
     db,
+    appendConversationStreamEvent,
     inserts,
+    insertReturningQueue,
     loggerChild,
     queryResults,
+    renderGroundedAnswer,
     runAgentResponse,
     tables,
     updates,
@@ -100,6 +108,14 @@ vi.mock("./run-agent-response", () => ({
   runAgentResponse: mocks.runAgentResponse,
 }));
 
+vi.mock("./final-answerer", () => ({
+  renderGroundedAnswer: mocks.renderGroundedAnswer,
+}));
+
+vi.mock("@anchordesk/queue", () => ({
+  appendConversationStreamEvent: mocks.appendConversationStreamEvent,
+}));
+
 vi.mock("./logger", () => ({
   logger: {
     child: () => mocks.loggerChild,
@@ -118,8 +134,12 @@ beforeEach(() => {
   mocks.queryResults.messageSequence = [];
   mocks.queryResults.citationAnchors = [];
   mocks.inserts.length = 0;
+  mocks.insertReturningQueue.length = 0;
   mocks.updates.length = 0;
   mocks.runAgentResponse.mockReset();
+  mocks.renderGroundedAnswer.mockReset();
+  mocks.appendConversationStreamEvent.mockReset();
+  mocks.appendConversationStreamEvent.mockImplementation(async () => "1743490000000-0");
   mocks.loggerChild.debug.mockReset();
   mocks.loggerChild.info.mockReset();
   mocks.loggerChild.warn.mockReset();
@@ -176,6 +196,45 @@ describe("processConversationResponseJob", () => {
         structuredJson: null,
       },
     ];
+    mocks.insertReturningQueue.push(
+      [
+        {
+          id: "tool-message-started",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "开始调用工具：search_workspace_knowledge",
+          createdAt: new Date("2026-03-31T10:00:00.000Z"),
+          structuredJson: {
+            timeline_event: "tool_started",
+            tool_name: "search_workspace_knowledge",
+            tool_input: {
+              query: "总结一下",
+            },
+            tool_response: null,
+            tool_use_id: "tool-1",
+          },
+        },
+      ],
+      [
+        {
+          id: "tool-message-finished",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "工具执行完成：search_workspace_knowledge",
+          createdAt: new Date("2026-03-31T10:00:01.000Z"),
+          structuredJson: {
+            timeline_event: "tool_finished",
+            tool_name: "search_workspace_knowledge",
+            tool_input: {
+              query: "总结一下",
+            },
+            tool_response: {
+              ok: true,
+            },
+            tool_use_id: "tool-1",
+          },
+        },
+      ],
+      [],
+    );
     mocks.runAgentResponse.mockImplementation(async (_input, hooks) => {
       await hooks?.onToolStarted?.({
         toolInput: { query: "总结一下" },
@@ -199,6 +258,24 @@ describe("processConversationResponseJob", () => {
         sessionId: "session-1",
         text: "最终回答",
         workdir: "/tmp/agent-session",
+      };
+    });
+    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
+      await hooks?.onTextDelta?.({
+        textDelta: "最终回答",
+        fullText: "最终回答",
+        displayText: "最终回答",
+      });
+      return {
+        groundedAnswer: {
+          answer_markdown: "最终回答",
+          citations: [],
+        },
+        meta: {
+          mode: "model_streamed",
+          parsedCitationReferenceCount: 0,
+          parsedOutputPresent: true,
+        },
       };
     });
 
@@ -258,6 +335,12 @@ describe("processConversationResponseJob", () => {
           table: mocks.tables.messages,
           values: expect.objectContaining({
             contentMarkdown: "第一段",
+          }),
+        }),
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: expect.objectContaining({
+            contentMarkdown: "最终回答",
           }),
         }),
         expect.objectContaining({
@@ -348,6 +431,20 @@ describe("processConversationResponseJob", () => {
         structuredJson: null,
       },
     ];
+    mocks.insertReturningQueue.push([
+      {
+        id: "citation-1",
+        anchorId: null,
+        documentId: null,
+        label: "最新局势说明 · example.com",
+        quoteText: "该文称最新变化出现在上周末。",
+        sourceScope: "web",
+        libraryTitle: null,
+        sourceUrl: "https://example.com/post",
+        sourceDomain: "example.com",
+        sourceTitle: "最新局势说明",
+      },
+    ]);
     mocks.runAgentResponse.mockResolvedValue({
       citations: [
         {
@@ -366,6 +463,29 @@ describe("processConversationResponseJob", () => {
       sessionId: "session-1",
       text: "最终回答",
       workdir: "/tmp/agent-session",
+    });
+    mocks.renderGroundedAnswer.mockResolvedValue({
+      groundedAnswer: {
+        answer_markdown: "最终回答",
+        citations: [
+          {
+            evidence_id: "web:https://example.com/post",
+            kind: "web_page",
+            url: "https://example.com/post",
+            domain: "example.com",
+            title: "最新局势说明",
+            label: "最新局势说明 · example.com",
+            quote_text: "该文称最新变化出现在上周末。",
+            source_scope: "web",
+            library_title: null,
+          },
+        ],
+      },
+      meta: {
+        mode: "model_streamed",
+        parsedCitationReferenceCount: 0,
+        parsedOutputPresent: true,
+      },
     });
 
     await processConversationResponseJob({

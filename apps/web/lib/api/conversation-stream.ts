@@ -1,4 +1,5 @@
 import {
+  readStreamingAssistantRunState,
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
@@ -40,6 +41,14 @@ type ToolMessageEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.TOOL_MESSAGE }
 >;
+type AssistantStatusEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS }
+>;
+type ToolProgressEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.TOOL_PROGRESS }
+>;
 type AnswerDeltaEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA }
@@ -65,9 +74,54 @@ export function buildToolMessageStreamEvent(message: ToolMessageRow): ToolMessag
   };
 }
 
+export function buildAssistantStatusStreamEvent(input: {
+  conversationId: string;
+  assistantMessage: AssistantMessageRow;
+}): AssistantStatusEvent | null {
+  const runState = readStreamingAssistantRunState(input.assistantMessage.structuredJson ?? null);
+
+  if (!runState || (!runState.status_text && !runState.phase)) {
+    return null;
+  }
+
+  return {
+    type: CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS,
+    conversation_id: input.conversationId,
+    message_id: input.assistantMessage.id,
+    status: input.assistantMessage.status,
+    phase: runState.phase ?? null,
+    status_text: runState.status_text ?? null,
+    tool_name: runState.active_tool_name ?? null,
+    tool_use_id: runState.active_tool_use_id ?? null,
+    task_id: runState.active_task_id ?? null,
+  };
+}
+
+export function buildToolProgressStreamEvent(input: {
+  conversationId: string;
+  assistantMessageId: string;
+  toolUseId: string;
+  toolName: string;
+  elapsedSeconds: number;
+  statusText?: string | null;
+  taskId?: string | null;
+}): ToolProgressEvent {
+  return {
+    type: CONVERSATION_STREAM_EVENT.TOOL_PROGRESS,
+    conversation_id: input.conversationId,
+    message_id: input.assistantMessageId,
+    tool_use_id: input.toolUseId,
+    tool_name: input.toolName,
+    elapsed_seconds: input.elapsedSeconds,
+    status_text: input.statusText ?? null,
+    task_id: input.taskId ?? null,
+  };
+}
+
 export function buildAssistantDeltaStreamEvent(input: {
   conversationId: string;
   assistantMessage: AssistantMessageRow;
+  deltaText?: string | null;
 }): AnswerDeltaEvent {
   return {
     type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
@@ -75,6 +129,7 @@ export function buildAssistantDeltaStreamEvent(input: {
     message_id: input.assistantMessage.id,
     status: input.assistantMessage.status,
     content_markdown: input.assistantMessage.contentMarkdown,
+    delta_text: input.deltaText ?? null,
   };
 }
 

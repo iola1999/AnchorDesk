@@ -1,8 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
-  MESSAGE_ROLE,
-  groundedAnswerSchema,
+  buildDisplayInlineCitationToken,
+  replaceRawInlineCitationTokens,
   type GroundedAnswer,
   type GroundedEvidence,
 } from "@anchordesk/contracts";
@@ -17,8 +16,8 @@ import {
 } from "./grounded-answer";
 
 export type FinalAnswerRenderMode =
-  | "model_parsed"
-  | "model_error_fallback"
+  | "model_streamed"
+  | "model_stream_error_fallback"
   | "missing_api_key_fallback";
 
 export type RenderGroundedAnswerResult = {
@@ -48,9 +47,8 @@ const FINAL_ANSWER_SYSTEM_PROMPT = [
   "Use only the validated evidence supplied by the application.",
   "Never invent anchor IDs, directory paths, quotes, or citations.",
   "If a citation is not supported by the provided evidence list, omit it.",
-  "Return JSON matching the requested schema.",
-  "In answer_markdown, place inline citation markers using the exact citation_token values supplied in the evidence registry.",
-  "In citations, include only evidence_id values that were actually used.",
+  "Return Markdown only. Do not wrap the answer in JSON.",
+  "Place inline citation markers using the exact citation_token values supplied in the evidence registry.",
   "Keep the answer concise, professional, and explicit about uncertainty.",
 ].join("\n");
 
@@ -68,7 +66,13 @@ export async function renderGroundedAnswer(input: {
   prompt: string;
   draftText: string;
   evidence: GroundedEvidence[];
-}): Promise<RenderGroundedAnswerResult> {
+}, hooks: {
+  onTextDelta?: (input: {
+    textDelta: string;
+    fullText: string;
+    displayText: string;
+  }) => Promise<void> | void;
+} = {}): Promise<RenderGroundedAnswerResult> {
   if (!getConfiguredAnthropicApiKey()) {
     return {
       groundedAnswer: normalizeGroundedAnswer({
@@ -83,34 +87,47 @@ export async function renderGroundedAnswer(input: {
     };
   }
 
+  let streamedText = "";
+
   try {
-    const message = await getAnthropicClient().messages.parse({
+    const stream = await getAnthropicClient().messages.create({
       model: getModel(),
       max_tokens: getMaxTokens(),
       system: FINAL_ANSWER_SYSTEM_PROMPT,
       messages: [
         {
-          role: MESSAGE_ROLE.USER,
+          role: "user",
           content: buildGroundedAnswerPrompt(input),
         },
       ],
-      output_config: {
-        format: zodOutputFormat(groundedAnswerSchema),
-      },
+      stream: true,
     });
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        streamedText += event.delta.text;
+        await hooks.onTextDelta?.({
+          textDelta: event.delta.text,
+          fullText: streamedText,
+          displayText: replaceRawInlineCitationTokens(streamedText, (slot) =>
+            buildDisplayInlineCitationToken(slot),
+          ),
+        });
+      }
+    }
 
     return {
       groundedAnswer: normalizeGroundedAnswer({
-        parsed: message.parsed_output,
-        draftText: input.draftText,
+        draftText: streamedText || input.draftText,
         evidence: input.evidence,
       }),
       meta: {
-        mode: "model_parsed",
-        parsedCitationReferenceCount: Array.isArray(message.parsed_output?.citations)
-          ? message.parsed_output.citations.length
-          : 0,
-        parsedOutputPresent: Boolean(message.parsed_output),
+        mode: "model_streamed",
+        parsedCitationReferenceCount: 0,
+        parsedOutputPresent: streamedText.trim().length > 0,
       },
     };
   } catch {
@@ -120,7 +137,7 @@ export async function renderGroundedAnswer(input: {
         evidence: input.evidence,
       }),
       meta: {
-        mode: "model_error_fallback",
+        mode: "model_stream_error_fallback",
         parsedCitationReferenceCount: 0,
         parsedOutputPresent: false,
       },

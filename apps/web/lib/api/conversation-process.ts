@@ -34,6 +34,8 @@ export type AssistantProcessTimelineEntry = {
   input: unknown | null;
   output: unknown | null;
   error: string | null;
+  progressText: string | null;
+  elapsedSeconds: number | null;
 };
 
 function normalizeCreatedAt(value: Date | string) {
@@ -144,6 +146,12 @@ export function buildAssistantProcessTimelineEntries(
     const input = readStructuredValue(structuredJson, "tool_input");
     const output = readStructuredValue(structuredJson, "tool_response");
     const error = readStructuredString(structuredJson, "error");
+    const progressText = readStructuredString(structuredJson, "progress_text");
+    const elapsedSecondsRaw = readStructuredValue(structuredJson, "elapsed_seconds");
+    const elapsedSeconds =
+      typeof elapsedSecondsRaw === "number" && Number.isFinite(elapsedSecondsRaw)
+        ? elapsedSecondsRaw
+        : null;
 
     const pushStatusEvent = () => {
       entries.push({
@@ -157,6 +165,8 @@ export function buildAssistantProcessTimelineEntries(
         input: null,
         output: null,
         error,
+        progressText: null,
+        elapsedSeconds: null,
       });
     };
 
@@ -188,6 +198,8 @@ export function buildAssistantProcessTimelineEntries(
         input,
         output: null,
         error,
+        progressText,
+        elapsedSeconds,
       });
 
       if (toolUseId) {
@@ -215,6 +227,8 @@ export function buildAssistantProcessTimelineEntries(
           timelineEvent === TIMELINE_EVENT.TOOL_FINISHED ? output ?? existingEntry.output : null,
         error:
           timelineEvent === TIMELINE_EVENT.TOOL_FAILED ? error ?? existingEntry.error : null,
+        progressText: progressText ?? existingEntry.progressText,
+        elapsedSeconds: elapsedSeconds ?? existingEntry.elapsedSeconds,
       };
       continue;
     }
@@ -230,6 +244,8 @@ export function buildAssistantProcessTimelineEntries(
       input,
       output: timelineEvent === TIMELINE_EVENT.TOOL_FINISHED ? output : null,
       error: timelineEvent === TIMELINE_EVENT.TOOL_FAILED ? error : null,
+      progressText,
+      elapsedSeconds,
     });
 
     if (toolUseId) {

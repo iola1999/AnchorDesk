@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  ASSISTANT_STREAM_PHASE,
   ASSISTANT_TOOL,
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
@@ -8,7 +9,9 @@ import {
 } from "@anchordesk/contracts";
 
 import {
+  buildAssistantStatusStreamEvent,
   buildAssistantDeltaStreamEvent,
+  buildToolProgressStreamEvent,
   buildAssistantTerminalStreamEvent,
   buildToolMessageStreamEvent,
   readAssistantRunError,
@@ -85,6 +88,7 @@ describe("buildAssistantDeltaStreamEvent", () => {
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "正在生成回答",
         },
+        deltaText: "回答",
       }),
     ).toEqual({
       type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
@@ -92,6 +96,67 @@ describe("buildAssistantDeltaStreamEvent", () => {
       message_id: "assistant-1",
       status: MESSAGE_STATUS.STREAMING,
       content_markdown: "正在生成回答",
+      delta_text: "回答",
+    });
+  });
+});
+
+describe("buildAssistantStatusStreamEvent", () => {
+  test("reads live runtime metadata from the streaming assistant state", () => {
+    expect(
+      buildAssistantStatusStreamEvent({
+        conversationId: "conversation-1",
+        assistantMessage: {
+          id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-31T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-31T10:00:01.000Z",
+            run_lease_expires_at: "2026-03-31T10:00:46.000Z",
+            phase: ASSISTANT_STREAM_PHASE.TOOL,
+            status_text: "正在调用工具 fetch_source...",
+            active_tool_name: "fetch_source",
+            active_tool_use_id: "tool-1",
+            active_task_id: "task-1",
+          },
+        },
+      }),
+    ).toEqual({
+      type: CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS,
+      conversation_id: "conversation-1",
+      message_id: "assistant-1",
+      status: MESSAGE_STATUS.STREAMING,
+      phase: ASSISTANT_STREAM_PHASE.TOOL,
+      status_text: "正在调用工具 fetch_source...",
+      tool_name: "fetch_source",
+      tool_use_id: "tool-1",
+      task_id: "task-1",
+    });
+  });
+});
+
+describe("buildToolProgressStreamEvent", () => {
+  test("serializes live tool progress updates", () => {
+    expect(
+      buildToolProgressStreamEvent({
+        conversationId: "conversation-1",
+        assistantMessageId: "assistant-1",
+        toolUseId: "tool-1",
+        toolName: "fetch_source",
+        elapsedSeconds: 4,
+        statusText: "正在抓取网页内容...",
+        taskId: "task-1",
+      }),
+    ).toEqual({
+      type: CONVERSATION_STREAM_EVENT.TOOL_PROGRESS,
+      conversation_id: "conversation-1",
+      message_id: "assistant-1",
+      tool_use_id: "tool-1",
+      tool_name: "fetch_source",
+      elapsed_seconds: 4,
+      status_text: "正在抓取网页内容...",
+      task_id: "task-1",
     });
   });
 });

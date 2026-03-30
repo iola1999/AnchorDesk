@@ -68,13 +68,14 @@ function describeEntryHeadline(input: {
   status: MessageStatus;
   error: string | null;
   contentMarkdown: string;
+  progressText: string | null;
 }) {
   if (!input.toolName) {
     return input.contentMarkdown;
   }
 
   if (input.status === MESSAGE_STATUS.STREAMING) {
-    return "正在等待工具结果";
+    return input.progressText ?? "正在等待工具结果";
   }
 
   if (input.status === MESSAGE_STATUS.FAILED) {
@@ -185,6 +186,7 @@ function TimelineEntrySummary({
             status: entry.status,
             error: entry.error,
             contentMarkdown: entry.contentMarkdown,
+            progressText: entry.progressText,
           })}
         </p>
         {expandable ? (

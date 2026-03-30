@@ -25,7 +25,7 @@
 - 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
 - 资料模型已升级为“workspace 私有库 + 可订阅全局库”；对话检索、文档授权和引用跳转开始统一围绕 library scope 组织。
 - 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
-- 主会话链路的 assistant draft streaming 已打通，Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
+- 主会话链路现已切到“Claude Agent SDK partial events + Redis Streams live transport + grounded final answer streaming”模型；Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 当前阶段不再接受本地 mock 会话回退；链路联调应直接暴露真实 provider 缺失或调用失败，并保持错误语义稳定。
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
@@ -46,8 +46,8 @@
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
-- `/api/conversations/[conversationId]/stream` 现在会持续推送数据库里的 `tool` 消息、assistant draft `answer_delta` 和完成/失败事件；前端会在当前会话里实时更新 assistant 气泡。
-- 当前回答流式是“数据库轮询 + assistant draft 持久化”链路；它已经满足 P0 的流式呈现，但仍不是 provider 直连 token transport。
+- `/api/conversations/[conversationId]/stream` 现在会先发数据库快照，再转发 Redis Streams live event；前端会实时接收 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
+- assistant 正文现已具备 token 级流式：agent draft 和 grounded final answer 都会持续推送增量，而不是每次模型调用完成后整段落库再显示。
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
 - 当前会话页头的标题、最后更新时间、消息数与附件数也会在本地提交后立即更新，不再只能等服务端重新返回当前页。
@@ -86,6 +86,7 @@
 ## 2. 最近完成
 
 - `working tree` Add stop action in composer and let `/api/conversations/[conversationId]/stop` finalize the active streaming assistant with its partial content
+- `working tree` Replace DB-polled assistant draft streaming with Redis Streams live transport, assistant status/tool progress events, and grounded final answer token streaming
 - `working tree` Add super-admin global library CRUD pages, upload/file-manager APIs, and shared library explorer support
 - `working tree` Add workspace global-library subscription API and settings UI with active / paused / revoked states
 - `working tree` Mount subscribed global libraries read-only in workspace knowledge-base root and reuse explorer across private/global scopes
@@ -147,7 +148,7 @@
 ## 3. 活跃待办
 
 - 主会话链路完成态收口
-  - 当前已能展示 tool start / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
+  - 当前已能展示 `assistant_status`、tool start / progress / completed / failed、assistant `answer_delta`、`answer_done`、`run_failed`
   - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话、主动停止生成与最新失败回答重试都已支持直接本地恢复或收口 streaming
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
   - 当前“停止生成”仍是基于数据库状态的协作式 stop，不是 provider-side cancel；更完整的中断语义仍待后续收口
@@ -155,7 +156,7 @@
   - grounded final answer、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
-  - tool response 必须保持稳定契约，能持续驱动 tool timeline、assistant draft、completed/failed 和前端展示
+  - tool response 必须保持稳定契约，能持续驱动 tool timeline、tool progress、assistant streaming、completed/failed 和前端展示
   - 不得伪造 citation、置信度覆盖度或外部来源
 - grounded answer 证据 dossier 与更清晰的证据展示
   - 当前已补齐引用摘录展示，仍需继续补 evidence dossier、引用说明和完成态切换体验
@@ -192,7 +193,7 @@
 - OCR 当前明确保持 disabled，不应在未确认商业 provider 前继续扩展本地实现。
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
-- 当前 SSE 已支持数据库轮询驱动的 assistant draft `answer_delta`；不要把它误判为 provider 直连 token stream。
+- 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。
 - 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
 - 当前“停止生成”通过把 streaming assistant 收口为 completed 并让 `agent-runtime` 停止后续持久化实现，不是 provider-side cancel。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。

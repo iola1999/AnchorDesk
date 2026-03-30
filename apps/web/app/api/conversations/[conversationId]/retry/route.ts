@@ -1,6 +1,6 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import {
-  buildStreamingAssistantRunState,
+  buildInitialStreamingAssistantRunState,
   buildAssistantFailedMessageState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
@@ -79,7 +79,7 @@ export async function POST(
     .set({
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
-      structuredJson: buildStreamingAssistantRunState(),
+      structuredJson: buildInitialStreamingAssistantRunState(),
     })
     .where(eq(messages.id, regeneratableTurn.assistantMessageId));
 

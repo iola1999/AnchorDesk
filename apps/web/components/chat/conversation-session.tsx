@@ -7,6 +7,7 @@ import {
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  readStreamingAssistantRunState,
   type ConversationStreamEvent,
   type MessageStatus,
 } from "@anchordesk/contracts";
@@ -96,6 +97,64 @@ function readAssistantMessageContent(
   assistantMessageId?: string | null,
 ) {
   return messages.find((message) => message.id === assistantMessageId)?.contentMarkdown ?? "";
+}
+
+function readAssistantRuntimeStatus(
+  messages: ChatMessage[],
+  assistantMessageId?: string | null,
+) {
+  const assistantMessage = messages.find((message) => message.id === assistantMessageId);
+  const runState = readStreamingAssistantRunState(assistantMessage?.structuredJson ?? null);
+  return runState?.status_text ?? null;
+}
+
+function applyToolProgressToTimeline(
+  timelineByAssistant: TimelineMessagesByAssistant,
+  assistantMessageId: string,
+  input: {
+    toolUseId: string;
+    toolName: string;
+    elapsedSeconds: number;
+    statusText?: string | null;
+    taskId?: string | null;
+  },
+) {
+  const currentTimeline = timelineByAssistant[assistantMessageId] ?? [];
+  let changed = false;
+
+  const nextTimeline = currentTimeline.map((message) => {
+    const toolUseId =
+      typeof message.structuredJson?.tool_use_id === "string"
+        ? message.structuredJson.tool_use_id
+        : null;
+
+    if (toolUseId !== input.toolUseId || message.status !== MESSAGE_STATUS.STREAMING) {
+      return message;
+    }
+
+    changed = true;
+
+    return {
+      ...message,
+      structuredJson: {
+        ...(message.structuredJson ?? {}),
+        tool_name: input.toolName,
+        tool_use_id: input.toolUseId,
+        task_id: input.taskId ?? null,
+        progress_text: input.statusText ?? `正在调用工具 ${input.toolName}...`,
+        elapsed_seconds: input.elapsedSeconds,
+      },
+    };
+  });
+
+  if (!changed) {
+    return timelineByAssistant;
+  }
+
+  return {
+    ...timelineByAssistant,
+    [assistantMessageId]: nextTimeline,
+  };
 }
 
 function ActionButton({
@@ -211,9 +270,10 @@ export function ConversationSession({
     });
 
     return initialStreamingAssistantMessageId
-      ? describeAssistantStreamingStatus(
-          readAssistantMessageContent(initialMessages, initialStreamingAssistantMessageId),
-        )
+      ? readAssistantRuntimeStatus(initialMessages, initialStreamingAssistantMessageId) ??
+          describeAssistantStreamingStatus(
+            readAssistantMessageContent(initialMessages, initialStreamingAssistantMessageId),
+          )
       : null;
   });
   const [messageViewModes, setMessageViewModes] = useState<Record<string, MessageViewMode>>({});
@@ -248,9 +308,10 @@ export function ConversationSession({
     });
     setRuntimeStatus(
       nextStreamingAssistantMessageId
-        ? describeAssistantStreamingStatus(
-            readAssistantMessageContent(initialMessages, nextStreamingAssistantMessageId),
-          )
+        ? readAssistantRuntimeStatus(initialMessages, nextStreamingAssistantMessageId) ??
+            describeAssistantStreamingStatus(
+              readAssistantMessageContent(initialMessages, nextStreamingAssistantMessageId),
+            )
         : null,
     );
     seenTimelineIdsRef.current = flattenTimelineMessageIds(
@@ -325,15 +386,70 @@ export function ConversationSession({
       setTimelineMessagesByAssistant(nextTimelineMessagesByAssistant);
     };
 
+    const handleAssistantStatus = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as ConversationStreamEvent;
+      if (payload.type !== CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS) {
+        return;
+      }
+
+      setRuntimeStatus(payload.status_text ?? null);
+      setChatMessages((current) => {
+        const nextMessages = current.map((message) =>
+          message.id === payload.message_id
+            ? {
+                ...message,
+                structuredJson: {
+                  ...(message.structuredJson ?? {}),
+                  phase: payload.phase ?? null,
+                  status_text: payload.status_text ?? null,
+                  active_tool_name: payload.tool_name ?? null,
+                  active_tool_use_id: payload.tool_use_id ?? null,
+                  active_task_id: payload.task_id ?? null,
+                },
+              }
+            : message,
+        );
+        chatMessagesRef.current = nextMessages;
+        return nextMessages;
+      });
+    };
+
+    const handleToolProgress = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as ConversationStreamEvent;
+      if (payload.type !== CONVERSATION_STREAM_EVENT.TOOL_PROGRESS) {
+        return;
+      }
+
+      const nextTimelineMessagesByAssistant = applyToolProgressToTimeline(
+        timelineMessagesByAssistantRef.current,
+        streamingAssistantMessageId,
+        {
+          toolUseId: payload.tool_use_id,
+          toolName: payload.tool_name,
+          elapsedSeconds: payload.elapsed_seconds,
+          statusText: payload.status_text ?? null,
+          taskId: payload.task_id ?? null,
+        },
+      );
+
+      if (nextTimelineMessagesByAssistant !== timelineMessagesByAssistantRef.current) {
+        timelineMessagesByAssistantRef.current = nextTimelineMessagesByAssistant;
+        setTimelineMessagesByAssistant(nextTimelineMessagesByAssistant);
+      }
+
+      if (payload.status_text) {
+        setRuntimeStatus(payload.status_text);
+      }
+    };
+
     const handleAnswerDelta = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ConversationStreamEvent;
       if (payload.type !== CONVERSATION_STREAM_EVENT.ANSWER_DELTA) {
         return;
       }
 
-      setRuntimeStatus(describeAssistantStreamingStatus(payload.content_markdown));
-      setChatMessages((current) =>
-        current.map((message) =>
+      setChatMessages((current) => {
+        const nextMessages = current.map((message) =>
           message.id === payload.message_id
             ? {
                 ...message,
@@ -341,8 +457,14 @@ export function ConversationSession({
                 contentMarkdown: payload.content_markdown,
               }
             : message,
-        ),
-      );
+        );
+        chatMessagesRef.current = nextMessages;
+        setRuntimeStatus(
+          readAssistantRuntimeStatus(nextMessages, payload.message_id) ??
+            describeAssistantStreamingStatus(payload.content_markdown),
+        );
+        return nextMessages;
+      });
     };
 
     const handleAnswerDone = (event: MessageEvent<string>) => {
@@ -406,8 +528,16 @@ export function ConversationSession({
     };
 
     source.addEventListener(
+      CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS,
+      handleAssistantStatus as EventListener,
+    );
+    source.addEventListener(
       CONVERSATION_STREAM_EVENT.TOOL_MESSAGE,
       handleToolMessage as EventListener,
+    );
+    source.addEventListener(
+      CONVERSATION_STREAM_EVENT.TOOL_PROGRESS,
+      handleToolProgress as EventListener,
     );
     source.addEventListener(
       CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
@@ -422,11 +552,18 @@ export function ConversationSession({
       handleRunFailed as EventListener,
     );
     source.onopen = () => {
-      const currentContent = readAssistantMessageContent(
-        chatMessagesRef.current,
-        streamingAssistantMessageId,
+      setRuntimeStatus(
+        readAssistantRuntimeStatus(
+          chatMessagesRef.current,
+          streamingAssistantMessageId,
+        ) ??
+          describeAssistantStreamingStatus(
+            readAssistantMessageContent(
+              chatMessagesRef.current,
+              streamingAssistantMessageId,
+            ),
+          ),
       );
-      setRuntimeStatus(describeAssistantStreamingStatus(currentContent));
     };
     source.onerror = () => {
       setRuntimeStatus("连接暂时中断，正在重连...");

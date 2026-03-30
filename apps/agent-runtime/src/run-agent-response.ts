@@ -19,8 +19,10 @@ import {
   buildClaudeAgentEnv,
   getConfiguredAnthropicApiKey,
 } from "@anchordesk/db";
-import { extractAssistantTextDelta } from "./assistant-stream";
-import { renderGroundedAnswer } from "./final-answerer";
+import {
+  extractAssistantRuntimeSignal,
+  extractAssistantTextDelta,
+} from "./assistant-stream";
 import {
   buildClaudeAgentRuntimeLogContext,
   isClaudeAgentSdkDebugEnabled,
@@ -338,10 +340,24 @@ export type RunAgentResponseInput = {
 };
 
 export type RunAgentResponseHooks = {
+  onAssistantStatus?: (input: {
+    phase: "analyzing" | "tool" | "drafting" | "finalizing";
+    statusText: string;
+    toolName?: string | null;
+    toolUseId?: string | null;
+    taskId?: string | null;
+  }) => Promise<void> | void;
   onToolStarted?: (input: {
     toolName: string;
     toolInput: unknown;
     toolUseId: string;
+  }) => Promise<void> | void;
+  onToolProgress?: (input: {
+    toolName: string;
+    toolUseId: string;
+    elapsedSeconds: number;
+    statusText: string;
+    taskId?: string | null;
   }) => Promise<void> | void;
   onToolFinished?: (input: {
     toolName: string;
@@ -424,6 +440,7 @@ export async function runAgentResponse(
       prompt,
       options: {
         tools: [],
+        includePartialMessages: true,
         mcpServers: {
           [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
         },
@@ -545,9 +562,34 @@ export async function runAgentResponse(
         sessionId = message.session_id;
       }
 
+      const runtimeSignal = extractAssistantRuntimeSignal(message);
+      if (runtimeSignal?.kind === "assistant_status") {
+        await hooks.onAssistantStatus?.({
+          phase: runtimeSignal.phase,
+          statusText: runtimeSignal.statusText,
+          toolName: runtimeSignal.toolName ?? null,
+          toolUseId: runtimeSignal.toolUseId ?? null,
+          taskId: runtimeSignal.taskId ?? null,
+        });
+      }
+
+      if (runtimeSignal?.kind === "tool_progress") {
+        await hooks.onToolProgress?.({
+          toolName: runtimeSignal.toolName,
+          toolUseId: runtimeSignal.toolUseId,
+          elapsedSeconds: runtimeSignal.elapsedSeconds,
+          statusText: runtimeSignal.statusText,
+          taskId: runtimeSignal.taskId ?? null,
+        });
+      }
+
       const textDelta = extractAssistantTextDelta(message);
       if (textDelta) {
         streamedDraft += textDelta;
+        await hooks.onAssistantStatus?.({
+          phase: "drafting",
+          statusText: "助手正在生成回答草稿...",
+        });
         await hooks.onAssistantDelta?.({
           textDelta,
           fullText: streamedDraft,
@@ -592,49 +634,26 @@ export async function runAgentResponse(
     throw error;
   }
 
-  try {
-    const groundedAnswerResult = await renderGroundedAnswer({
-      prompt,
-      draftText:
-        finalResult || streamedDraft || "Agent completed without a final result payload.",
-      evidence: Array.from(citationMap.values()),
-    });
-    const groundedAnswer = groundedAnswerResult.groundedAnswer;
-    const inlineCitationMarkerCount = extractDisplayInlineCitationOrdinals(
-      groundedAnswer.answer_markdown,
-    ).length;
+  const draftText =
+    finalResult || streamedDraft || "Agent completed without a final result payload.";
+  const inlineCitationMarkerCount = extractDisplayInlineCitationOrdinals(draftText).length;
 
-    requestLogger.info(
-      {
-        sessionId,
-        finalAnswerRenderMode: groundedAnswerResult.meta.mode,
-        parsedOutputPresent: groundedAnswerResult.meta.parsedOutputPresent,
-        parsedCitationReferenceCount:
-          groundedAnswerResult.meta.parsedCitationReferenceCount,
-        citationCount: groundedAnswer.citations.length,
-        inlineCitationMarkerCount,
-        hasInlineCitationMarkers: inlineCitationMarkerCount > 0,
-        answerLength: groundedAnswer.answer_markdown.length,
-      },
-      "grounded answer rendered",
-    );
-
-    return {
-      ok: true as const,
-      text: groundedAnswer.answer_markdown,
+  requestLogger.info(
+    {
       sessionId,
-      workdir,
-      citations: groundedAnswer.citations,
-    };
-  } catch (error) {
-    requestLogger.error(
-      {
-        sessionId,
-        workspaceEvidenceCount: citationMap.size,
-        error: serializeErrorForLog(error),
-      },
-      "grounded answer render failed",
-    );
-    throw error;
-  }
+      citationCount: citationMap.size,
+      inlineCitationMarkerCount,
+      hasInlineCitationMarkers: inlineCitationMarkerCount > 0,
+      answerLength: draftText.length,
+    },
+    "agent draft collected before grounded answer render",
+  );
+
+  return {
+    ok: true as const,
+    text: draftText,
+    sessionId,
+    workdir,
+    citations: Array.from(citationMap.values()),
+  };
 }

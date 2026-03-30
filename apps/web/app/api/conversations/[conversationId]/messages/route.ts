@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import {
-  buildStreamingAssistantRunState,
+  buildInitialStreamingAssistantRunState,
   buildAssistantFailedMessageState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
@@ -125,7 +125,7 @@ export async function POST(
       role: MESSAGE_ROLE.ASSISTANT,
       status: MESSAGE_STATUS.STREAMING,
       contentMarkdown: "",
-      structuredJson: buildStreamingAssistantRunState(),
+      structuredJson: buildInitialStreamingAssistantRunState(),
     })
     .returning();
 

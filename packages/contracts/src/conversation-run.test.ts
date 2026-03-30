@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 
 import {
   STREAMING_ASSISTANT_LEASE_TIMEOUT_MS,
+  buildInitialStreamingAssistantRunState,
   buildStreamingAssistantRunState,
   isStreamingAssistantRunExpired,
   readStreamingAssistantRunState,
   refreshStreamingAssistantRunState,
+  updateStreamingAssistantRunState,
 } from "./conversation-run";
+import { ASSISTANT_STREAM_PHASE } from "./domain";
 
 describe("buildStreamingAssistantRunState", () => {
   test("builds a normalized lease window from the provided clock", () => {
@@ -18,6 +21,12 @@ describe("buildStreamingAssistantRunState", () => {
       run_lease_expires_at: new Date(
         now.getTime() + STREAMING_ASSISTANT_LEASE_TIMEOUT_MS,
       ).toISOString(),
+      phase: null,
+      status_text: null,
+      stream_event_id: null,
+      active_tool_name: null,
+      active_tool_use_id: null,
+      active_task_id: null,
     });
   });
 });
@@ -50,6 +59,69 @@ describe("refreshStreamingAssistantRunState", () => {
       run_started_at: "2026-03-30T10:00:00.000Z",
       run_last_heartbeat_at: "2026-03-30T10:00:20.000Z",
       run_lease_expires_at: "2026-03-30T10:01:05.000Z",
+      phase: null,
+      status_text: null,
+      stream_event_id: null,
+      active_tool_name: null,
+      active_tool_use_id: null,
+      active_task_id: null,
+    });
+  });
+});
+
+describe("updateStreamingAssistantRunState", () => {
+  test("preserves the lease window while merging live runtime metadata", () => {
+    expect(
+      updateStreamingAssistantRunState(
+        {
+          run_started_at: "2026-03-30T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-30T10:00:10.000Z",
+          run_lease_expires_at: "2026-03-30T10:00:55.000Z",
+          phase: ASSISTANT_STREAM_PHASE.TOOL,
+          status_text: "正在调用工具...",
+          stream_event_id: "1743328800000-0",
+          active_tool_name: "fetch_source",
+          active_tool_use_id: "tool-1",
+        },
+        {
+          now: new Date("2026-03-30T10:00:20.000Z"),
+          phase: ASSISTANT_STREAM_PHASE.FINALIZING,
+          statusText: "正在整理证据并生成最终答案...",
+          streamEventId: "1743328801000-0",
+          activeToolName: null,
+          activeToolUseId: null,
+        },
+      ),
+    ).toEqual({
+      run_started_at: "2026-03-30T10:00:00.000Z",
+      run_last_heartbeat_at: "2026-03-30T10:00:20.000Z",
+      run_lease_expires_at: "2026-03-30T10:01:05.000Z",
+      phase: ASSISTANT_STREAM_PHASE.FINALIZING,
+      status_text: "正在整理证据并生成最终答案...",
+      stream_event_id: "1743328801000-0",
+      active_tool_name: null,
+      active_tool_use_id: null,
+      active_task_id: null,
+    });
+  });
+});
+
+describe("buildInitialStreamingAssistantRunState", () => {
+  test("starts the streaming assistant in analyzing phase with visible status copy", () => {
+    expect(
+      buildInitialStreamingAssistantRunState({
+        now: new Date("2026-03-30T10:00:00.000Z"),
+      }),
+    ).toEqual({
+      run_started_at: "2026-03-30T10:00:00.000Z",
+      run_last_heartbeat_at: "2026-03-30T10:00:00.000Z",
+      run_lease_expires_at: "2026-03-30T10:00:45.000Z",
+      phase: ASSISTANT_STREAM_PHASE.ANALYZING,
+      status_text: "助手正在分析问题并准备回答...",
+      stream_event_id: null,
+      active_tool_name: null,
+      active_tool_use_id: null,
+      active_task_id: null,
     });
   });
 });

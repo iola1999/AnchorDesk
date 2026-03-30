@@ -19,6 +19,8 @@ const baseEntry: ConversationTimelineEntryView = {
   input: null,
   output: null,
   error: null,
+  progressText: null,
+  elapsedSeconds: null,
 };
 
 describe("canExpandConversationTimelineEntry", () => {

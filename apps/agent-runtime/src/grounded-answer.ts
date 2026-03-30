@@ -144,6 +144,7 @@ export function buildGroundedAnswerPrompt(input: {
       "- If one claim relies on multiple sources, place multiple markers consecutively.",
       "- Do not invent citation slots or evidence IDs.",
       `- Example: 俄方表示希望局势尽快和平解决${buildRawInlineCitationToken(1)}。`,
+      "- Return Markdown only, not JSON.",
     ].join("\n"),
     "",
     "Validated evidence JSON:",

@@ -1,6 +1,6 @@
 import {
   buildAssistantFailedMessageState,
-  buildStreamingAssistantRunState,
+  buildInitialStreamingAssistantRunState,
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
@@ -178,7 +178,7 @@ export function restartAssistantMessageForRetry(input: {
           ...message,
           status: MESSAGE_STATUS.STREAMING,
           contentMarkdown: "",
-          structuredJson: buildStreamingAssistantRunState({
+          structuredJson: buildInitialStreamingAssistantRunState({
             now: input.now,
           }),
         }
