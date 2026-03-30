@@ -240,6 +240,10 @@ export async function syncDocumentCitationMetadata(input: {
       : new Map();
 
   for (const citation of citations) {
+    if (citation.pageNo === null) {
+      continue;
+    }
+
     await db
       .update(messageCitations)
       .set({

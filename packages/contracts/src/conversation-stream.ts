@@ -10,12 +10,15 @@ import {
 
 const conversationStreamCitationSchema = z.object({
   id: z.string().uuid(),
-  anchor_id: z.string().uuid(),
-  document_id: z.string().uuid(),
+  anchor_id: z.string().uuid().nullable().optional(),
+  document_id: z.string().uuid().nullable().optional(),
   label: z.string().min(1),
   quote_text: z.string(),
   source_scope: z.enum(KNOWLEDGE_SOURCE_SCOPE_VALUES).nullable().optional(),
   library_title: z.string().nullable().optional(),
+  source_url: z.string().url().nullable().optional(),
+  source_domain: z.string().nullable().optional(),
+  source_title: z.string().nullable().optional(),
 });
 
 export const conversationStreamEventSchema = z.discriminatedUnion("type", [

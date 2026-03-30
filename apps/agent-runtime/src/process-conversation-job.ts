@@ -3,12 +3,14 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   buildAssistantFailedMessageState,
   buildRunFailedToolMessageState,
+  GROUNDED_EVIDENCE_KIND,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   STREAMING_ASSISTANT_HEARTBEAT_INTERVAL_MS,
   TOOL_TIMELINE_STATE,
   normalizeConversationFailureMessage,
   refreshStreamingAssistantRunState,
+  type GroundedEvidence,
   type ToolTimelineState,
 } from "@anchordesk/contracts";
 import {
@@ -91,51 +93,62 @@ async function updateStreamingAssistantRunState(input: {
 async function persistMessageCitations(input: {
   assistantMessageId: string;
   workspaceId: string;
-  citations: Array<{
-    anchor_id: string;
-    label: string;
-    quote_text: string;
-  }>;
+  citations: GroundedEvidence[];
 }) {
-  const scope = await resolveWorkspaceLibraryScope(input.workspaceId, db);
-  const citationMap = new Map(input.citations.map((citation) => [citation.anchor_id, citation]));
-  const requestedAnchorIds = Array.from(citationMap.keys());
+  const documentCitations = input.citations.filter(
+    (
+      citation,
+    ): citation is Extract<GroundedEvidence, { kind: "document_anchor" }> =>
+      citation.kind === GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+  );
+  const webCitations = input.citations.filter(
+    (citation): citation is Extract<GroundedEvidence, { kind: "web_page" }> =>
+      citation.kind === GROUNDED_EVIDENCE_KIND.WEB_PAGE,
+  );
+  const nextRows: Array<typeof messageCitations.$inferInsert> = [];
 
-  const anchorRows =
-    requestedAnchorIds.length > 0 && scope.accessibleLibraryIds.length > 0
-      ? await db
-          .select({
-            anchorId: citationAnchors.id,
-            libraryId: citationAnchors.libraryId,
-            documentId: citationAnchors.documentId,
-            documentVersionId: citationAnchors.documentVersionId,
-            documentPath: citationAnchors.documentPath,
-            anchorLabel: citationAnchors.anchorLabel,
-            pageNo: citationAnchors.pageNo,
-            blockId: citationAnchors.blockId,
-            quoteText: citationAnchors.anchorText,
-            libraryTitle: knowledgeLibraries.title,
-            libraryType: knowledgeLibraries.libraryType,
-          })
-          .from(citationAnchors)
-          .innerJoin(knowledgeLibraries, eq(knowledgeLibraries.id, citationAnchors.libraryId))
-          .where(
-            and(
-              inArray(citationAnchors.libraryId, scope.accessibleLibraryIds),
-              inArray(citationAnchors.id, requestedAnchorIds),
-            ),
-          )
-      : [];
+  if (documentCitations.length > 0) {
+    const scope = await resolveWorkspaceLibraryScope(input.workspaceId, db);
+    const citationMap = new Map(
+      documentCitations.map((citation) => [citation.anchor_id, citation] as const),
+    );
+    const requestedAnchorIds = Array.from(citationMap.keys());
 
-  if (anchorRows.length === 0) {
-    return;
-  }
+    const anchorRows =
+      requestedAnchorIds.length > 0 && scope.accessibleLibraryIds.length > 0
+        ? await db
+            .select({
+              anchorId: citationAnchors.id,
+              libraryId: citationAnchors.libraryId,
+              documentId: citationAnchors.documentId,
+              documentVersionId: citationAnchors.documentVersionId,
+              documentPath: citationAnchors.documentPath,
+              anchorLabel: citationAnchors.anchorLabel,
+              pageNo: citationAnchors.pageNo,
+              blockId: citationAnchors.blockId,
+              quoteText: citationAnchors.anchorText,
+              libraryTitle: knowledgeLibraries.title,
+              libraryType: knowledgeLibraries.libraryType,
+            })
+            .from(citationAnchors)
+            .innerJoin(knowledgeLibraries, eq(knowledgeLibraries.id, citationAnchors.libraryId))
+            .where(
+              and(
+                inArray(citationAnchors.libraryId, scope.accessibleLibraryIds),
+                inArray(citationAnchors.id, requestedAnchorIds),
+              ),
+            )
+        : [];
 
-  await db.insert(messageCitations).values(
-    anchorRows.map((anchor, index) => {
-      const runtimeCitation = citationMap.get(anchor.anchorId);
+    const anchorRowsById = new Map(anchorRows.map((anchor) => [anchor.anchorId, anchor] as const));
 
-      return {
+    for (const citation of documentCitations) {
+      const anchor = anchorRowsById.get(citation.anchor_id);
+      if (!anchor) {
+        continue;
+      }
+
+      nextRows.push({
         messageId: input.assistantMessageId,
         anchorId: anchor.anchorId,
         libraryId: anchor.libraryId,
@@ -146,14 +159,47 @@ async function persistMessageCitations(input: {
         blockId: anchor.blockId,
         sourceScope: getKnowledgeSourceScope(anchor.libraryType),
         libraryTitleSnapshot: anchor.libraryTitle,
-        quoteText: runtimeCitation?.quote_text || anchor.quoteText,
+        sourceUrl: null,
+        sourceDomain: null,
+        sourceTitle: null,
+        quoteText: citation.quote_text || anchor.quoteText,
         label:
-          runtimeCitation?.label ||
+          citation.label ||
           anchor.anchorLabel ||
           [anchor.documentPath, `第${anchor.pageNo}页`].filter(Boolean).join(" · "),
-        ordinal: index,
-      };
-    }),
+      });
+    }
+  }
+
+  for (const citation of webCitations) {
+    nextRows.push({
+      messageId: input.assistantMessageId,
+      anchorId: null,
+      libraryId: null,
+      documentId: null,
+      documentVersionId: null,
+      documentPath: null,
+      pageNo: null,
+      blockId: null,
+      sourceScope: citation.source_scope ?? null,
+      libraryTitleSnapshot: citation.library_title ?? null,
+      sourceUrl: citation.url,
+      sourceDomain: citation.domain,
+      sourceTitle: citation.title,
+      quoteText: citation.quote_text,
+      label: citation.label,
+    });
+  }
+
+  if (nextRows.length === 0) {
+    return;
+  }
+
+  await db.insert(messageCitations).values(
+    nextRows.map((row, index) => ({
+      ...row,
+      ordinal: index,
+    })),
   );
 }
 

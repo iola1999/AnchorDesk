@@ -35,25 +35,21 @@ export function normalizeGroundedAnswer(input: {
   draftText: string;
   evidence: GroundedEvidence[];
 }): GroundedAnswer {
-  const evidenceByAnchorId = new Map(
-    input.evidence.map((item) => [item.anchor_id, item] as const),
+  const evidenceById = new Map(
+    input.evidence.map((item) => [item.evidence_id, item] as const),
   );
   const parsed = groundedAnswerSchema.safeParse(input.parsed);
   const parsedData = parsed.success ? parsed.data : null;
 
   const citations =
     parsedData?.citations
-      .map((citation) => evidenceByAnchorId.get(citation.anchor_id))
+      .map((citation) => evidenceById.get(citation.evidence_id))
       .filter((citation): citation is GroundedEvidence => Boolean(citation))
       .filter(
         (citation, index, items) =>
-          items.findIndex((item) => item.anchor_id === citation.anchor_id) === index,
+          items.findIndex((item) => item.evidence_id === citation.evidence_id) === index,
       )
-      .map((citation) => ({
-        anchor_id: citation.anchor_id,
-        label: citation.label,
-        quote_text: citation.quote_text,
-      })) ?? [];
+      .map((citation) => citation) ?? [];
 
   const answerMarkdown = uniqueStrings([
     parsedData?.answer_markdown ?? "",

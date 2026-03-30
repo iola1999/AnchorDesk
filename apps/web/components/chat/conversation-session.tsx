@@ -145,6 +145,44 @@ function CitationSourceBadge({
   );
 }
 
+function CitationCardContent({
+  citation,
+  index,
+}: {
+  citation: MessageCitation;
+  index: number;
+}) {
+  return (
+    <>
+      <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
+        资料 {index + 1}
+      </span>
+      <CitationSourceBadge citation={citation} />
+      <span
+        className={cn(
+          textSelectionStyles.content,
+          "text-[13px] leading-5 text-app-text",
+        )}
+      >
+        {citation.label}
+      </span>
+      {citation.sourceUrl ? (
+        <span className="truncate text-[11px] text-app-accent">{citation.sourceUrl}</span>
+      ) : null}
+      {citation.quoteText.trim() ? (
+        <span
+          className={cn(
+            textSelectionStyles.content,
+            "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
+          )}
+        >
+          {citation.quoteText}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 export function ConversationSession({
   conversationId,
   workspaceId,
@@ -632,40 +670,39 @@ export function ConversationSession({
 
                   {selectedView === "sources" ? (
                     <div className={conversationDensityClassNames.sourcesList}>
-                      {citations.map((citation, index) => (
-                        sourceLinksEnabled &&
-                        workspaceId &&
-                        citation.documentId &&
-                        citation.anchorId ? (
-                          <Link
-                            key={citation.id}
-                            href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
-                            className={conversationDensityClassNames.sourceCard}
-                          >
-                            <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                              资料 {index + 1}
-                            </span>
-                            <CitationSourceBadge citation={citation} />
-                            <span
-                              className={cn(
-                                textSelectionStyles.content,
-                                "text-[13px] leading-5 text-app-text",
-                              )}
+                      {citations.map((citation, index) => {
+                        if (
+                          sourceLinksEnabled &&
+                          workspaceId &&
+                          citation.documentId &&
+                          citation.anchorId
+                        ) {
+                          return (
+                            <Link
+                              key={citation.id}
+                              href={`/workspaces/${workspaceId}/documents/${citation.documentId}?anchorId=${citation.anchorId}`}
+                              className={conversationDensityClassNames.sourceCard}
                             >
-                              {citation.label}
-                            </span>
-                            {citation.quoteText.trim() ? (
-                              <span
-                                className={cn(
-                                  textSelectionStyles.content,
-                                  "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
-                                )}
-                              >
-                                {citation.quoteText}
-                              </span>
-                            ) : null}
-                          </Link>
-                        ) : (
+                              <CitationCardContent citation={citation} index={index} />
+                            </Link>
+                          );
+                        }
+
+                        if (sourceLinksEnabled && citation.sourceUrl) {
+                          return (
+                            <a
+                              key={citation.id}
+                              href={citation.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={conversationDensityClassNames.sourceCard}
+                            >
+                              <CitationCardContent citation={citation} index={index} />
+                            </a>
+                          );
+                        }
+
+                        return (
                           <div
                             key={citation.id}
                             aria-disabled="true"
@@ -675,31 +712,10 @@ export function ConversationSession({
                               "cursor-default hover:border-app-border/55 hover:bg-white/72",
                             )}
                           >
-                            <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                              资料 {index + 1}
-                            </span>
-                            <CitationSourceBadge citation={citation} />
-                            <span
-                              className={cn(
-                                textSelectionStyles.content,
-                                "text-[13px] leading-5 text-app-text",
-                              )}
-                            >
-                              {citation.label}
-                            </span>
-                            {citation.quoteText.trim() ? (
-                              <span
-                                className={cn(
-                                  textSelectionStyles.content,
-                                  "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
-                                )}
-                              >
-                                {citation.quoteText}
-                              </span>
-                            ) : null}
+                            <CitationCardContent citation={citation} index={index} />
                           </div>
-                        )
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="grid gap-3">

@@ -279,7 +279,11 @@ bootstrap env-only（不进入 `system_settings`）：
 - 私有资料库始终参与默认检索；全局资料库只有在订阅为 `active` 且 `search_enabled = true` 时才进入默认召回，`paused` 订阅保留只读访问但不参与搜索。
 - 目录树只影响过滤和展示，不改变底层 chunk 平铺索引。
 - 对象存储不承担工作空间隔离或目录表达；这两层语义只存在于数据库 metadata。
-- 回答引用落到 `citation_anchors`；终态 citation 还会在 `message_citations` 中持久化 `library_id`、`source_scope` 和 `library_title_snapshot`，供前端 badge 与分享页复用。
+- 内部资料回答引用继续落到 `citation_anchors`；终态 citation 统一写入 `message_citations`。
+- `message_citations` 现在同时承接两类来源：
+  - 内部资料 / 会话附件：持久化 `anchor_id`、文档路径、页码、`library_id`、`source_scope`、`library_title_snapshot`
+  - 外部网页：持久化 `source_url`、`source_domain`、`source_title`、引用摘录与 `source_scope = web`
+- 前端“参考资料”面板与 SSE 终态事件统一只消费 `message_citations`，不再把“工具执行过联网搜索”误当作“已经形成可展示 citation”。
 
 ### 6.1 对象存储布局
 
@@ -321,6 +325,7 @@ bootstrap env-only（不进入 `system_settings`）：
 - 其他工具和主流程都以通用知识库助手为中心组织。
 - `search_workspace_knowledge` 的输入仍以 `workspace_id` 为上下文键，但内部语义已升级为“检索当前 workspace 可访问的资料范围”，默认覆盖私有库 + 已启用检索的全局订阅库。
 - `read_citation_anchor` 与文档/内容访问链路统一走 accessible library scope 授权；取消订阅后历史 citation 文本仍可显示，但内部跳转不再保证可打开。
+- `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 获取正文后，才能进入 grounded answer 的可引用证据集。
 - 当前阶段要求 `search_web_general`、`search_statutes`、报告生成相关工具按真实 provider 或明确失败语义运行；输出契约必须稳定，且不得伪造 citation。
 
 ## 8. 当前阶段关注点

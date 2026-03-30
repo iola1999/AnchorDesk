@@ -25,12 +25,15 @@ type AssistantMessageRow = {
 
 type AssistantCitationRow = {
   id: string;
-  anchorId: string;
-  documentId: string;
+  anchorId?: string | null;
+  documentId?: string | null;
   label: string;
   quoteText: string;
   sourceScope?: KnowledgeSourceScope | null;
   libraryTitle?: string | null;
+  sourceUrl?: string | null;
+  sourceDomain?: string | null;
+  sourceTitle?: string | null;
 };
 
 type ToolMessageEvent = Extract<
@@ -114,12 +117,15 @@ export function buildAssistantTerminalStreamEvent(input: {
       structured: input.assistantMessage.structuredJson ?? null,
       citations: (input.citations ?? []).map((citation) => ({
         id: citation.id,
-        anchor_id: citation.anchorId,
-        document_id: citation.documentId,
+        anchor_id: citation.anchorId ?? null,
+        document_id: citation.documentId ?? null,
         label: citation.label,
         quote_text: citation.quoteText,
         source_scope: citation.sourceScope ?? null,
         library_title: citation.libraryTitle ?? null,
+        source_url: citation.sourceUrl ?? null,
+        source_domain: citation.sourceDomain ?? null,
+        source_title: citation.sourceTitle ?? null,
       })),
     };
   }

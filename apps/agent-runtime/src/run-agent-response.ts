@@ -9,6 +9,8 @@ import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
   DEFAULT_AGENT_MAX_TURNS,
+  KNOWLEDGE_SOURCE_SCOPE,
+  GROUNDED_EVIDENCE_KIND,
   normalizeAssistantToolName,
   type GroundedEvidence,
 } from "@anchordesk/contracts";
@@ -55,6 +57,7 @@ function buildAgentSystemPrompt(input: { workspaceId: string; conversationId: st
     "If the workspace knowledge base does not support the answer, say so plainly.",
     "If the user mentions files uploaded in this chat or temporary attachments, search conversation attachments before the workspace knowledge base.",
     "Prefer workspace knowledge first. Use web tools when local evidence is insufficient.",
+    "When using web information in the final answer, fetch the source URL first and cite the fetched page instead of raw search snippets.",
     "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
   ].join("\n");
@@ -78,10 +81,46 @@ function parseToolPayload(value: unknown) {
   }
 }
 
-function collectWorkspaceEvidence(
+function buildDocumentEvidenceId(anchorId: string) {
+  return `anchor:${anchorId}`;
+}
+
+function buildWebEvidenceId(url: string) {
+  return `web:${url}`;
+}
+
+function truncateText(value: string, maxLength: number) {
+  const normalized = value.trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function buildWebEvidenceQuote(paragraphs: string[]) {
+  return truncateText(
+    paragraphs
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("\n"),
+    360,
+  );
+}
+
+function collectGroundedEvidence(
   toolName: string,
   payload: Record<string, unknown>,
   citationMap: Map<string, GroundedEvidence>,
+  webSearchResultsByUrl: Map<
+    string,
+    {
+      title: string;
+      domain: string;
+      snippet: string;
+    }
+  >,
 ) {
   const normalizedToolName = normalizeAssistantToolName(toolName);
 
@@ -113,8 +152,17 @@ function collectWorkspaceEvidence(
         (result as Record<string, unknown>).anchor_label ?? "",
       ).trim();
       const snippet = String((result as Record<string, unknown>).snippet ?? "").trim();
+      const sourceScope =
+        typeof (result as Record<string, unknown>).source_scope === "string"
+          ? String((result as Record<string, unknown>).source_scope)
+          : null;
+      const libraryTitle = String(
+        (result as Record<string, unknown>).library_title ?? "",
+      ).trim();
 
       citationMap.set(anchorId, {
+        evidence_id: buildDocumentEvidenceId(anchorId),
+        kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
         anchor_id: anchorId,
         document_path: documentPath,
         page_no: pageNo,
@@ -125,6 +173,12 @@ function collectWorkspaceEvidence(
             .join(" · ") ||
           anchorId,
         quote_text: snippet,
+        source_scope:
+          sourceScope === KNOWLEDGE_SOURCE_SCOPE.WORKSPACE_PRIVATE ||
+          sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY
+            ? sourceScope
+            : null,
+        library_title: libraryTitle || null,
       });
     }
   }
@@ -144,6 +198,8 @@ function collectWorkspaceEvidence(
         const text = String(anchor.text ?? "").trim();
 
         citationMap.set(anchorId, {
+          evidence_id: buildDocumentEvidenceId(anchorId),
+          kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
           anchor_id: anchorId,
           document_path: documentPath,
           page_no: pageNo,
@@ -152,9 +208,86 @@ function collectWorkspaceEvidence(
             [documentPath, pageNo ? `第${pageNo}页` : null].filter(Boolean).join(" · ") ||
             anchorId,
           quote_text: text,
+          source_scope: null,
+          library_title: null,
         });
       }
     }
+  }
+
+  if (normalizedToolName === ASSISTANT_TOOL.SEARCH_WEB_GENERAL) {
+    const results = Array.isArray(payload.results) ? payload.results : [];
+    for (const result of results) {
+      if (!result || typeof result !== "object") {
+        continue;
+      }
+
+      const url = String((result as Record<string, unknown>).url ?? "").trim();
+      if (!url) {
+        continue;
+      }
+
+      webSearchResultsByUrl.set(url, {
+        title: String((result as Record<string, unknown>).title ?? "").trim(),
+        domain: String((result as Record<string, unknown>).domain ?? "").trim(),
+        snippet: String((result as Record<string, unknown>).snippet ?? "").trim(),
+      });
+    }
+  }
+
+  if (normalizedToolName === ASSISTANT_TOOL.FETCH_SOURCE) {
+    const source =
+      payload.source && typeof payload.source === "object"
+        ? (payload.source as Record<string, unknown>)
+        : null;
+    if (!source) {
+      return;
+    }
+
+    const url = String(source.url ?? "").trim();
+    if (!url) {
+      return;
+    }
+
+    const title = String(source.title ?? "").trim();
+    const paragraphs = Array.isArray(source.paragraphs)
+      ? source.paragraphs
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+    const searchResult = webSearchResultsByUrl.get(url);
+    const domain = (() => {
+      if (searchResult?.domain) {
+        return searchResult.domain;
+      }
+
+      try {
+        return new URL(url).hostname;
+      } catch {
+        return "";
+      }
+    })();
+    const label = [title || searchResult?.title || url, domain || null]
+      .filter(Boolean)
+      .join(" · ");
+    const quoteText = buildWebEvidenceQuote(paragraphs) || searchResult?.snippet || label;
+
+    if (!label || !quoteText || !domain) {
+      return;
+    }
+
+    citationMap.set(buildWebEvidenceId(url), {
+      evidence_id: buildWebEvidenceId(url),
+      kind: GROUNDED_EVIDENCE_KIND.WEB_PAGE,
+      url,
+      domain,
+      title: title || searchResult?.title || domain,
+      label,
+      quote_text: quoteText,
+      source_scope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+      library_title: null,
+    });
   }
 }
 
@@ -228,6 +361,14 @@ export async function runAgentResponse(
   let streamedDraft = "";
   let sessionId = input.agentSessionId ?? null;
   const citationMap = new Map<string, GroundedEvidence>();
+  const webSearchResultsByUrl = new Map<
+    string,
+    {
+      title: string;
+      domain: string;
+      snippet: string;
+    }
+  >();
 
   requestLogger.info(
     {
@@ -303,7 +444,12 @@ export async function runAgentResponse(
                   const payload = parseToolPayload(toolCall.tool_response);
 
                   if (payload) {
-                    collectWorkspaceEvidence(toolCall.tool_name, payload, citationMap);
+                    collectGroundedEvidence(
+                      toolCall.tool_name,
+                      payload,
+                      citationMap,
+                      webSearchResultsByUrl,
+                    );
                   }
 
                   await hooks.onToolFinished?.({

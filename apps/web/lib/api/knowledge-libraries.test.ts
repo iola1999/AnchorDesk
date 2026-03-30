@@ -48,6 +48,18 @@ describe("buildKnowledgeSourceBadge", () => {
       tone: "global",
     });
   });
+
+  test("returns a web badge for external sources", () => {
+    expect(
+      buildKnowledgeSourceBadge({
+        sourceScope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+        libraryTitle: null,
+      }),
+    ).toEqual({
+      label: "网页来源",
+      tone: "global",
+    });
+  });
 });
 
 describe("filterMountedGlobalLibraries", () => {
@@ -107,6 +119,10 @@ describe("buildCitationSourceBadges", () => {
           libraryTitle: "平台规范库",
         },
         {
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+          libraryTitle: null,
+        },
+        {
           sourceScope: null,
           libraryTitle: null,
         },
@@ -123,6 +139,10 @@ describe("buildCitationSourceBadges", () => {
       expect.objectContaining({
         label: "工作空间资料",
         tone: "workspace",
+      }),
+      expect.objectContaining({
+        label: "网页来源",
+        tone: "global",
       }),
       expect.objectContaining({
         label: "全局资料库 · 平台规范库",

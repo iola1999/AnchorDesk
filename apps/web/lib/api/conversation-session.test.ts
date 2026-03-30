@@ -528,6 +528,9 @@ describe("applyAssistantTerminalEvent", () => {
         quoteText: "新版摘录",
         sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
         libraryTitle: "平台规范库",
+        sourceUrl: null,
+        sourceDomain: null,
+        sourceTitle: null,
       },
     ]);
   });
@@ -671,6 +674,9 @@ describe("applyAssistantTerminalEventToSessionSnapshot", () => {
               quote_text: "摘录一",
               source_scope: null,
               library_title: null,
+              source_url: null,
+              source_domain: null,
+              source_title: null,
             },
           ],
         },
@@ -695,6 +701,9 @@ describe("applyAssistantTerminalEventToSessionSnapshot", () => {
           quoteText: "摘录一",
           sourceScope: null,
           libraryTitle: null,
+          sourceUrl: null,
+          sourceDomain: null,
+          sourceTitle: null,
         },
       ],
       timelineMessagesByAssistant: {
@@ -708,6 +717,70 @@ describe("applyAssistantTerminalEventToSessionSnapshot", () => {
           },
         ],
       },
+    });
+  });
+
+  test("keeps external web citations in session snapshots", () => {
+    expect(
+      applyAssistantTerminalEvent({
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "",
+            structuredJson: null,
+          },
+        ],
+        citations: [],
+        event: {
+          type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
+          conversation_id: "conversation-1",
+          message_id: "assistant-1",
+          status: MESSAGE_STATUS.COMPLETED,
+          content_markdown: "最终回答",
+          structured: null,
+          citations: [
+            {
+              id: "citation-web-1",
+              anchor_id: null,
+              document_id: null,
+              label: "最新局势说明 · example.com",
+              quote_text: "该文称最新变化出现在上周末。",
+              source_scope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+              library_title: null,
+              source_url: "https://example.com/post",
+              source_domain: "example.com",
+              source_title: "最新局势说明",
+            },
+          ],
+        },
+      }),
+    ).toEqual({
+      messages: [
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "最终回答",
+          structuredJson: null,
+        },
+      ],
+      citations: [
+        {
+          id: "citation-web-1",
+          messageId: "assistant-1",
+          anchorId: null,
+          documentId: null,
+          label: "最新局势说明 · example.com",
+          quoteText: "该文称最新变化出现在上周末。",
+          sourceScope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+          libraryTitle: null,
+          sourceUrl: "https://example.com/post",
+          sourceDomain: "example.com",
+          sourceTitle: "最新局势说明",
+        },
+      ],
     });
   });
 });

@@ -47,6 +47,7 @@
 - 输入：`query`、`top_k`
 - provider：当前优先走配置好的公共 web search provider；未配置时返回明确失败
 - 输出：标题、URL、域名、摘要
+- 约束：它只提供候选链接与摘要，不直接形成最终 citation。
 
 ### 3.5 `fetch_source`
 
@@ -54,6 +55,7 @@
 - 输入：`url`
 - provider：当前通过 `markdown.new` 请求 `text/markdown`，再在本地归一化为段落数组
 - 输出：标题、抓取时间、内容类型、段落数组
+- 约束：网页引用必须基于 `fetch_source` 返回的正文段落进入 grounded evidence；不要直接把搜索结果摘要当成最终引用。
 
 ### 3.6 `create_report_outline`
 

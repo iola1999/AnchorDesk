@@ -330,6 +330,73 @@ describe("processConversationResponseJob", () => {
     );
   });
 
+  it("persists external web citations without requiring internal anchors", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: null,
+      },
+    ];
+    mocks.runAgentResponse.mockResolvedValue({
+      citations: [
+        {
+          evidence_id: "web:https://example.com/post",
+          kind: "web_page",
+          url: "https://example.com/post",
+          domain: "example.com",
+          title: "最新局势说明",
+          label: "最新局势说明 · example.com",
+          quote_text: "该文称最新变化出现在上周末。",
+          source_scope: "web",
+          library_title: null,
+        },
+      ],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "最终回答",
+      workdir: "/tmp/agent-session",
+    });
+
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
+
+    expect(mocks.inserts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messageCitations,
+          values: expect.arrayContaining([
+            expect.objectContaining({
+              messageId: "assistant-1",
+              anchorId: null,
+              documentId: null,
+              sourceScope: "web",
+              sourceUrl: "https://example.com/post",
+              sourceDomain: "example.com",
+              sourceTitle: "最新局势说明",
+              label: "最新局势说明 · example.com",
+              quoteText: "该文称最新变化出现在上周末。",
+            }),
+          ]),
+        }),
+      ]),
+    );
+  });
+
   it("stops persisting output when the assistant was already finalized elsewhere", async () => {
     mocks.queryResults.conversations = [
       {

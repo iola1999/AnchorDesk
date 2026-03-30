@@ -79,10 +79,12 @@ export type WorkspaceLibrarySubscriptionStatus = ValueOf<
 export const KNOWLEDGE_SOURCE_SCOPE = {
   WORKSPACE_PRIVATE: "workspace_private",
   GLOBAL_LIBRARY: "global_library",
+  WEB: "web",
 } as const;
 export const KNOWLEDGE_SOURCE_SCOPE_VALUES = [
   KNOWLEDGE_SOURCE_SCOPE.WORKSPACE_PRIVATE,
   KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+  KNOWLEDGE_SOURCE_SCOPE.WEB,
 ] as const;
 export type KnowledgeSourceScope = ValueOf<typeof KNOWLEDGE_SOURCE_SCOPE>;
 

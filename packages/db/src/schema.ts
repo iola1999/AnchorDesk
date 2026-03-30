@@ -536,23 +536,26 @@ export const messageCitations = pgTable(
     messageId: uuid("message_id")
       .notNull()
       .references(() => messages.id, { onDelete: "cascade" }),
-    anchorId: uuid("anchor_id")
-      .notNull()
-      .references(() => citationAnchors.id, { onDelete: "cascade" }),
+    anchorId: uuid("anchor_id").references(() => citationAnchors.id, {
+      onDelete: "cascade",
+    }),
     libraryId: uuid("library_id").references(() => knowledgeLibraries.id, {
       onDelete: "set null",
     }),
-    documentId: uuid("document_id")
-      .notNull()
-      .references(() => documents.id, { onDelete: "cascade" }),
-    documentVersionId: uuid("document_version_id")
-      .notNull()
-      .references(() => documentVersions.id, { onDelete: "cascade" }),
-    documentPath: text("document_path").notNull(),
-    pageNo: integer("page_no").notNull(),
+    documentId: uuid("document_id").references(() => documents.id, {
+      onDelete: "cascade",
+    }),
+    documentVersionId: uuid("document_version_id").references(() => documentVersions.id, {
+      onDelete: "cascade",
+    }),
+    documentPath: text("document_path"),
+    pageNo: integer("page_no"),
     blockId: uuid("block_id"),
     sourceScope: varchar("source_scope", { length: 32 }).$type<KnowledgeSourceScope>(),
     libraryTitleSnapshot: text("library_title_snapshot"),
+    sourceUrl: text("source_url"),
+    sourceDomain: text("source_domain"),
+    sourceTitle: text("source_title"),
     quoteText: text("quote_text").notNull(),
     label: text("label").notNull(),
     ordinal: integer("ordinal").notNull().default(0),

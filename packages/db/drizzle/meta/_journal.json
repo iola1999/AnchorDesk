@@ -57,6 +57,13 @@
       "when": 1774880178468,
       "tag": "0007_wise_quentin_quire",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774887259611,
+      "tag": "0008_mysterious_hellion",
+      "breakpoints": true
     }
   ]
 }

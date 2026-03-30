@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { MESSAGE_ROLE } from "@anchordesk/contracts";
 
 import {
-  citationAnchors,
   conversationShares,
   conversations,
   getDb,
@@ -73,13 +72,17 @@ export default async function SharedConversationPage({
           .select({
             id: messageCitations.id,
             messageId: messageCitations.messageId,
+            anchorId: messageCitations.anchorId,
+            documentId: messageCitations.documentId,
             label: messageCitations.label,
             quoteText: messageCitations.quoteText,
             sourceScope: messageCitations.sourceScope,
             libraryTitle: messageCitations.libraryTitleSnapshot,
+            sourceUrl: messageCitations.sourceUrl,
+            sourceDomain: messageCitations.sourceDomain,
+            sourceTitle: messageCitations.sourceTitle,
           })
           .from(messageCitations)
-          .innerJoin(citationAnchors, eq(citationAnchors.id, messageCitations.anchorId))
           .where(
             inArray(
               messageCitations.messageId,
@@ -144,10 +147,15 @@ export default async function SharedConversationPage({
             initialCitations={citations.map((citation) => ({
               id: citation.id,
               messageId: citation.messageId,
+              anchorId: citation.anchorId,
+              documentId: citation.documentId,
               label: citation.label,
               quoteText: citation.quoteText,
               sourceScope: citation.sourceScope,
               libraryTitle: citation.libraryTitle,
+              sourceUrl: citation.sourceUrl,
+              sourceDomain: citation.sourceDomain,
+              sourceTitle: citation.sourceTitle,
             }))}
             streamEnabled={false}
             sourceLinksEnabled={false}

@@ -54,6 +54,9 @@
 - streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming，`agent-runtime` 会在发现该消息不再处于 streaming 时协作停止后续落库。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
+- grounded answer 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
+- `search_web_general` 现在只负责返回候选链接；只有 `fetch_source` 拉回的网页正文才会进入最终 citation，因此“工具时间线里做过联网搜索”与“终态存在可展示网页引用”这两件事已被明确区分。
+- `message_citations` 现已支持外部网页来源字段（`source_url` / `source_domain` / `source_title`）；会话页 source panel 可同时渲染工作空间文档跳转和网页外链。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
@@ -91,6 +94,7 @@
 - `working tree` Add executed regression tests for agent-runtime completion/failure handling and conversation message/retry enqueue failure responses
 - `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
+- `working tree` Unify grounded evidence for workspace anchors and fetched web pages, and persist web citations into `message_citations`
 - `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
 - `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
 - `working tree` Consolidate runtime config to bootstrap env + DB system_settings; app services load settings at startup via initRuntimeSettings()

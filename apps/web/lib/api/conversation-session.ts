@@ -29,6 +29,9 @@ export type ConversationMessageCitation = {
   quoteText: string;
   sourceScope?: KnowledgeSourceScope | null;
   libraryTitle?: string | null;
+  sourceUrl?: string | null;
+  sourceDomain?: string | null;
+  sourceTitle?: string | null;
 };
 
 export type ConversationTimelineMessage = {
@@ -265,6 +268,9 @@ export function applyAssistantTerminalEvent(input: {
             quoteText: citation.quote_text,
             sourceScope: citation.source_scope ?? null,
             libraryTitle: citation.library_title ?? null,
+            sourceUrl: citation.source_url ?? null,
+            sourceDomain: citation.source_domain ?? null,
+            sourceTitle: citation.source_title ?? null,
           })),
         )
       : input.citations.filter((citation) => citation.messageId !== targetMessageId);

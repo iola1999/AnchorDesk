@@ -179,6 +179,9 @@ export default async function WorkspacePage({
         quoteText: citation.quoteText,
         sourceScope: citation.sourceScope,
         libraryTitle: citation.libraryTitleSnapshot,
+        sourceUrl: citation.sourceUrl,
+        sourceDomain: citation.sourceDomain,
+        sourceTitle: citation.sourceTitle,
       }))}
       initialAttachments={attachmentRows.map((attachment) => ({
         id: attachment.id,

@@ -133,6 +133,58 @@ describe("buildAssistantTerminalStreamEvent", () => {
           library_title: null,
           quote_text: "发布前需要完成回归验证。",
           source_scope: null,
+          source_url: null,
+          source_domain: null,
+          source_title: null,
+        },
+      ],
+    });
+  });
+
+  test("serializes web citations without internal anchor ids", () => {
+    expect(
+      buildAssistantTerminalStreamEvent({
+        conversationId: "conversation-1",
+        assistantMessage: {
+          id: "assistant-1",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "web grounded answer",
+          structuredJson: null,
+        },
+        citations: [
+          {
+            id: "citation-2",
+            anchorId: null,
+            documentId: null,
+            label: "最新局势说明 · example.com",
+            quoteText: "该文称最新变化出现在上周末。",
+            sourceScope: "web",
+            libraryTitle: null,
+            sourceUrl: "https://example.com/post",
+            sourceDomain: "example.com",
+            sourceTitle: "最新局势说明",
+          },
+        ],
+      }),
+    ).toEqual({
+      type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
+      conversation_id: "conversation-1",
+      message_id: "assistant-1",
+      status: MESSAGE_STATUS.COMPLETED,
+      content_markdown: "web grounded answer",
+      structured: null,
+      citations: [
+        {
+          id: "citation-2",
+          anchor_id: null,
+          document_id: null,
+          label: "最新局势说明 · example.com",
+          quote_text: "该文称最新变化出现在上周末。",
+          source_scope: "web",
+          library_title: null,
+          source_url: "https://example.com/post",
+          source_domain: "example.com",
+          source_title: "最新局势说明",
         },
       ],
     });

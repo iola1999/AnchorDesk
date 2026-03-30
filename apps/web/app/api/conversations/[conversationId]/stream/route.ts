@@ -306,6 +306,9 @@ export async function GET(
                     quoteText: messageCitations.quoteText,
                     sourceScope: messageCitations.sourceScope,
                     libraryTitle: messageCitations.libraryTitleSnapshot,
+                    sourceUrl: messageCitations.sourceUrl,
+                    sourceDomain: messageCitations.sourceDomain,
+                    sourceTitle: messageCitations.sourceTitle,
                   })
                   .from(messageCitations)
                   .where(eq(messageCitations.messageId, effectiveAssistantMessage.id))

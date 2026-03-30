@@ -70,6 +70,13 @@ export function buildKnowledgeSourceBadge(input: {
   sourceScope: KnowledgeSourceScope | null | undefined;
   libraryTitle: string | null | undefined;
 }) {
+  if (input.sourceScope === KNOWLEDGE_SOURCE_SCOPE.WEB) {
+    return {
+      label: "网页来源",
+      tone: "global" as const,
+    };
+  }
+
   if (input.sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY) {
     return {
       label: input.libraryTitle?.trim()
@@ -106,6 +113,9 @@ export function buildCitationSourceBadges<
       libraryTitle,
     });
     const key =
+      sourceScope === KNOWLEDGE_SOURCE_SCOPE.WEB
+        ? "web"
+        :
       sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY
         ? `global:${libraryTitle ?? ""}`
         : "workspace";
@@ -120,8 +130,20 @@ export function buildCitationSourceBadges<
   }
 
   return [...badgeByKey.values()].sort((left, right) => {
-    if (left.tone !== right.tone) {
-      return left.tone === "workspace" ? -1 : 1;
+    const rank = (badge: KnowledgeSourceBadgeSummary) => {
+      if (badge.sourceScope === KNOWLEDGE_SOURCE_SCOPE.WEB) {
+        return 1;
+      }
+
+      if (badge.tone === "workspace") {
+        return 0;
+      }
+
+      return 2;
+    };
+
+    if (rank(left) !== rank(right)) {
+      return rank(left) - rank(right);
     }
 
     return left.label.localeCompare(right.label, "zh-CN");
