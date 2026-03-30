@@ -1,13 +1,20 @@
 import { describe, expect, test } from "vitest";
-import { CONVERSATION_STREAM_EVENT, MESSAGE_ROLE, MESSAGE_STATUS } from "@anchordesk/contracts";
+import {
+  CONVERSATION_STREAM_EVENT,
+  KNOWLEDGE_SOURCE_SCOPE,
+  MESSAGE_ROLE,
+  MESSAGE_STATUS,
+} from "@anchordesk/contracts";
 
 import {
   appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
+  applyAssistantTerminalEventToSessionSnapshot,
   buildConversationExportFilename,
   findLatestAssistantMessageId,
   findStreamingAssistantMessageId,
   resolveConversationStreamingAssistantMessageId,
+  restartAssistantSessionSnapshotForRetry,
   restartAssistantMessageForRetry,
 } from "./conversation-session";
 
@@ -389,6 +396,77 @@ describe("restartAssistantMessageForRetry", () => {
   });
 });
 
+describe("restartAssistantSessionSnapshotForRetry", () => {
+  test("clears the retried assistant timeline while preserving other turns", () => {
+    const now = new Date("2026-03-30T09:00:00.000Z");
+
+    expect(
+      restartAssistantSessionSnapshotForRetry({
+        assistantMessageId: "assistant-1",
+        citations: [],
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "失败",
+            structuredJson: {
+              agent_error: "queue offline",
+            },
+          },
+        ],
+        timelineMessagesByAssistant: {
+          "assistant-1": [
+            {
+              id: "tool-1",
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown: "工具执行完成",
+              createdAt: "2026-03-30T08:59:00.000Z",
+              structuredJson: null,
+            },
+          ],
+          "assistant-2": [
+            {
+              id: "tool-2",
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown: "保留其他轮",
+              createdAt: "2026-03-30T08:58:00.000Z",
+              structuredJson: null,
+            },
+          ],
+        },
+        now,
+      }),
+    ).toEqual({
+      messages: [
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_started_at: "2026-03-30T09:00:00.000Z",
+            run_last_heartbeat_at: "2026-03-30T09:00:00.000Z",
+            run_lease_expires_at: "2026-03-30T09:00:45.000Z",
+          },
+        },
+      ],
+      citations: [],
+      timelineMessagesByAssistant: {
+        "assistant-2": [
+          {
+            id: "tool-2",
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "保留其他轮",
+            createdAt: "2026-03-30T08:58:00.000Z",
+            structuredJson: null,
+          },
+        ],
+      },
+    });
+  });
+});
+
 describe("applyAssistantTerminalEvent", () => {
   test("hydrates the completed assistant message and replaces its citations", () => {
     const result = applyAssistantTerminalEvent({
@@ -425,6 +503,8 @@ describe("applyAssistantTerminalEvent", () => {
             document_id: "4e87ef0d-a2d9-465a-8ddf-3cfc92c30b16",
             label: "新版引用",
             quote_text: "新版摘录",
+            source_scope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+            library_title: "平台规范库",
           },
         ],
       },
@@ -446,6 +526,8 @@ describe("applyAssistantTerminalEvent", () => {
         documentId: "4e87ef0d-a2d9-465a-8ddf-3cfc92c30b16",
         label: "新版引用",
         quoteText: "新版摘录",
+        sourceScope: KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY,
+        libraryTitle: "平台规范库",
       },
     ]);
   });
@@ -545,5 +627,87 @@ describe("applyAssistantTerminalEvent", () => {
       }),
     ]);
     expect(result.citations).toEqual([]);
+  });
+});
+
+describe("applyAssistantTerminalEventToSessionSnapshot", () => {
+  test("keeps the settled turn timeline when producing a parent sync snapshot", () => {
+    expect(
+      applyAssistantTerminalEventToSessionSnapshot({
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "",
+            structuredJson: null,
+          },
+        ],
+        citations: [],
+        timelineMessagesByAssistant: {
+          "assistant-1": [
+            {
+              id: "tool-1",
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown: "工具执行完成：fetch_source",
+              createdAt: "2026-03-30T10:00:02.000Z",
+              structuredJson: null,
+            },
+          ],
+        },
+        event: {
+          type: CONVERSATION_STREAM_EVENT.ANSWER_DONE,
+          conversation_id: "conversation-1",
+          message_id: "assistant-1",
+          status: MESSAGE_STATUS.COMPLETED,
+          content_markdown: "最终回答",
+          structured: null,
+          citations: [
+            {
+              id: "citation-1",
+              anchor_id: "anchor-1",
+              document_id: "document-1",
+              label: "资料一",
+              quote_text: "摘录一",
+              source_scope: null,
+              library_title: null,
+            },
+          ],
+        },
+      }),
+    ).toEqual({
+      messages: [
+        {
+          id: "assistant-1",
+          role: MESSAGE_ROLE.ASSISTANT,
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "最终回答",
+          structuredJson: null,
+        },
+      ],
+      citations: [
+        {
+          id: "citation-1",
+          messageId: "assistant-1",
+          anchorId: "anchor-1",
+          documentId: "document-1",
+          label: "资料一",
+          quoteText: "摘录一",
+          sourceScope: null,
+          libraryTitle: null,
+        },
+      ],
+      timelineMessagesByAssistant: {
+        "assistant-1": [
+          {
+            id: "tool-1",
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "工具执行完成：fetch_source",
+            createdAt: "2026-03-30T10:00:02.000Z",
+            structuredJson: null,
+          },
+        ],
+      },
+    });
   });
 });

@@ -5,6 +5,7 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   type ConversationStreamEvent,
+  type KnowledgeSourceScope,
   type MessageRole,
   type MessageStatus,
 } from "@anchordesk/contracts";
@@ -26,6 +27,27 @@ export type ConversationMessageCitation = {
   documentId?: string | null;
   label: string;
   quoteText: string;
+  sourceScope?: KnowledgeSourceScope | null;
+  libraryTitle?: string | null;
+};
+
+export type ConversationTimelineMessage = {
+  id: string;
+  status: MessageStatus;
+  contentMarkdown: string;
+  createdAt: string;
+  structuredJson?: Record<string, unknown> | null;
+};
+
+export type ConversationTimelineMessagesByAssistant = Record<
+  string,
+  ConversationTimelineMessage[]
+>;
+
+export type ConversationSessionSnapshot = {
+  messages: ConversationChatMessage[];
+  citations: ConversationMessageCitation[];
+  timelineMessagesByAssistant: ConversationTimelineMessagesByAssistant;
 };
 
 type AssistantTerminalEvent = Extract<
@@ -168,6 +190,29 @@ export function restartAssistantMessageForRetry(input: {
   };
 }
 
+export function restartAssistantSessionSnapshotForRetry(input: {
+  assistantMessageId: string;
+  citations: ConversationMessageCitation[];
+  messages: ConversationChatMessage[];
+  now?: Date;
+  timelineMessagesByAssistant: ConversationTimelineMessagesByAssistant;
+}) {
+  const nextState = restartAssistantMessageForRetry({
+    assistantMessageId: input.assistantMessageId,
+    citations: input.citations,
+    messages: input.messages,
+    now: input.now,
+  });
+  const nextTimelineMessagesByAssistant = { ...input.timelineMessagesByAssistant };
+  delete nextTimelineMessagesByAssistant[input.assistantMessageId];
+
+  return {
+    messages: nextState.messages,
+    citations: nextState.citations,
+    timelineMessagesByAssistant: nextTimelineMessagesByAssistant,
+  };
+}
+
 export function applyAssistantTerminalEvent(input: {
   messages: ConversationChatMessage[];
   citations: ConversationMessageCitation[];
@@ -218,6 +263,8 @@ export function applyAssistantTerminalEvent(input: {
             documentId: citation.document_id,
             label: citation.label,
             quoteText: citation.quote_text,
+            sourceScope: citation.source_scope ?? null,
+            libraryTitle: citation.library_title ?? null,
           })),
         )
       : input.citations.filter((citation) => citation.messageId !== targetMessageId);
@@ -225,5 +272,26 @@ export function applyAssistantTerminalEvent(input: {
   return {
     messages: nextMessages,
     citations: nextCitations,
+  };
+}
+
+export function applyAssistantTerminalEventToSessionSnapshot(input: {
+  messages: ConversationChatMessage[];
+  citations: ConversationMessageCitation[];
+  timelineMessagesByAssistant: ConversationTimelineMessagesByAssistant;
+  event: AssistantTerminalEvent;
+  fallbackMessageId?: string | null;
+}) {
+  const nextState = applyAssistantTerminalEvent({
+    messages: input.messages,
+    citations: input.citations,
+    event: input.event,
+    fallbackMessageId: input.fallbackMessageId,
+  });
+
+  return {
+    messages: nextState.messages,
+    citations: nextState.citations,
+    timelineMessagesByAssistant: input.timelineMessagesByAssistant,
   };
 }
