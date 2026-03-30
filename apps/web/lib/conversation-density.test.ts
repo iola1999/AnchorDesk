@@ -34,9 +34,15 @@ describe("conversationDensityClassNames", () => {
   });
 
   it("keeps the stage composer compact while preserving attachment visibility", () => {
+    expect(conversationDensityClassNames.composerShell).toContain("sticky");
+    expect(conversationDensityClassNames.composerShell).toContain("bottom-0");
+    expect(conversationDensityClassNames.composerShell).not.toContain("backdrop-blur");
+    expect(conversationDensityClassNames.composerShell).not.toContain("linear-gradient");
     expect(conversationDensityClassNames.composerCard).toContain("rounded-[24px]");
+    expect(conversationDensityClassNames.composerCard).toContain("border");
     expect(conversationDensityClassNames.composerCard).toContain("px-4");
     expect(conversationDensityClassNames.composerCard).toContain("py-3");
+    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_16px_28px");
     expect(conversationDensityClassNames.composerText).toContain("text-[14px]");
     expect(conversationDensityClassNames.composerAttachments).toContain("gap-1.5");
   });

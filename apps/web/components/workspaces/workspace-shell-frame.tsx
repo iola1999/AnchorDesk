@@ -13,6 +13,7 @@ import { workspaceBranding } from "@/lib/branding";
 import {
   WORKSPACE_SHELL_DESKTOP_MEDIA_QUERY,
   WORKSPACE_SHELL_SIDEBAR_CONTENT_CLASS,
+  resolveWorkspaceShellContentClass,
 } from "@/lib/workspace-shell";
 import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
 import { WorkspaceBreadcrumbSwitcher } from "@/components/workspaces/workspace-breadcrumb-switcher";
@@ -269,12 +270,7 @@ export function WorkspaceShellFrame({
         </header>
 
         <div
-          className={cn(
-            "min-h-0 min-w-0",
-            contentScroll === "shell"
-              ? "overflow-y-auto overscroll-contain pr-1"
-              : "overflow-hidden",
-          )}
+          className={resolveWorkspaceShellContentClass(contentScroll)}
         >
           {children}
         </div>

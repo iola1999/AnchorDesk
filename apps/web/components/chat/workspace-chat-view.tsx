@@ -122,7 +122,7 @@ export function WorkspaceChatView({
       conversations={conversations}
       activeConversationId={activeConversationId}
       currentUser={currentUser}
-      contentScroll="contained"
+      contentScroll="shell"
       breadcrumbs={breadcrumbs}
       topActions={
         currentConversationMeta ? (

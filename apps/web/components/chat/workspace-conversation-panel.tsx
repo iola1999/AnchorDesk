@@ -89,8 +89,8 @@ export function WorkspaceConversationPanel({
   }
 
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-[1080px] min-w-0 flex-col overflow-visible">
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain py-2 pr-1 min-[720px]:py-3">
+    <div className="mx-auto flex min-h-full w-full max-w-[1080px] min-w-0 flex-col overflow-visible">
+      <div className="min-w-0 flex-1 py-2 pr-1 min-[720px]:py-3">
         <ConversationSession
           conversationId={conversationId}
           workspaceId={workspaceId}
