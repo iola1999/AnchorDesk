@@ -108,6 +108,15 @@ describe("MarkdownContent", () => {
 
     expect(container.textContent).toContain("bilibili");
     expect(container.textContent).toContain("+1");
+    const groupedBadge = container.querySelector('span[title="bilibili"]');
+    const groupedBadgeLabel = groupedBadge?.children[0];
+    const groupedBadgeCount = groupedBadge?.children[1];
+
+    expect(groupedBadge?.className).toContain("min-w-0");
+    expect(groupedBadgeLabel?.className).toContain("min-w-0");
+    expect(groupedBadgeLabel?.className).toContain("flex-1");
+    expect(groupedBadgeCount?.className).toContain("shrink-0");
+    expect(groupedBadgeCount?.className).toContain("whitespace-nowrap");
     expect(document.body.textContent).toContain("终于有人说清全屋定制的板材了！ - 哔哩哔哩");
     expect(document.body.textContent).toContain(
       "这条视频用通俗易懂的方式解释颗粒板、欧松板和免漆板的差异。",

@@ -109,13 +109,13 @@ function InlineCitationGroup({
   return (
     <span
       className={cn(
-        "mx-0.5 inline-flex max-w-[14rem] items-center gap-1 rounded-full border border-app-border bg-white/92 px-2 py-1 align-super text-[11px] font-medium leading-none text-app-muted-strong shadow-soft transition hover:border-app-border-strong hover:bg-white hover:text-app-text",
+        "mx-0.5 inline-flex min-w-0 max-w-[14rem] items-center gap-1 rounded-full border border-app-border bg-white/92 px-2 py-1 align-super text-[11px] font-medium leading-none text-app-muted-strong shadow-soft transition hover:border-app-border-strong hover:bg-white hover:text-app-text",
       )}
       title={summary.label}
     >
-      <span className="truncate">{summary.label}</span>
+      <span className="min-w-0 flex-1 truncate">{summary.label}</span>
       {summary.extraCount > 0 ? (
-        <span className="rounded-full bg-app-surface-soft px-1.5 py-[1px] text-[10px] text-app-muted">
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-app-surface-soft px-1.5 py-[1px] text-[10px] text-app-muted">
           +{summary.extraCount}
         </span>
       ) : null}
