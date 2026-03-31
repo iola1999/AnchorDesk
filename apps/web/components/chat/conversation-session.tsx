@@ -792,21 +792,6 @@ export function ConversationSession({
                     </div>
                   </div>
 
-                  {citationSourceBadges.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1.5 border-t border-app-border/70 pt-3">
-                      <span className="text-[11px] uppercase tracking-[0.12em] text-app-muted">
-                        命中来源
-                      </span>
-                      {citationSourceBadges.map((badge) => (
-                        <KnowledgeSourceBadge
-                          key={`${badge.tone}:${badge.label}`}
-                          sourceScope={badge.sourceScope}
-                          libraryTitle={badge.libraryTitle}
-                        />
-                      ))}
-                    </div>
-                  ) : null}
-
                   {selectedView === "sources" ? (
                     <div className={conversationDensityClassNames.sourcesList}>
                       {citations.map((citation, index) => {
