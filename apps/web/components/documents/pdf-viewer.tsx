@@ -310,7 +310,7 @@ export function PdfViewer({
       </div>
 
       <div className="min-w-0 self-start lg:col-span-2 lg:row-start-3 2xl:sticky 2xl:top-6 2xl:col-span-1 2xl:col-start-3 2xl:row-start-1 2xl:row-span-2">
-        <div className="grid gap-4 overflow-hidden rounded-[24px] border border-app-border/60 bg-white/46 p-4 shadow-soft backdrop-blur-sm md:p-5 lg:max-h-[calc(100vh-3rem)]">
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-[24px] border border-app-border/60 bg-white/46 p-4 shadow-soft backdrop-blur-sm md:p-5 lg:max-h-[calc(100vh-3rem)]">
           <div className="grid gap-1.5 border-b border-app-border/40 pb-4">
             <div className="flex items-start justify-between gap-3">
               <div className="grid gap-1">
