@@ -16,6 +16,7 @@ import {
   normalizeConversationFailureMessage,
   refreshStreamingAssistantRunState,
   updateStreamingAssistantRunState,
+  type AssistantStreamPhase,
   type GroundedEvidence,
   type ToolTimelineState,
   type ConversationStreamEvent,
@@ -37,7 +38,10 @@ import {
   type ConversationResponseJobPayload,
 } from "@anchordesk/queue";
 
-import { renderGroundedAnswer } from "./final-answerer";
+import {
+  materializeAssistantAnswer,
+  toDisplayInlineCitationText,
+} from "./assistant-answer";
 import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";
 import { buildToolTimelineMessage } from "./timeline";
@@ -55,7 +59,7 @@ function buildAssistantStatusEvent(input: {
   conversationId: string;
   assistantMessageId: string;
   status: MessageStatus;
-  phase: "analyzing" | "tool" | "drafting" | "finalizing";
+  phase: AssistantStreamPhase;
   statusText: string;
   toolName?: string | null;
   toolUseId?: string | null;
@@ -469,7 +473,6 @@ export async function processConversationResponseJob(
       }
     }
 
-    let streamedAssistantText = "";
     let lastPersistedAssistantText = assistantMessage.contentMarkdown;
     let lastPersistedAt = 0;
     let currentRunState =
@@ -501,7 +504,7 @@ export async function processConversationResponseJob(
 
     async function persistAssistantRunState(input: {
       now?: Date;
-      phase?: "analyzing" | "tool" | "drafting" | "finalizing" | null;
+      phase?: AssistantStreamPhase | null;
       statusText?: string | null;
       streamEventId?: string;
       activeToolName?: string | null;
@@ -529,7 +532,7 @@ export async function processConversationResponseJob(
     }
 
     async function publishAssistantStatus(input: {
-      phase: "analyzing" | "tool" | "drafting" | "finalizing";
+      phase: AssistantStreamPhase;
       statusText: string;
       toolName?: string | null;
       toolUseId?: string | null;
@@ -647,7 +650,7 @@ export async function processConversationResponseJob(
       nextText: string,
       input: {
         force?: boolean;
-        phase?: "analyzing" | "tool" | "drafting" | "finalizing";
+        phase?: AssistantStreamPhase | null;
         statusText?: string | null;
       } = {},
     ) {
@@ -812,10 +815,9 @@ export async function processConversationResponseJob(
             });
           },
           onAssistantDelta: async ({ fullText }) => {
-            streamedAssistantText = fullText;
-            await persistAssistantDelta(fullText, {
+            await persistAssistantDelta(toDisplayInlineCitationText(fullText), {
               phase: ASSISTANT_STREAM_PHASE.DRAFTING,
-              statusText: "助手正在生成回答草稿...",
+              statusText: "助手正在生成回答...",
             });
           },
         },
@@ -832,36 +834,17 @@ export async function processConversationResponseJob(
         })
         .where(eq(conversations.id, payload.conversationId));
 
-      await publishAssistantStatus({
-        phase: ASSISTANT_STREAM_PHASE.FINALIZING,
-        statusText: "正在整理证据并生成最终答案...",
-        toolName: null,
-        toolUseId: null,
-        taskId: null,
+      const materializedAnswer = materializeAssistantAnswer({
+        rawText: agentResponse.text,
+        evidenceRegistry: Array.isArray(agentResponse.citations)
+          ? agentResponse.citations
+          : [],
       });
 
-      let finalAnswerPreviewText = "";
-      const groundedAnswerResult = await renderGroundedAnswer(
-        {
-          prompt: payload.prompt,
-          draftText: agentResponse.text,
-          evidence: Array.isArray(agentResponse.citations) ? agentResponse.citations : [],
-        },
-        {
-          onTextDelta: async ({ displayText }) => {
-            finalAnswerPreviewText = displayText;
-            await persistAssistantDelta(displayText, {
-              phase: ASSISTANT_STREAM_PHASE.FINALIZING,
-              statusText: "正在生成最终答案...",
-            });
-          },
-        },
-      );
-
-      await persistAssistantDelta(finalAnswerPreviewText, {
+      await persistAssistantDelta(materializedAnswer.answerMarkdown, {
         force: true,
-        phase: ASSISTANT_STREAM_PHASE.FINALIZING,
-        statusText: "正在生成最终答案...",
+        phase: ASSISTANT_STREAM_PHASE.DRAFTING,
+        statusText: "助手正在生成回答...",
       });
       await assertAssistantMessageStillStreaming();
       let terminalRunState = finalizeStreamingAssistantRunState(currentRunState);
@@ -869,7 +852,7 @@ export async function processConversationResponseJob(
         .update(messages)
         .set({
           status: MESSAGE_STATUS.COMPLETED,
-          contentMarkdown: groundedAnswerResult.groundedAnswer.answer_markdown,
+          contentMarkdown: materializedAnswer.answerMarkdown,
           structuredJson: terminalRunState,
         })
         .where(eq(messages.id, payload.assistantMessageId));
@@ -877,7 +860,7 @@ export async function processConversationResponseJob(
       const citationRows = await persistMessageCitations({
         assistantMessageId: payload.assistantMessageId,
         workspaceId: conversation.workspaceId,
-        citations: groundedAnswerResult.groundedAnswer.citations,
+        citations: materializedAnswer.citations,
       });
 
       const answerDoneEventId = await publishConversationEvent({
@@ -885,7 +868,7 @@ export async function processConversationResponseJob(
         conversation_id: payload.conversationId,
         message_id: payload.assistantMessageId,
         status: MESSAGE_STATUS.COMPLETED,
-        content_markdown: groundedAnswerResult.groundedAnswer.answer_markdown,
+        content_markdown: materializedAnswer.answerMarkdown,
         structured: terminalRunState,
         citations: citationRows.map((citation) => ({
           id: citation.id,
@@ -915,8 +898,8 @@ export async function processConversationResponseJob(
         {
           workspaceId: conversation.workspaceId,
           sessionId: agentResponse.sessionId ?? null,
-          citationCount: groundedAnswerResult.groundedAnswer.citations.length,
-          outputLength: groundedAnswerResult.groundedAnswer.answer_markdown.length,
+          citationCount: materializedAnswer.citations.length,
+          outputLength: materializedAnswer.answerMarkdown.length,
         },
         "conversation response job completed",
       );

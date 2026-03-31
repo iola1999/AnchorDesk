@@ -9,10 +9,11 @@ import {
   ASSISTANT_ALLOWED_TOOL_NAMES,
   ASSISTANT_TOOL,
   DEFAULT_AGENT_MAX_TURNS,
-  extractDisplayInlineCitationOrdinals,
+  extractRawInlineCitationSlots,
   KNOWLEDGE_SOURCE_SCOPE,
   GROUNDED_EVIDENCE_KIND,
   normalizeAssistantToolName,
+  type AssistantStreamPhase,
   type GroundedEvidence,
 } from "@anchordesk/contracts";
 import {
@@ -23,6 +24,7 @@ import {
   extractAssistantRuntimeSignal,
   extractAssistantTextDelta,
 } from "./assistant-stream";
+import { type CollectedGroundedEvidence } from "./assistant-answer";
 import {
   buildClaudeAgentRuntimeLogContext,
   isClaudeAgentSdkDebugEnabled,
@@ -64,6 +66,10 @@ function buildAgentSystemPrompt(input: { workspaceId: string; conversationId: st
     "When you need to fetch multiple independent web URLs, prefer fetch_sources instead of repeating fetch_source serially.",
     "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references.",
     "When citing workspace evidence in the final answer, mention the document path and page number when available.",
+    "Tool results may include citation_token fields such as [[cite:3]].",
+    "When a paragraph, bullet, or sentence makes a factual claim supported by tool output, append one or more exact citation_token values immediately after that claim.",
+    "Use only citation_token values returned by tools in this turn. Never invent or rewrite citation tokens.",
+    "If you cannot support a claim with the available tool evidence, say so plainly instead of adding a citation token.",
   ].join("\n");
 }
 
@@ -115,7 +121,7 @@ function buildWebEvidenceQuote(paragraphs: string[]) {
 
 function collectFetchedWebEvidence(input: {
   source: Record<string, unknown>;
-  citationMap: Map<string, GroundedEvidence>;
+  citationMap: Map<string, CollectedGroundedEvidence>;
   webSearchResultsByUrl: Map<
     string,
     {
@@ -126,6 +132,7 @@ function collectFetchedWebEvidence(input: {
   >;
 }) {
   const url = String(input.source.url ?? "").trim();
+  const citationId = Number(input.source.citation_id);
   if (!url) {
     return;
   }
@@ -158,23 +165,30 @@ function collectFetchedWebEvidence(input: {
     return;
   }
 
+  if (!Number.isInteger(citationId) || citationId <= 0) {
+    return;
+  }
+
   input.citationMap.set(buildWebEvidenceId(url), {
-    evidence_id: buildWebEvidenceId(url),
-    kind: GROUNDED_EVIDENCE_KIND.WEB_PAGE,
-    url,
-    domain,
-    title: title || searchResult?.title || domain,
-    label,
-    quote_text: quoteText,
-    source_scope: KNOWLEDGE_SOURCE_SCOPE.WEB,
-    library_title: null,
+    citationId,
+    evidence: {
+      evidence_id: buildWebEvidenceId(url),
+      kind: GROUNDED_EVIDENCE_KIND.WEB_PAGE,
+      url,
+      domain,
+      title: title || searchResult?.title || domain,
+      label,
+      quote_text: quoteText,
+      source_scope: KNOWLEDGE_SOURCE_SCOPE.WEB,
+      library_title: null,
+    },
   });
 }
 
 function collectGroundedEvidence(
   toolName: string,
   payload: Record<string, unknown>,
-  citationMap: Map<string, GroundedEvidence>,
+  citationMap: Map<string, CollectedGroundedEvidence>,
   webSearchResultsByUrl: Map<
     string,
     {
@@ -218,29 +232,37 @@ function collectGroundedEvidence(
         typeof (result as Record<string, unknown>).source_scope === "string"
           ? String((result as Record<string, unknown>).source_scope)
           : null;
+      const citationId = Number((result as Record<string, unknown>).citation_id);
       const libraryTitle = String(
         (result as Record<string, unknown>).library_title ?? "",
       ).trim();
 
-      citationMap.set(anchorId, {
-        evidence_id: buildDocumentEvidenceId(anchorId),
-        kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
-        anchor_id: anchorId,
-        document_path: documentPath,
-        page_no: pageNo,
-        label:
-          anchorLabel ||
-          [documentPath, pageNo ? `第${pageNo}页` : null, sectionLabel || null]
-            .filter(Boolean)
-            .join(" · ") ||
-          anchorId,
-        quote_text: snippet,
-        source_scope:
-          sourceScope === KNOWLEDGE_SOURCE_SCOPE.WORKSPACE_PRIVATE ||
-          sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY
-            ? sourceScope
-            : null,
-        library_title: libraryTitle || null,
+      if (!Number.isInteger(citationId) || citationId <= 0) {
+        continue;
+      }
+
+      citationMap.set(buildDocumentEvidenceId(anchorId), {
+        citationId,
+        evidence: {
+          evidence_id: buildDocumentEvidenceId(anchorId),
+          kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+          anchor_id: anchorId,
+          document_path: documentPath,
+          page_no: pageNo,
+          label:
+            anchorLabel ||
+            [documentPath, pageNo ? `第${pageNo}页` : null, sectionLabel || null]
+              .filter(Boolean)
+              .join(" · ") ||
+            anchorId,
+          quote_text: snippet,
+          source_scope:
+            sourceScope === KNOWLEDGE_SOURCE_SCOPE.WORKSPACE_PRIVATE ||
+            sourceScope === KNOWLEDGE_SOURCE_SCOPE.GLOBAL_LIBRARY
+              ? sourceScope
+              : null,
+          library_title: libraryTitle || null,
+        },
       });
     }
   }
@@ -258,20 +280,27 @@ function collectGroundedEvidence(
         const pageNo = typeof anchor.page_no === "number" ? anchor.page_no : null;
         const anchorLabel = String(anchor.anchor_label ?? "").trim();
         const text = String(anchor.text ?? "").trim();
+        const citationId = Number(anchor.citation_id);
+        if (!Number.isInteger(citationId) || citationId <= 0) {
+          return;
+        }
 
-        citationMap.set(anchorId, {
-          evidence_id: buildDocumentEvidenceId(anchorId),
-          kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
-          anchor_id: anchorId,
-          document_path: documentPath,
-          page_no: pageNo,
-          label:
-            anchorLabel ||
-            [documentPath, pageNo ? `第${pageNo}页` : null].filter(Boolean).join(" · ") ||
-            anchorId,
-          quote_text: text,
-          source_scope: null,
-          library_title: null,
+        citationMap.set(buildDocumentEvidenceId(anchorId), {
+          citationId,
+          evidence: {
+            evidence_id: buildDocumentEvidenceId(anchorId),
+            kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+            anchor_id: anchorId,
+            document_path: documentPath,
+            page_no: pageNo,
+            label:
+              anchorLabel ||
+              [documentPath, pageNo ? `第${pageNo}页` : null].filter(Boolean).join(" · ") ||
+              anchorId,
+            quote_text: text,
+            source_scope: null,
+            library_title: null,
+          },
         });
       }
     }
@@ -341,7 +370,7 @@ export type RunAgentResponseInput = {
 
 export type RunAgentResponseHooks = {
   onAssistantStatus?: (input: {
-    phase: "analyzing" | "tool" | "drafting" | "finalizing";
+    phase: AssistantStreamPhase;
     statusText: string;
     toolName?: string | null;
     toolUseId?: string | null;
@@ -412,9 +441,9 @@ export async function runAgentResponse(
   const agentEnv = buildClaudeAgentEnv();
   const runtimeLogContext = buildClaudeAgentRuntimeLogContext(agentEnv);
   let finalResult = "";
-  let streamedDraft = "";
+  let streamedAnswer = "";
   let sessionId = input.agentSessionId ?? null;
-  const citationMap = new Map<string, GroundedEvidence>();
+  const citationMap = new Map<string, CollectedGroundedEvidence>();
   const webSearchResultsByUrl = new Map<
     string,
     {
@@ -585,14 +614,14 @@ export async function runAgentResponse(
 
       const textDelta = extractAssistantTextDelta(message);
       if (textDelta) {
-        streamedDraft += textDelta;
+        streamedAnswer += textDelta;
         await hooks.onAssistantStatus?.({
           phase: "drafting",
-          statusText: "助手正在生成回答草稿...",
+          statusText: "助手正在生成回答...",
         });
         await hooks.onAssistantDelta?.({
           textDelta,
-          fullText: streamedDraft,
+          fullText: streamedAnswer,
         });
       }
 
@@ -600,7 +629,7 @@ export async function runAgentResponse(
         message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
         message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
       ) {
-        finalResult = message.result || streamedDraft;
+        finalResult = message.result || streamedAnswer;
       }
     }
 
@@ -608,13 +637,13 @@ export async function runAgentResponse(
       {
         sessionId,
         finalResultLength: finalResult.length,
-        streamedDraftLength: streamedDraft.length,
+        streamedAnswerLength: streamedAnswer.length,
         workspaceEvidenceCount: citationMap.size,
         documentEvidenceCount: Array.from(citationMap.values()).filter(
-          (item) => item.kind === GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+          (item) => item.evidence.kind === GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
         ).length,
         webEvidenceCount: Array.from(citationMap.values()).filter(
-          (item) => item.kind === GROUNDED_EVIDENCE_KIND.WEB_PAGE,
+          (item) => item.evidence.kind === GROUNDED_EVIDENCE_KIND.WEB_PAGE,
         ).length,
       },
       "Claude Agent SDK query completed",
@@ -634,9 +663,9 @@ export async function runAgentResponse(
     throw error;
   }
 
-  const draftText =
-    finalResult || streamedDraft || "Agent completed without a final result payload.";
-  const inlineCitationMarkerCount = extractDisplayInlineCitationOrdinals(draftText).length;
+  const rawAnswerText =
+    finalResult || streamedAnswer || "Agent completed without a final result payload.";
+  const inlineCitationMarkerCount = extractRawInlineCitationSlots(rawAnswerText).length;
 
   requestLogger.info(
     {
@@ -644,14 +673,14 @@ export async function runAgentResponse(
       citationCount: citationMap.size,
       inlineCitationMarkerCount,
       hasInlineCitationMarkers: inlineCitationMarkerCount > 0,
-      answerLength: draftText.length,
+      answerLength: rawAnswerText.length,
     },
-    "agent draft collected before grounded answer render",
+    "assistant answer collected before citation materialization",
   );
 
   return {
     ok: true as const,
-    text: draftText,
+    text: rawAnswerText,
     sessionId,
     workdir,
     citations: Array.from(citationMap.values()),

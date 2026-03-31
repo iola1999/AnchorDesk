@@ -109,7 +109,7 @@ describe("POST /api/conversations/[conversationId]/stop", () => {
         run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
         run_lease_expires_at: "2026-03-31T10:00:55.000Z",
         phase: "drafting",
-        status_text: "助手正在生成回答草稿...",
+        status_text: "助手正在生成回答...",
         stream_event_id: "1743328800000-0",
         active_tool_name: null,
         active_tool_use_id: null,

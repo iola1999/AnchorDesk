@@ -709,7 +709,7 @@ describe("applyAssistantTerminalEvent", () => {
 });
 
 describe("applyAssistantDeltaEvent", () => {
-  test("keeps the streamed draft visible while the grounded final answer is finalizing", () => {
+  test("replaces the message content when the server sends a full snapshot update", () => {
     expect(
       applyAssistantDeltaEvent({
         messages: [
@@ -717,13 +717,12 @@ describe("applyAssistantDeltaEvent", () => {
             id: "assistant-1",
             role: MESSAGE_ROLE.ASSISTANT,
             status: MESSAGE_STATUS.STREAMING,
-            contentMarkdown: "前面已经流出来的草稿",
+            contentMarkdown: "前面已经流出来的部分",
             structuredJson: {
               run_id: "run-1",
               run_started_at: "2026-03-31T10:00:00.000Z",
               run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
               run_lease_expires_at: "2026-03-31T10:00:55.000Z",
-              phase: "finalizing",
             },
           },
         ],
@@ -732,7 +731,7 @@ describe("applyAssistantDeltaEvent", () => {
           conversation_id: "conversation-1",
           message_id: "assistant-1",
           status: MESSAGE_STATUS.STREAMING,
-          content_markdown: "基于当前已验证证据",
+          content_markdown: "基于当前已验证证据的完整回答",
           delta_text: null,
         },
       }),
@@ -741,19 +740,18 @@ describe("applyAssistantDeltaEvent", () => {
         id: "assistant-1",
         role: MESSAGE_ROLE.ASSISTANT,
         status: MESSAGE_STATUS.STREAMING,
-        contentMarkdown: "前面已经流出来的草稿",
+        contentMarkdown: "基于当前已验证证据的完整回答",
         structuredJson: {
           run_id: "run-1",
           run_started_at: "2026-03-31T10:00:00.000Z",
           run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
           run_lease_expires_at: "2026-03-31T10:00:55.000Z",
-          phase: "finalizing",
         },
       },
     ]);
   });
 
-  test("continues appending streamed content before finalizing starts", () => {
+  test("appends incremental deltas to the existing streamed content", () => {
     expect(
       applyAssistantDeltaEvent({
         messages: [
@@ -767,7 +765,6 @@ describe("applyAssistantDeltaEvent", () => {
               run_started_at: "2026-03-31T10:00:00.000Z",
               run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
               run_lease_expires_at: "2026-03-31T10:00:55.000Z",
-              phase: "drafting",
             },
           },
         ],
@@ -791,7 +788,6 @@ describe("applyAssistantDeltaEvent", () => {
           run_started_at: "2026-03-31T10:00:00.000Z",
           run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
           run_lease_expires_at: "2026-03-31T10:00:55.000Z",
-          phase: "drafting",
         },
       },
     ]);

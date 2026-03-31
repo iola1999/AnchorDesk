@@ -26,7 +26,6 @@ const mocks = vi.hoisted(() => {
   const insertReturningQueue: Array<Array<Record<string, unknown>>> = [];
   const updates: Array<{ table: unknown; values: unknown }> = [];
   const runAgentResponse = vi.fn();
-  const renderGroundedAnswer = vi.fn();
   const appendConversationStreamEvent = vi.fn(async () => "1743490000000-0");
   const loggerChild = {
     debug: vi.fn(),
@@ -85,7 +84,6 @@ const mocks = vi.hoisted(() => {
     insertReturningQueue,
     loggerChild,
     queryResults,
-    renderGroundedAnswer,
     runAgentResponse,
     tables,
     updates,
@@ -107,10 +105,6 @@ vi.mock("@anchordesk/db", () => ({
 
 vi.mock("./run-agent-response", () => ({
   runAgentResponse: mocks.runAgentResponse,
-}));
-
-vi.mock("./final-answerer", () => ({
-  renderGroundedAnswer: mocks.renderGroundedAnswer,
 }));
 
 vi.mock("@anchordesk/queue", () => ({
@@ -138,7 +132,6 @@ beforeEach(() => {
   mocks.insertReturningQueue.length = 0;
   mocks.updates.length = 0;
   mocks.runAgentResponse.mockReset();
-  mocks.renderGroundedAnswer.mockReset();
   mocks.appendConversationStreamEvent.mockReset();
   mocks.appendConversationStreamEvent.mockImplementation(async () => "1743490000000-0");
   mocks.loggerChild.debug.mockReset();
@@ -148,11 +141,27 @@ beforeEach(() => {
 });
 
 function readAnswerDeltaEvents() {
-  return mocks.appendConversationStreamEvent.mock.calls
-    .map(([input]) => input.event)
+  const calls = mocks.appendConversationStreamEvent.mock.calls as unknown as Array<
+    Array<{ event?: unknown }>
+  >;
+
+  return calls
+    .flatMap((call) => {
+      const input = call[0];
+      return input?.event ? [input.event] : [];
+    })
     .filter(
-      (event): event is { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA } =>
-        event?.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+      (
+        event,
+      ): event is {
+        type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA;
+        content_markdown: string;
+        delta_text?: string | null;
+      } =>
+        Boolean(event) &&
+        typeof event === "object" &&
+        "type" in event &&
+        event.type === CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
     );
 }
 
@@ -274,24 +283,6 @@ describe("processConversationResponseJob", () => {
         sessionId: "session-1",
         text: "最终回答",
         workdir: "/tmp/agent-session",
-      };
-    });
-    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
-      await hooks?.onTextDelta?.({
-        textDelta: "最终回答",
-        fullText: "最终回答",
-        displayText: "最终回答",
-      });
-      return {
-        groundedAnswer: {
-          answer_markdown: "最终回答",
-          citations: [],
-        },
-        meta: {
-          mode: "model_streamed",
-          parsedCitationReferenceCount: 0,
-          parsedOutputPresent: true,
-        },
       };
     });
 
@@ -456,25 +447,6 @@ describe("processConversationResponseJob", () => {
         workdir: "/tmp/agent-session",
       };
     });
-    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
-      now = 2_000;
-      await hooks?.onTextDelta?.({
-        textDelta: "最终回答",
-        fullText: "最终回答",
-        displayText: "最终回答",
-      });
-      return {
-        groundedAnswer: {
-          answer_markdown: "最终回答",
-          citations: [],
-        },
-        meta: {
-          mode: "model_streamed",
-          parsedCitationReferenceCount: 0,
-          parsedOutputPresent: true,
-        },
-      };
-    });
 
     try {
       await processConversationResponseJob({
@@ -502,7 +474,7 @@ describe("processConversationResponseJob", () => {
     );
   });
 
-  it("emits normalized final-answer deltas from display text instead of raw citation tokens", async () => {
+  it("emits normalized inline-citation deltas from the single streamed answer", async () => {
     mocks.queryResults.conversations = [
       {
         id: "conversation-1",
@@ -525,54 +497,47 @@ describe("processConversationResponseJob", () => {
         },
       },
     ];
-
-    let now = 1_000;
-    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => now);
-
-    mocks.runAgentResponse.mockResolvedValue({
-      citations: [],
-      ok: true as const,
-      sessionId: "session-1",
-      text: "最终回答[[cite:1]]",
-      workdir: "/tmp/agent-session",
-    });
-    mocks.renderGroundedAnswer.mockImplementation(async (_input, hooks) => {
-      now = 1_000;
-      await hooks?.onTextDelta?.({
+    mocks.runAgentResponse.mockImplementation(async (_input, hooks) => {
+      await hooks?.onAssistantDelta?.({
         textDelta: "最终回答",
         fullText: "最终回答",
-        displayText: "最终回答",
       });
-      now = 1_200;
-      await hooks?.onTextDelta?.({
+      await hooks?.onAssistantDelta?.({
         textDelta: "[[cite:1]]",
         fullText: "最终回答[[cite:1]]",
-        displayText: "最终回答[^1]",
       });
+
       return {
-        groundedAnswer: {
-          answer_markdown: "最终回答[^1]",
-          citations: [],
-        },
-        meta: {
-          mode: "model_streamed",
-          parsedCitationReferenceCount: 1,
-          parsedOutputPresent: true,
-        },
+        citations: [
+          {
+            citationId: 1,
+            evidence: {
+              evidence_id: "web:https://example.com/post",
+              kind: "web_page",
+              url: "https://example.com/post",
+              domain: "example.com",
+              title: "最新局势说明",
+              label: "最新局势说明 · example.com",
+              quote_text: "该文称最新变化出现在上周末。",
+              source_scope: "web",
+              library_title: null,
+            },
+          },
+        ],
+        ok: true as const,
+        sessionId: "session-1",
+        text: "最终回答[[cite:1]]",
+        workdir: "/tmp/agent-session",
       };
     });
 
-    try {
-      await processConversationResponseJob({
-        assistantMessageId: "assistant-1",
-        conversationId: "conversation-1",
-        runId: "run-1",
-        prompt: "总结一下",
-        userMessageId: "user-1",
-      });
-    } finally {
-      dateNowSpy.mockRestore();
-    }
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      runId: "run-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
 
     expect(readAnswerDeltaEvents()).toEqual(
       expect.arrayContaining([
@@ -691,27 +656,8 @@ describe("processConversationResponseJob", () => {
     mocks.runAgentResponse.mockResolvedValue({
       citations: [
         {
-          evidence_id: "web:https://example.com/post",
-          kind: "web_page",
-          url: "https://example.com/post",
-          domain: "example.com",
-          title: "最新局势说明",
-          label: "最新局势说明 · example.com",
-          quote_text: "该文称最新变化出现在上周末。",
-          source_scope: "web",
-          library_title: null,
-        },
-      ],
-      ok: true as const,
-      sessionId: "session-1",
-      text: "最终回答",
-      workdir: "/tmp/agent-session",
-    });
-    mocks.renderGroundedAnswer.mockResolvedValue({
-      groundedAnswer: {
-        answer_markdown: "最终回答",
-        citations: [
-          {
+          citationId: 1,
+          evidence: {
             evidence_id: "web:https://example.com/post",
             kind: "web_page",
             url: "https://example.com/post",
@@ -722,13 +668,12 @@ describe("processConversationResponseJob", () => {
             source_scope: "web",
             library_title: null,
           },
-        ],
-      },
-      meta: {
-        mode: "model_streamed",
-        parsedCitationReferenceCount: 0,
-        parsedOutputPresent: true,
-      },
+        },
+      ],
+      ok: true as const,
+      sessionId: "session-1",
+      text: "最终回答[[cite:1]]",
+      workdir: "/tmp/agent-session",
     });
 
     await processConversationResponseJob({
@@ -850,7 +795,7 @@ describe("processConversationResponseJob", () => {
     expect(mocks.inserts).toEqual([]);
   });
 
-  it("fails the run when grounded final answer rendering throws", async () => {
+  it("fails the run when the assistant answer references an unknown citation id", async () => {
     mocks.queryResults.conversations = [
       {
         id: "conversation-1",
@@ -877,10 +822,9 @@ describe("processConversationResponseJob", () => {
       citations: [],
       ok: true as const,
       sessionId: "session-1",
-      text: "草稿回答",
+      text: "最终回答[[cite:9]]",
       workdir: "/tmp/agent-session",
     });
-    mocks.renderGroundedAnswer.mockRejectedValue(new Error("grounded renderer offline"));
 
     await processConversationResponseJob({
       assistantMessageId: "assistant-1",
@@ -897,7 +841,7 @@ describe("processConversationResponseJob", () => {
           values: expect.objectContaining({
             status: MESSAGE_STATUS.FAILED,
             structuredJson: expect.objectContaining({
-              agent_error: "grounded renderer offline",
+              agent_error: "Assistant answer referenced unknown citation id 9.",
               run_id: "run-1",
             }),
           }),
@@ -910,7 +854,7 @@ describe("processConversationResponseJob", () => {
         runId: "run-1",
         event: expect.objectContaining({
           type: "run_failed",
-          error: "grounded renderer offline",
+          error: "Assistant answer referenced unknown citation id 9.",
         }),
       }),
     );

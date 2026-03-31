@@ -1,7 +1,7 @@
 # AnchorDesk 引用链路排障
 
-版本：v0.1  
-日期：2026-03-31
+版本：v0.2  
+日期：2026-04-01
 
 > 本文记录对话引用链路的排障入口、常见故障特征和建议检查顺序。
 
@@ -29,19 +29,17 @@
 - `citationCount`
 - `inlineCitationMarkerCount`
 - `hasInlineCitationMarkers`
-- `finalAnswerRenderMode`
-- `parsedCitationReferenceCount`
 
 典型含义：
 
 - `workspaceEvidenceCount = 0`
   说明 tool 响应没有被收集进 grounded evidence
 - `workspaceEvidenceCount > 0` 且 `citationCount = 0`
-  说明 evidence 已经存在，但 grounded answer 没有产出可用引用
+  说明 evidence 已经存在，但最终回答没有通过 citation 校验
 - `citationCount > 0` 且 `hasInlineCitationMarkers = false`
-  说明 sources tab 理论上应有内容，但正文内联角标没有产出
+  说明模型没有按约定输出 `[[cite:N]]` marker；当前链路会直接 fail-closed
 - `citationCount > 0` 且 `hasInlineCitationMarkers = true`
-  说明后端已经产出正文 marker，若 UI 不显示，应检查前端渲染
+  说明模型已经产出原始 marker，应用层应会把它规范化为 `[^n]`
 
 ## 3. 常见故障特征
 
@@ -76,15 +74,15 @@
 
 优先检查：
 
-- `finalAnswerRenderMode`
-- `parsedCitationReferenceCount`
+- `inlineCitationMarkerCount`
 - `hasInlineCitationMarkers`
+- assistant failed payload 里的 `agent_error`
 
 已知案例：
 
-- final-answer 模型没有返回有效 `evidence_id`
-- 或者没有按约定输出 inline marker
-- 应用层现在会回退到 evidence dossier，避免 sources tab 为空
+- 模型没有按约定输出 `[[cite:N]]`
+- 模型输出了不存在的 `citation_id`
+- 当前链路不会再回退到第二次重写；会直接把整轮回答标记为 failed
 
 ## 3.3 网页引用标题/摘录像一整坨 JSON
 
@@ -148,13 +146,14 @@ NODE
 
 ## 5. 当前正文内联引用约定
 
-当前链路分两步：
+当前链路分三步：
 
-1. final-answer 模型在 `answer_markdown` 里先输出临时 token：`[[cite:N]]`
-2. 应用层归一化为最终持久化 marker：`[^1]`、`[^2]`
+1. tool output 为每条可引用证据带上 `citation_id` 和 `citation_token`
+2. 主回答模型在正文相关段落后直接输出这些原始 token：`[[cite:N]]`
+3. 应用层校验 token 后，把它归一化为最终持久化 marker：`[^1]`、`[^2]`
 
 说明：
 
 - `message_citations.ordinal` 与最终正文 marker 编号保持一致
 - 前端会把 `[^n]` 渲染为内联小角标，并复用同一条 citation 卡片数据
-- 如果模型没有返回 marker，sources tab 仍会基于应用层 fallback 展示
+- 如果模型在已有证据时没有返回 marker，或引用了未知 id，整轮回答会直接失败

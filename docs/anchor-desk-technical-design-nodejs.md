@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.10
-日期：2026-03-31
+版本：v0.11
+日期：2026-04-01
 
 > 文档角色说明：
 >
@@ -44,7 +44,7 @@
 - 对象存储：`S3 Compatible`（开发期可用 MinIO）
 - 向量检索：`Qdrant`
 - Agent 规划：`@anthropic-ai/claude-agent-sdk`
-- 最终答案结构化输出：`@anthropic-ai/sdk`
+- 结构化生成（报告工具等）：`@anthropic-ai/sdk`
 - 文档解析：`Python + FastAPI`
 - PDF 阅读：`PDF.js`
 
@@ -102,13 +102,13 @@ flowchart LR
 - 管理员侧已补齐全局资料库 CRUD、上传、目录整理、任务管理和下载入口；workspace owner 可在设置页直接订阅、暂停或移除全局资料库。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
 - 工作空间与会话附件上传当前由前端先计算文件 SHA256，再由 Web 下发 `blobs/<sha256>` 的 presigned PUT；若已有已验证 blob 则直接复用，不再按工作空间或目录前缀组织对象。
-- `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，再交给最终 grounded answer renderer。
+- `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，并在应用层完成 citation token 校验、正文规范化与 citation 落库。
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
 - `Agent Runtime` 现在会显式开启 Claude Agent SDK `includePartialMessages`，同时消费 assistant text delta、`tool_progress`、`task_started` / `task_progress` 与 `system/status`，把它们统一收口为会话 live event。
-- `Agent Runtime` 当前会先流式产出 agent draft，再进入 `grounded final answer` 阶段继续流式生成最终答案；前端会通过 phase/status 文案区分“分析中 / 调工具 / 草稿中 / 最终答案生成中”。
+- `Agent Runtime` 当前采用单次流式回答：Claude Agent SDK 直接输出最终正文，前端只消费这一条回答流；phase/status 只区分“分析中 / 调工具 / 生成中”。
 - live conversation stream 已进一步收口为 `assistant_message_id + run_id` 作用域：重试同一条 assistant message 时会生成新的 `run_id`，Redis Streams、BullMQ job、tool timeline 和 SSE fallback 都只消费当前 run，避免旧 run 事件或旧 tool timeline 回灌到新一轮回答。
 - 当本地缺少 `ANTHROPIC_API_KEY` 时，`Agent Runtime` 会直接失败，并通过既有 `run_failed` / assistant failed 链路把错误返回前端。
 - Agent 工具调用事件仍会以 `messages.role = "tool"` 持久化到数据库；但 `/api/conversations/[conversationId]/stream` 现已切到“DB 快照 + Redis Streams live transport”模型，不再以数据库轮询作为主流式通道。同一路 SSE 会推送 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
@@ -118,7 +118,7 @@ flowchart LR
 - `answer_done` / `run_failed` 终态事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 会话页和共享页当前都会直接展示持久化的 citation `quote_text`，让终态证据展示不再只停留在标签层。
 - citation 当前还会基于 `message_citations.source_scope + library_title_snapshot` 展示来源 badge，区分“工作空间资料”和“全局资料库 · <title>”。
-- grounded final answer 现在会要求模型在正文里输出应用私有 citation token；应用层会把它规范化为 `[^n]` 形式的内联角标，并与 `message_citations.ordinal` 对齐。
+- 工具结果现在会附带运行期分配的 `citation_id` / `citation_token`；模型必须在正文相关段落后直接输出这些 `[[cite:N]]` token，应用层会在终态前校验 token、重排显示序号并规范化为 `[^n]`。
 - 正文内联角标与下方“参考资料”面板共用同一条 citation registry，不依赖 provider 原生 citation 渲染，因此同一条回答可同时混用网页链接和本地资料页码。
 - streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 会把当前 streaming assistant 收口为 completed 并保留已生成片段，`agent-runtime` 随后会在发现该 assistant 已不再处于 streaming 时停止后续持久化。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
@@ -136,10 +136,10 @@ flowchart LR
 
 - 当前主会话链路已切到 token 级 live transport：`agent-runtime` 发布 Redis Streams 会话事件，Web SSE 直接转发 assistant delta / progress / status；数据库退回为快照恢复、授权与终态真相源。
 - 当前“停止生成”是基于数据库状态的协作式收口，不是 provider-side cancel；外部模型请求可能仍在后台跑完，只是不再继续写回当前消息。
-- `grounded final answer` 现在采用 fail-closed 语义：最终答案渲染缺 key、流式调用失败或模型阶段报错时，整轮回答会显式进入 `run_failed` / assistant failed，而不是静默回退为未校验 draft 成功态。
+- 当前单次回答链路采用 fail-closed 语义：只要模型引用了未知 `citation_id`，或在已有证据时遗漏 `[[cite:N]]` marker，整轮回答都会显式进入 `run_failed` / assistant failed，而不是落成未校验成功态。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
 - 证据展示已从“标签计数”推进到“标签 + 引用摘录”，但更完整的 evidence dossier、claim-to-evidence 映射和分享页最终态联动仍未完成。
-- 当前正文内联引用仍依赖 final-answer 模型按约定输出 citation token；应用层已补 sources fallback，但当模型忽略 token 语法时，正文角标可能缺失。
+- 当前正文内联引用仍依赖主回答模型遵守 `[[cite:N]]` 约定；应用层不会再做第二次改写兜底，因此当模型忽略该语法时会直接 fail-closed。
 - 当前仍有部分工具停留在基础真实实现；这些工具当前的主要要求是稳定契约、明确失败语义和不伪造引用。
 - OCR 真实 provider 尚未接入；当前仅支持关闭，并继续保持 disabled 直到商业 API 方案确定。
 - retrieval 已补上 dense 候选窗口内的 BM25 混合打分，但更完整的 sparse 候选扩展不是当前阶段的主线。
@@ -208,9 +208,9 @@ bootstrap env-only（不进入 `system_settings`）：
 
 - 多步任务规划和工具调用
 - 管理会话 session
-- 管理工具调用与 grounded answer 校验链路
+- 管理工具调用、citation token 校验与回答落库链路
 - 组织问答、研究和写作流程
-- 在工具结果与最终答案之间插入 grounded final answer 校验层
+- 把工具证据映射到运行期 citation registry，并在单次回答完成前校验正文引用
 
 ### 4.5 Python Parser Service
 
@@ -335,7 +335,7 @@ bootstrap env-only（不进入 `system_settings`）：
 - 开发协作期可额外使用 `Context7` 查询第三方开源库文档与示例；它只用于工程实现阶段核对外部依赖，不属于产品运行时 `assistant` MCP server 或最终用户可见工具集合。
 - `search_workspace_knowledge` 的输入仍以 `workspace_id` 为上下文键，但内部语义已升级为“检索当前 workspace 可访问的资料范围”，默认覆盖私有库 + 已启用检索的全局订阅库。
 - `read_citation_anchor` 与文档/内容访问链路统一走 accessible library scope 授权；取消订阅后历史 citation 文本仍可显示，但内部跳转不再保证可打开。
-- `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 或 `fetch_sources` 获取正文后，才能进入 grounded answer 的可引用证据集。
+- `search_web_general` 只负责返回公开网页候选，不直接形成最终 citation；网页证据必须经过 `fetch_source` 或 `fetch_sources` 获取正文后，才能进入主回答的可引用证据集。
 - `fetch_sources` 用于模型一次抓取多个独立 URL；批量抓取受 `fetch_source_max_concurrency` 限流，并继续复用与 `fetch_source` 相同的白名单和 grounded evidence 归一化逻辑。
 - 当前阶段要求 `search_web_general`、`search_statutes`、报告生成相关工具按真实 provider 或明确失败语义运行；输出契约必须稳定，且不得伪造 citation。
 
@@ -345,6 +345,6 @@ bootstrap env-only（不进入 `system_settings`）：
 
 1. 基于已打通的主会话链路，先稳住回答完成态、失败态和前端收尾体验
 2. 固化 tool timeline、assistant streaming 和 completed/failed 事件，并继续对齐真实 provider 失败语义
-3. grounded answer 与证据展示 / citation 联动
+3. citation 与证据展示 / 阅读器联动
 4. 只处理阻断会话链路的临时附件、解析和检索问题
 5. 主链路稳定后，再恢复真实工具 provider、retrieval 深化和 OCR 接入评估

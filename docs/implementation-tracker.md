@@ -1,7 +1,7 @@
 # 实施跟踪
 
-版本：v0.9
-日期：2026-03-30
+版本：v0.10
+日期：2026-04-01
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -15,7 +15,7 @@
 
 阶段目标：
 
-- 先把“工作空间 -> 创建对话 -> 消息入队 -> agent-runtime -> tool timeline -> assistant streaming -> grounded final answer -> citations -> 分享/回访”做顺。
+- 先把“工作空间 -> 创建对话 -> 消息入队 -> agent-runtime -> tool timeline -> assistant streaming -> 单次回答落库 -> citations -> 分享/回访”做顺。
 - 当前阶段要求主会话链路按真实 provider 行为运行；缺少关键配置或 provider 不可用时应走明确失败语义，而不是回退本地 mock。
 - 资料解析、切块质量、OCR 和更深的 retrieval 优化暂缓；除非它们直接阻断对话链路联调，否则不优先推进。
 
@@ -25,7 +25,7 @@
 - 资料管理 CRUD、会话管理、文档阅读器和上传任务反馈都已有基础版，可支撑当前阶段联调。
 - 资料模型已升级为“workspace 私有库 + 可订阅全局库”；对话检索、文档授权和引用跳转开始统一围绕 library scope 组织。
 - 第一版口径仍然是“助手优先、问答优先”；报告保留 Agent 生成与导出，不做平台内编辑器。
-- 主会话链路现已切到“Claude Agent SDK partial events + Redis Streams live transport + grounded final answer streaming”模型；Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
+- 主会话链路现已切到“Claude Agent SDK partial events + Redis Streams live transport + 单次流式回答 + 应用层 citation materialization”模型；Claude Agent SDK 仍留在独立 `agent-runtime` 进程中负责决策与工具调用。
 - 当前阶段不再接受本地 mock 会话回退；链路联调应直接暴露真实 provider 缺失或调用失败，并保持错误语义稳定。
 - 本地开发一键启动脚本已补齐。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
@@ -37,7 +37,7 @@
 
 当前实现快照：
 
-- `web -> BullMQ conversation.respond -> agent-runtime -> grounded final answer -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
+- `web -> BullMQ conversation.respond -> agent-runtime -> single answer stream -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
@@ -47,7 +47,7 @@
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
 - `/api/conversations/[conversationId]/stream` 现在会先发数据库快照，再转发 Redis Streams live event；前端会实时接收 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`。
-- assistant 正文现已具备 token 级流式：agent draft 和 grounded final answer 都会持续推送增量，而不是每次模型调用完成后整段落库再显示。
+- assistant 正文现已具备 token 级流式：主回答只生成一次，SSE 会持续推送同一条答案的增量，而不是先出草稿再二次重写。
 - 当前 live stream 已改为 `assistant_message_id + run_id` 作用域；retry 同一 assistant turn 时会生成新的 `run_id`，旧 run 的 Redis event、BullMQ job 和 tool timeline 不会再回灌到新一轮。
 - 无论当前是否已经进入会话，发送成功后前端都会先本地插入 user message 和 assistant placeholder，再由 SSE 接上后续工具时间线与回答流式更新；首条消息创建新会话时会同时在后台补上 URL 切换。
 - 当前会话在本地提交后，侧栏会话列表也会立即同步最新会话标题、更新时间和选中态，不再只能等下一次服务端刷新。
@@ -57,13 +57,14 @@
 - streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming，`agent-runtime` 会在发现该消息不再处于 streaming 时协作停止后续落库。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
-- grounded answer 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
+- citation 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
 - `search_web_general` 现在只负责返回候选链接；只有 `fetch_source` 拉回的网页正文才会进入最终 citation，因此“工具时间线里做过联网搜索”与“终态存在可展示网页引用”这两件事已被明确区分。
 - 当前已新增 `fetch_sources` 批量抓取工具；当模型需要抓取多个独立网页时，可在单次工具调用内并发拉取，并由 `fetch_source_max_concurrency` 控制该工具的进程内最大并发数。
 - `message_citations` 现已支持外部网页来源字段（`source_url` / `source_domain` / `source_title`）；会话页 source panel 可同时渲染工作空间文档跳转和网页外链。
-- grounded final answer 现已支持应用层内联 citation marker：模型先输出临时 token，应用层再规范化为 `[^n]`，前端把它渲染成正文角标并复用同一条 citation 卡片数据。
+- 应用层内联 citation marker 已收口为固定协议：工具结果提供 `citation_id` / `citation_token`，模型在正文里输出 `[[cite:N]]`，应用层再规范化为 `[^n]` 并复用同一条 citation 卡片数据。
 - `fetch_source` 现已兼容 markdown provider 返回 JSON envelope 的情况，会先解包 `content` 再抽标题和段落，避免网页引用卡片落成整段 JSON。
 - `agent.log` 已补充 citation 排障字段；详见 [anchor-desk-citation-debugging.md](./anchor-desk-citation-debugging.md)。
+- 工具层现在会为可引用证据注入运行期数字 citation id；对话主链路已移除第二次 grounded rewrite，改为单次回答 fail-closed 校验。
 - assistant / tool 的失败态 payload 已收口为共享构造函数，消息发送、重试、运行过期和 worker 失败路径复用同一套错误语义。
 - 上传链路现在由前端先计算 SHA256，再直传 `blobs/<sha256>`；worker 负责复核对象内容和 hash/key 一致性，对象层不再按工作空间前缀组织，目录归属仅由数据库 metadata 表达。
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
@@ -87,7 +88,8 @@
 ## 2. 最近完成
 
 - `working tree` Add stop action in composer and let `/api/conversations/[conversationId]/stop` finalize the active streaming assistant with its partial content
-- `working tree` Replace DB-polled assistant draft streaming with Redis Streams live transport, assistant status/tool progress events, and grounded final answer token streaming
+- `working tree` Remove the second grounded-answer pass and switch conversations to a single streamed answer with runtime citation ids and `[[cite:N]]` markers
+- `working tree` Replace DB-polled assistant draft streaming with Redis Streams live transport, assistant status/tool progress events, and single-answer token streaming
 - `working tree` Add super-admin global library CRUD pages, upload/file-manager APIs, and shared library explorer support
 - `working tree` Add workspace global-library subscription API and settings UI with active / paused / revoked states
 - `working tree` Mount subscribed global libraries read-only in workspace knowledge-base root and reuse explorer across private/global scopes
@@ -104,7 +106,7 @@
 - `working tree` Let failed-answer retry resume locally into streaming state, clear stale citations/tool timeline, and hand control back to SSE without waiting for an immediate hard refresh
 - `working tree` Surface persisted citation excerpts in conversation/share source cards and extend terminal SSE citation payload with `quote_text`
 - `working tree` Unify grounded evidence for workspace anchors and fetched web pages, and persist web citations into `message_citations`
-- `working tree` Add application-level inline citation markers in grounded answers and render them as正文角标 with shared source cards
+- `working tree` Add application-level inline citation markers in assistant answers and render them as正文角标 with shared source cards
 - `working tree` Add citation-chain debugging guide and richer agent-runtime citation logs
 - `working tree` Consolidate assistant/tool failed message payloads into shared contracts helpers across enqueue, retry, stale-run expiration, and worker failure paths
 - `working tree` Refine streaming runtime status copy so SSE reconnects show retrying instead of forcing an immediate hard refresh
@@ -138,13 +140,13 @@
 - `working tree` Finish de-legalization brand cleanup for workspace shell and add regression guard
 - `working tree` Reconfirm OCR stays disabled pending commercial API decision and verify current batch with `pnpm verify`
 - `working tree` Add BM25 scoring over dense retrieval candidates with regression tests
-- `working tree` Remove grounded answer confidence / unsupported metadata from conversation answers
+- `working tree` Remove unsupported citation confidence metadata from conversation answers
 - `working tree` Expire stale streaming assistant runs when agent-runtime stops heartbeating
 - `working tree` Replace empty-state helper copy with temporary attachment upload entry and parse-only conversation attachment flow
 - `working tree` Persist tool timeline into conversation messages and stream it over SSE
 - `working tree` Stream assistant draft content over SSE with local mock tool fallback for the main conversation chain
 - `f0e431a` Prioritize DashScope retrieval providers
-- `70aa665` Add parser OCR fallback and grounded answer validation
+- `70aa665` Add parser OCR fallback and citation validation baseline
 
 ## 3. 活跃待办
 
@@ -154,12 +156,12 @@
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
   - 当前“停止生成”仍是基于数据库状态的协作式 stop，不是 provider-side cancel；更完整的中断语义仍待后续收口
   - 仍需继续收口除重试外更完整的失败恢复体验，以及更少依赖服务端返回的收尾断层
-  - grounded final answer、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
+  - 单次回答的正文、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
   - `search_web_general` / `search_statutes` / 报告生成等工具应逐步切到真实 provider 或明确失败语义
   - tool response 必须保持稳定契约，能持续驱动 tool timeline、tool progress、assistant streaming、completed/failed 和前端展示
   - 不得伪造 citation、置信度覆盖度或外部来源
-- grounded answer 证据 dossier 与更清晰的证据展示
+- citation/evidence dossier 与更清晰的证据展示
   - 当前已补齐引用摘录展示，仍需继续补 evidence dossier、引用说明和完成态切换体验
   - 收口 citation 刷新、阅读器联动和分享页最终态一致性
 - 会话级临时资料
@@ -179,7 +181,7 @@
 
 1. 稳定主会话链路的完成态与失败态体验
 2. 固化 tool timeline、真实 provider 失败语义和前端状态切换
-3. 收口 grounded answer 证据展示、citation 刷新和阅读器/分享页联动
+3. 收口 citation 证据展示、citation 刷新和阅读器/分享页联动
 4. 只修阻断主链路的会话级临时资料问题
 5. 主链路稳定后，再恢复 retrieval 深化、真实工具 provider 和 OCR 方案评估
 
@@ -195,8 +197,8 @@
 - 公开分享链接本质是 bearer URL；公开页必须保持 `noindex`，且不能提供空间内资料跳转。
 - PDF 阅读器当前仍是基础版，没有 bbox 级高亮。
 - 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。
-- 当前最终 grounded answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
-- grounded final answer 现已改为显式失败语义；当最终 grounding 阶段失败时，不再静默回退为 completed draft。
+- 当前最终 assistant answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
+- 当前单次回答链路保持显式失败语义；当引用缺失、引用 id 非法或 provider 失败时，不再静默回退为 completed draft。
 - 当前“停止生成”通过把 streaming assistant 收口为 completed 并让 `agent-runtime` 停止后续持久化实现，不是 provider-side cancel。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。

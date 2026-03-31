@@ -32,6 +32,11 @@ const toolErrorSchema = z.object({
   retryable: z.boolean(),
 });
 
+const toolCitationReferenceSchema = z.object({
+  citation_id: z.number().int().min(1),
+  citation_token: z.string().regex(/^\[\[cite:\d+\]\]$/),
+});
+
 export const toolFailureSchema = z.object({
   ok: z.literal(false),
   error: toolErrorSchema,
@@ -55,18 +60,20 @@ export const searchWorkspaceKnowledgeInputSchema = z.object({
     .default(DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K),
 });
 
-const knowledgeSearchResultSchema = z.object({
-  anchor_id: z.string().uuid(),
-  document_id: z.string().uuid(),
-  document_title: z.string(),
-  document_path: z.string(),
-  anchor_label: z.string().optional(),
-  page_no: z.number().int().min(1),
-  section_label: z.string().nullable().optional(),
-  locator: citationLocatorSchema.nullable().optional(),
-  snippet: z.string(),
-  score: z.number(),
-});
+const knowledgeSearchResultSchema = z
+  .object({
+    anchor_id: z.string().uuid(),
+    document_id: z.string().uuid(),
+    document_title: z.string(),
+    document_path: z.string(),
+    anchor_label: z.string().optional(),
+    page_no: z.number().int().min(1),
+    section_label: z.string().nullable().optional(),
+    locator: citationLocatorSchema.nullable().optional(),
+    snippet: z.string(),
+    score: z.number(),
+  })
+  .extend(toolCitationReferenceSchema.shape);
 
 export const searchWorkspaceKnowledgeSuccessSchema = z.object({
   ok: z.literal(true),
@@ -105,19 +112,21 @@ export const readCitationAnchorInputSchema = z.object({
 
 export const readCitationAnchorSuccessSchema = z.object({
   ok: z.literal(true),
-  anchor: z.object({
-    anchor_id: z.string().uuid(),
-    document_id: z.string().uuid(),
-    document_title: z.string(),
-    document_path: z.string(),
-    anchor_label: z.string().optional(),
-    page_no: z.number().int().min(1),
-    locator: citationLocatorSchema.nullable().optional(),
-    bbox: bboxSchema.nullable().optional(),
-    text: z.string(),
-    context_before: z.string().optional(),
-    context_after: z.string().optional(),
-  }),
+  anchor: z
+    .object({
+      anchor_id: z.string().uuid(),
+      document_id: z.string().uuid(),
+      document_title: z.string(),
+      document_path: z.string(),
+      anchor_label: z.string().optional(),
+      page_no: z.number().int().min(1),
+      locator: citationLocatorSchema.nullable().optional(),
+      bbox: bboxSchema.nullable().optional(),
+      text: z.string(),
+      context_before: z.string().optional(),
+      context_after: z.string().optional(),
+    })
+    .extend(toolCitationReferenceSchema.shape),
 });
 
 export const readCitationAnchorOutputSchema = z.union([
@@ -175,13 +184,15 @@ export const searchWebGeneralOutputSchema = z.union([
   toolFailureSchema,
 ]);
 
-const fetchedSourceDocumentSchema = z.object({
-  url: z.string().url(),
-  title: z.string(),
-  fetched_at: z.string(),
-  content_type: z.string(),
-  paragraphs: z.array(z.string()),
-});
+const fetchedSourceDocumentSchema = z
+  .object({
+    url: z.string().url(),
+    title: z.string(),
+    fetched_at: z.string(),
+    content_type: z.string(),
+    paragraphs: z.array(z.string()),
+  })
+  .extend(toolCitationReferenceSchema.shape);
 
 export const fetchSourceInputSchema = z.object({
   url: z.string().url(),

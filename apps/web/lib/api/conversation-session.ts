@@ -1,5 +1,4 @@
 import {
-  ASSISTANT_STREAM_PHASE,
   buildAssistantFailedMessageState,
   buildInitialStreamingAssistantRunState,
   CONVERSATION_STREAM_EVENT,
@@ -239,22 +238,12 @@ export function applyAssistantDeltaEvent(input: {
       return message;
     }
 
-    const phase =
-      typeof message.structuredJson?.phase === "string"
-        ? message.structuredJson.phase
-        : null;
-    const shouldHoldDraftPreview =
-      phase === ASSISTANT_STREAM_PHASE.FINALIZING &&
-      message.contentMarkdown.trim().length > 0;
-
     return {
       ...message,
       status: input.event.status,
-      contentMarkdown: shouldHoldDraftPreview
-        ? message.contentMarkdown
-        : input.event.delta_text
-          ? `${message.contentMarkdown}${input.event.delta_text}`
-          : input.event.content_markdown,
+      contentMarkdown: input.event.delta_text
+        ? `${message.contentMarkdown}${input.event.delta_text}`
+        : input.event.content_markdown,
     };
   });
 }

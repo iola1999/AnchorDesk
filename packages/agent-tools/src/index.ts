@@ -14,6 +14,11 @@ import {
   writeReportSectionInputSchema,
 } from "@anchordesk/contracts";
 
+import {
+  attachCitationMetadataToToolOutput,
+  createAssistantCitationRegistry,
+  type AssistantCitationRegistry,
+} from "./citation-registry";
 import { asToolText } from "./tool-output";
 import { createReportOutlineHandler } from "./tools/create-report-outline";
 import { fetchSourceHandler } from "./tools/fetch-source-tool";
@@ -94,7 +99,11 @@ export const assistantToolDefinitions = [
   },
 ] as const;
 
-export function createAssistantMcpServer() {
+export function createAssistantMcpServer(input?: {
+  citationRegistry?: AssistantCitationRegistry;
+}) {
+  const citationRegistry = input?.citationRegistry ?? createAssistantCitationRegistry();
+
   return createSdkMcpServer({
     name: ASSISTANT_MCP_SERVER_NAME,
     version: "0.1.0",
@@ -103,7 +112,14 @@ export function createAssistantMcpServer() {
         definition.name,
         definition.description,
         definition.inputShape,
-        async (args) => asToolText(await definition.handler(args)),
+        async (args) =>
+          asToolText(
+            attachCitationMetadataToToolOutput({
+              toolName: definition.name,
+              registry: citationRegistry,
+              output: await definition.handler(args),
+            }),
+          ),
       ),
     ),
   });
