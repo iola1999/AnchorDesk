@@ -1,4 +1,5 @@
 import {
+  ASSISTANT_STREAM_PHASE,
   buildAssistantFailedMessageState,
   buildInitialStreamingAssistantRunState,
   CONVERSATION_STREAM_EVENT,
@@ -57,6 +58,11 @@ type AssistantTerminalEvent = Extract<
   ConversationStreamEvent,
   | { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DONE }
   | { type: typeof CONVERSATION_STREAM_EVENT.RUN_FAILED }
+>;
+
+type AssistantDeltaEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA }
 >;
 
 const CONVERSATION_EXPORT_FILENAME_STEM_LENGTH = 48;
@@ -222,6 +228,35 @@ export function restartAssistantSessionSnapshotForRetry(input: {
     citations: nextState.citations,
     timelineMessagesByAssistant: nextTimelineMessagesByAssistant,
   };
+}
+
+export function applyAssistantDeltaEvent(input: {
+  event: AssistantDeltaEvent;
+  messages: ConversationChatMessage[];
+}) {
+  return input.messages.map((message) => {
+    if (message.id !== input.event.message_id) {
+      return message;
+    }
+
+    const phase =
+      typeof message.structuredJson?.phase === "string"
+        ? message.structuredJson.phase
+        : null;
+    const shouldHoldDraftPreview =
+      phase === ASSISTANT_STREAM_PHASE.FINALIZING &&
+      message.contentMarkdown.trim().length > 0;
+
+    return {
+      ...message,
+      status: input.event.status,
+      contentMarkdown: shouldHoldDraftPreview
+        ? message.contentMarkdown
+        : input.event.delta_text
+          ? `${message.contentMarkdown}${input.event.delta_text}`
+          : input.event.content_markdown,
+    };
+  });
 }
 
 export function applyAssistantTerminalEvent(input: {

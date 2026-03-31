@@ -33,6 +33,7 @@ import {
   type RetryableConversationMessage,
 } from "@/lib/api/conversation-retry";
 import {
+  applyAssistantDeltaEvent,
   applyAssistantTerminalEvent,
   applyAssistantTerminalEventToSessionSnapshot,
   buildConversationExportFilename,
@@ -449,21 +450,16 @@ export function ConversationSession({
       }
 
       setChatMessages((current) => {
-        const nextMessages = current.map((message) =>
-          message.id === payload.message_id
-            ? {
-                ...message,
-                status: payload.status,
-                contentMarkdown: payload.delta_text
-                  ? `${message.contentMarkdown}${payload.delta_text}`
-                  : payload.content_markdown,
-              }
-            : message,
-        );
+        const nextMessages = applyAssistantDeltaEvent({
+          messages: current,
+          event: payload,
+        });
         chatMessagesRef.current = nextMessages;
         setRuntimeStatus(
           readAssistantRuntimeStatus(nextMessages, payload.message_id) ??
-            describeAssistantStreamingStatus(payload.content_markdown),
+            describeAssistantStreamingStatus(
+              readAssistantMessageContent(nextMessages, payload.message_id),
+            ),
         );
         return nextMessages;
       });

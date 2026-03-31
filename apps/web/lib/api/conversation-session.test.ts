@@ -7,6 +7,7 @@ import {
 } from "@anchordesk/contracts";
 
 import {
+  applyAssistantDeltaEvent,
   appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
   applyAssistantTerminalEventToSessionSnapshot,
@@ -704,6 +705,96 @@ describe("applyAssistantTerminalEvent", () => {
       }),
     ]);
     expect(result.citations).toEqual([]);
+  });
+});
+
+describe("applyAssistantDeltaEvent", () => {
+  test("keeps the streamed draft visible while the grounded final answer is finalizing", () => {
+    expect(
+      applyAssistantDeltaEvent({
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "前面已经流出来的草稿",
+            structuredJson: {
+              run_id: "run-1",
+              run_started_at: "2026-03-31T10:00:00.000Z",
+              run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
+              run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+              phase: "finalizing",
+            },
+          },
+        ],
+        event: {
+          type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+          conversation_id: "conversation-1",
+          message_id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          content_markdown: "基于当前已验证证据",
+          delta_text: null,
+        },
+      }),
+    ).toEqual([
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "前面已经流出来的草稿",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+          phase: "finalizing",
+        },
+      },
+    ]);
+  });
+
+  test("continues appending streamed content before finalizing starts", () => {
+    expect(
+      applyAssistantDeltaEvent({
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "第一段",
+            structuredJson: {
+              run_id: "run-1",
+              run_started_at: "2026-03-31T10:00:00.000Z",
+              run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
+              run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+              phase: "drafting",
+            },
+          },
+        ],
+        event: {
+          type: CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
+          conversation_id: "conversation-1",
+          message_id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          content_markdown: "",
+          delta_text: "第二段",
+        },
+      }),
+    ).toEqual([
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "第一段第二段",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+          phase: "drafting",
+        },
+      },
+    ]);
   });
 });
 
