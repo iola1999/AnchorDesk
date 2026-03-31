@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import {
   buildPdfSearchResults,
@@ -211,16 +210,16 @@ export function PdfViewer({
     currentPageText || "当前页暂无可提取文本。",
     highlightedText?.trim() || searchQuery.trim(),
   );
+  const currentPageTextMaxHeight = highlightedText ? "max-h-[280px]" : "max-h-[220px]";
 
   return (
-    <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
-      {/* 左侧独立搜索大纲区 */}
-      <div className="w-full shrink-0 min-w-0 lg:w-[280px] xl:w-[320px] pb-6">
-        <div className="sticky top-6 grid gap-4 min-w-0 w-full max-w-full">
+    <div className="grid w-full gap-6 lg:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)_420px]">
+      <div className="min-w-0 self-start lg:col-start-1 lg:row-start-1 xl:sticky xl:top-6">
+        <div className="grid gap-4 rounded-[24px] border border-app-border/60 bg-white/40 p-4 shadow-soft backdrop-blur-sm md:p-5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-app-muted-strong px-1">页内搜索</span>
+            <span className="px-1 text-[13px] font-medium text-app-muted-strong">页内搜索</span>
             <input
-              className={cn(ui.input, "bg-white/60")}
+              className={cn(ui.input, "bg-white/70")}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="搜索当前 PDF 中的关键词"
@@ -228,39 +227,38 @@ export function PdfViewer({
           </label>
 
           {searchResults.length > 0 ? (
-            <div className="grid gap-2">
+            <div className="grid max-h-[calc(100vh-16rem)] gap-2 overflow-y-auto pr-1">
               {searchResults.map((result) => (
                 <button
                   key={`${result.pageNo}-${result.snippet}`}
-                  className="w-full min-w-0 rounded-2xl border border-app-border/60 bg-white/40 px-4 py-3 text-left text-sm hover:border-app-border-strong hover:bg-white transition whitespace-normal break-words break-all"
+                  className="w-full min-w-0 rounded-2xl border border-app-border/60 bg-white/55 px-4 py-3 text-left text-sm transition hover:border-app-border-strong hover:bg-white"
                   onClick={() => jumpToPage(result.pageNo)}
                   type="button"
                 >
-                  <strong className="text-app-text block mb-1">第 {result.pageNo} 页</strong>
-                  <span className="text-app-muted text-[13px] leading-relaxed block line-clamp-4 break-words">
+                  <strong className="mb-1 block text-app-text">第 {result.pageNo} 页</strong>
+                  <span className="block break-words text-[13px] leading-relaxed text-app-muted line-clamp-4">
                     {result.snippet}
                   </span>
                 </button>
               ))}
             </div>
-          ) : (
-            searchQuery ? <p className="text-[13px] text-app-muted px-1">未找到相关内容。</p> : null
-          )}
+          ) : searchQuery ? (
+            <p className="px-1 text-[13px] text-app-muted">未找到相关内容。</p>
+          ) : null}
         </div>
       </div>
 
-      {/* 中间主要层 */}
-      <div className="grid min-w-0 flex-1 gap-6">
-        <div className="grid gap-5 rounded-2xl border border-app-border/60 bg-white/40 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-app-border/40 pb-3">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-2 2xl:col-start-2 2xl:row-start-1 2xl:row-span-2">
+        <div className="grid gap-5 rounded-[24px] border border-app-border/60 bg-white/40 p-4 shadow-soft backdrop-blur-sm md:p-5">
+          <div className="flex flex-col gap-3 border-b border-app-border/40 pb-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="grid gap-1">
               <h3 className="text-[15px] font-semibold text-app-text">PDF 阅读器</h3>
-              <p className="text-[12px] text-app-muted truncate max-w-[300px]" title={title}>
+              <p className="max-w-[320px] truncate text-[12px] text-app-muted" title={title}>
                 {title}
                 {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 shrink-0 bg-app-surface-soft/50 p-1 rounded-xl border border-app-border/40">
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 rounded-xl border border-app-border/40 bg-app-surface-soft/50 p-1">
               <button
                 className={buttonStyles({ variant: "ghost", size: "sm" })}
                 disabled={currentPage <= 1}
@@ -284,7 +282,7 @@ export function PdfViewer({
               >
                 下一页
               </button>
-              <div className="w-px h-4 bg-app-border/60 mx-1" />
+              <div className="mx-1 h-4 w-px bg-app-border/60" />
               <button
                 className={buttonStyles({ variant: "ghost", size: "sm" })}
                 disabled={scale <= 0.8}
@@ -303,41 +301,80 @@ export function PdfViewer({
             </div>
           </div>
 
-        {status ? <p className="text-[13px] text-app-muted px-1">{status}</p> : null}
-        
-        <div className="overflow-auto rounded-xl border border-app-border/50 bg-white p-2 shadow-sm">
-          <canvas ref={canvasRef} className="block h-auto w-full max-w-none" />
-        </div>
+          {status ? <p className="px-1 text-[13px] text-app-muted">{status}</p> : null}
 
-        <div className="grid gap-2.5">
-          <div className="flex items-center justify-between px-1">
-            <strong className="text-[13px] font-medium text-app-text">第 {currentPage} 页文本</strong>
-            {highlightedText ? <span className="text-[12px] text-app-muted">已按引用内容高亮</span> : null}
-          </div>
-          <div
-            className={cn(
-              textSelectionStyles.content,
-              "rounded-xl border border-app-border/60 bg-white/70 p-4 leading-[1.8] text-[14px] text-app-text shadow-sm",
-            )}
-          >
-            {highlightedSegments.map((segment, index) =>
-              segment.highlighted ? (
-                <mark
-                  key={`${segment.text}-${index}`}
-                  className="rounded-sm bg-yellow-200/80 px-0.5 font-medium text-black"
-                >
-                  {segment.text}
-                </mark>
-              ) : (
-                <span key={`${segment.text}-${index}`}>{segment.text}</span>
-              ),
-            )}
+          <div className="overflow-y-auto overflow-x-hidden rounded-xl border border-app-border/50 bg-white p-2 shadow-sm">
+            <canvas ref={canvasRef} className="block h-auto w-full max-w-full" />
           </div>
         </div>
       </div>
 
-      {children}
+      <div className="min-w-0 self-start lg:col-span-2 lg:row-start-3 2xl:sticky 2xl:top-6 2xl:col-span-1 2xl:col-start-3 2xl:row-start-1 2xl:row-span-2">
+        <div className="grid gap-4 overflow-hidden rounded-[24px] border border-app-border/60 bg-white/46 p-4 shadow-soft backdrop-blur-sm md:p-5 lg:max-h-[calc(100vh-3rem)]">
+          <div className="grid gap-1.5 border-b border-app-border/40 pb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid gap-1">
+                <h3 className="text-[15px] font-semibold text-app-text">高亮与解析</h3>
+                <p className="text-[12px] text-app-muted">第 {currentPage} 页</p>
+              </div>
+              {highlightedText ? (
+                <span className={cn(ui.chipSoft, "shrink-0")}>已按引用高亮</span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="min-h-0 overflow-y-auto overflow-x-hidden pr-1">
+            <div className="grid gap-4">
+              <div className="grid gap-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <strong className="text-[13px] font-medium text-app-text">
+                    第 {currentPage} 页文本
+                  </strong>
+                  <span className="text-[12px] text-app-muted">
+                    {highlightedText ? "优先显示高亮片段" : "当前页完整提取"}
+                  </span>
+                </div>
+                <div
+                  className={cn(
+                    "rounded-xl border border-app-border/60 bg-white/75 shadow-sm",
+                    currentPageTextMaxHeight,
+                  )}
+                >
+                  <div
+                    className={cn(
+                      textSelectionStyles.content,
+                      "h-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all [overflow-wrap:anywhere] p-4 text-[14px] leading-[1.8] text-app-text",
+                    )}
+                  >
+                    {highlightedSegments.map((segment, index) =>
+                      segment.highlighted ? (
+                        <mark
+                          key={`${segment.text}-${index}`}
+                          className="rounded-sm bg-yellow-200/80 px-0.5 font-medium text-black"
+                        >
+                          {segment.text}
+                        </mark>
+                      ) : (
+                        <span key={`${segment.text}-${index}`}>{segment.text}</span>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {children ? (
+                <div className="grid gap-3 border-t border-app-border/40 pt-4">
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <strong className="text-[13px] font-medium text-app-text">全部解析页</strong>
+                    <span className="text-right text-[12px] text-app-muted">可继续滚动查看全部页面</span>
+                  </div>
+                  {children}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
   );
 }

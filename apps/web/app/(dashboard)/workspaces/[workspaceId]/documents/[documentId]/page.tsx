@@ -16,6 +16,7 @@ import {
 
 import { auth } from "@/auth";
 import { DeleteDocumentButton } from "@/components/documents/delete-document-button";
+import { DocumentDetailsModal } from "@/components/documents/document-details-modal";
 import { DocumentJobPanel } from "@/components/documents/document-job-panel";
 import { DocumentMetadataForm } from "@/components/documents/document-metadata-form";
 import { PdfViewer } from "@/components/documents/pdf-viewer";
@@ -172,6 +173,80 @@ export default async function DocumentPage({
     documentTypeOptions.find((item) => item.value === doc.docType)?.label ?? doc.docType;
   const tags = doc.tagsJson ?? [];
   const canRenderPdf = doc.mimeType.includes("pdf") && Boolean(latestVersion);
+  const metadataPanel = isWorkspaceOwnedDocument ? (
+    <DocumentMetadataForm
+      workspaceId={workspaceId}
+      document={{
+        id: documentId,
+        title: doc.title,
+        directoryPath: doc.directoryPath,
+      }}
+      directories={directories.map((d) => ({
+        id: d.id,
+        path: d.path,
+      }))}
+    />
+  ) : (
+    <div className="grid gap-2 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
+      <h3 className="text-[14px] font-semibold text-app-text">共享资料</h3>
+      <p className="text-[13px] leading-6 text-app-muted-strong">
+        该文档来自已订阅的全局资料库，当前工作空间内只读。
+      </p>
+    </div>
+  );
+  const versionHistoryPanel = (
+    <div className="grid content-start gap-3 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
+      <div className="flex items-center justify-between border-b border-app-border/40 pb-1">
+        <h3 className="text-[14px] font-semibold text-app-text">版本历史</h3>
+      </div>
+      <ul className="grid max-h-[420px] content-start gap-2 overflow-y-auto pr-1">
+        {versions.map((version, idx) => (
+          <li
+            key={version.id}
+            className="flex flex-col gap-1 rounded-xl border border-app-border/60 bg-white/70 px-3 py-2.5 transition hover:bg-white"
+          >
+            <div className="flex items-center justify-between">
+              <strong className="text-[13px] font-medium text-app-text">
+                v{version.version} {idx === versions.length - 1 && "(当前)"}
+              </strong>
+              <span className="inline-flex items-center rounded-md border border-app-border/40 bg-app-surface-soft px-1.5 py-0.5 text-[11px] font-medium text-app-muted-strong">
+                {version.parseStatus}
+              </span>
+            </div>
+            {version.sha256 ? (
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-app-muted/80">
+                  SHA
+                </span>
+                <div
+                  className="truncate text-[11px] font-mono text-app-muted"
+                  title={version.sha256}
+                >
+                  {version.sha256}
+                </div>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  const detailsPanels = (
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
+      <div className="grid content-start gap-5">
+        <DocumentJobPanel job={latestJob} />
+        {metadataPanel}
+      </div>
+      <div className="grid content-start gap-5">
+        {versionHistoryPanel}
+        {isWorkspaceOwnedDocument ? (
+          <div className="flex justify-end border-t border-app-border/40 pt-4">
+            <DeleteDocumentButton workspaceId={workspaceId} documentId={documentId} />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
 
   const contentBlocks = (
     <>
@@ -277,7 +352,7 @@ export default async function DocumentPage({
                     <div
                       className={cn(
                         textSelectionStyles.content,
-                        "leading-6 text-[14px] text-app-text",
+                        "min-w-0 whitespace-pre-wrap break-all [overflow-wrap:anywhere] leading-6 text-[14px] text-app-text",
                       )}
                     >
                       {block.text}
@@ -300,7 +375,7 @@ export default async function DocumentPage({
   );
 
   return (
-    <div className={cn(ui.page, "max-w-[1440px]")}>
+    <div className={cn(ui.page, "max-w-[1680px]")}>
       {/* 顶部标题区，去除了笨重的 panelLarge，改为通栏透明底带底边框 */}
       <div className="mb-2 grid gap-5 border-b border-app-border/40 pb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -345,84 +420,25 @@ export default async function DocumentPage({
               </div>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center justify-end">
-            {isWorkspaceOwnedDocument ? (
-              <DeleteDocumentButton workspaceId={workspaceId} documentId={documentId} />
-            ) : null}
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            <DocumentDetailsModal>{detailsPanels}</DocumentDetailsModal>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row items-start gap-6">
-        <div className="min-w-0 flex-1">
-          {canRenderPdf ? (
-            <PdfViewer
-              fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
-              title={doc.title}
-              initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
-              highlightedText={anchor?.anchorText ?? ""}
-            >
-              {contentBlocks}
-            </PdfViewer>
-          ) : (
-            contentBlocks
-          )}
-        </div>
-          
-        {/* 右侧边栏：状态、属性、版本 */}
-        <div className="grid w-full shrink-0 lg:w-[320px] xl:w-[360px] gap-5">
-          <DocumentJobPanel job={latestJob} />
-          
-          <div className="sticky top-6 grid gap-5">
-            {isWorkspaceOwnedDocument ? (
-              <DocumentMetadataForm
-                workspaceId={workspaceId}
-                document={{
-                  id: documentId,
-                  title: doc.title,
-                  directoryPath: doc.directoryPath,
-                }}
-                directories={directories.map((d) => ({
-                  id: d.id,
-                  path: d.path,
-                }))}
-              />
-            ) : (
-              <div className="grid gap-2 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
-                <h3 className="text-[14px] font-semibold text-app-text">共享资料</h3>
-                <p className="text-[13px] leading-6 text-app-muted-strong">
-                  该文档来自已订阅的全局资料库，当前工作空间内只读。
-                </p>
-              </div>
-            )}
-            
-            <div className="grid gap-3 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
-              <div className="flex items-center justify-between pb-1 border-b border-app-border/40">
-                <h3 className="text-[14px] font-semibold text-app-text">版本历史</h3>
-              </div>
-              <ul className="grid gap-2">
-                {versions.map((version, idx) => (
-                  <li key={version.id} className="flex flex-col gap-1 rounded-xl border border-app-border/60 bg-white/70 px-3 py-2.5 transition hover:bg-white">
-                    <div className="flex items-center justify-between">
-                      <strong className="text-[13px] font-medium text-app-text">v{version.version} {idx === versions.length - 1 && "(当前)"}</strong>
-                      <span className="inline-flex items-center rounded-md bg-app-surface-soft px-1.5 py-0.5 text-[11px] font-medium text-app-muted-strong border border-app-border/40">
-                        {version.parseStatus}
-                      </span>
-                    </div>
-                    {version.sha256 ? (
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-app-muted/80">SHA</span>
-                        <div className="truncate text-[11px] font-mono text-app-muted" title={version.sha256}>
-                          {version.sha256}
-                        </div>
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
+      <div className="min-w-0">
+        {canRenderPdf ? (
+          <PdfViewer
+            fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
+            title={doc.title}
+            initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
+            highlightedText={anchor?.anchorText ?? ""}
+          >
+            {contentBlocks}
+          </PdfViewer>
+        ) : (
+          contentBlocks
+        )}
       </div>
     </div>
   );
