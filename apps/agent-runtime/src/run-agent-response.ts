@@ -92,11 +92,13 @@ export function buildAgentSystemPrompt(input: {
     "You are a grounded workspace assistant operating inside a single workspace.",
     `Current workspace_id: ${input.workspaceId}.`,
     `Current conversation_id: ${input.conversationId}.`,
-    "When you use search_conversation_attachments, always pass the exact conversation_id shown above.",
+    "When you use search_conversation_attachments or read_conversation_attachment_range, always pass the exact conversation_id shown above.",
     "When you use search_workspace_knowledge or create_report_outline, always pass the exact workspace_id shown above.",
     "Do not invent facts, sources, anchor IDs, or directory paths.",
     "If the workspace knowledge base does not support the answer, say so plainly.",
     "If the user mentions files uploaded in this chat or temporary attachments, search conversation attachments before the workspace knowledge base.",
+    "If attachment text is preloaded into the user prompt for quick reading, treat it as orientation only. If the final answer relies on attachment facts, still call search_conversation_attachments or read_conversation_attachment_range to obtain citation_token-backed evidence before citing.",
+    "When a preloaded attachment note says the document was truncated, use read_conversation_attachment_range with the provided document_id and a focused multi-page window before relying on omitted pages.",
     "Prefer conversation attachments and workspace knowledge before web tools whenever local materials may be relevant. Use web tools when local evidence is insufficient.",
     ...buildLocalKnowledgePriorityLines(input.searchableKnowledge),
     "When using web information in the final answer, fetch the source URL first and cite the fetched page instead of raw search snippets.",
@@ -155,6 +157,10 @@ function buildWebEvidenceQuote(paragraphs: string[]) {
       .join("\n"),
     360,
   );
+}
+
+function buildDocumentEvidenceQuote(text: string) {
+  return truncateText(text, 360);
 }
 
 function collectFetchedWebEvidence(input: {
@@ -300,6 +306,50 @@ function collectGroundedEvidence(
               ? sourceScope
               : null,
           library_title: libraryTitle || null,
+        },
+      });
+    }
+  }
+
+  if (normalizedToolName === ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE) {
+    const document =
+      payload.document && typeof payload.document === "object"
+        ? (payload.document as Record<string, unknown>)
+        : null;
+    const pages = Array.isArray(document?.pages)
+      ? document.pages.filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === "object",
+        )
+      : [];
+    const documentPath = String(document?.document_path ?? "").trim();
+
+    for (const page of pages) {
+      const anchorId = String(page.anchor_id ?? "").trim();
+      const citationId = Number(page.citation_id);
+      if (!anchorId || !Number.isInteger(citationId) || citationId <= 0) {
+        continue;
+      }
+
+      const pageNo = typeof page.page_no === "number" ? page.page_no : null;
+      const anchorLabel = String(page.anchor_label ?? "").trim();
+      const text = String(page.text ?? "").trim();
+
+      citationMap.set(buildDocumentEvidenceId(anchorId), {
+        citationId,
+        evidence: {
+          evidence_id: buildDocumentEvidenceId(anchorId),
+          kind: GROUNDED_EVIDENCE_KIND.DOCUMENT_ANCHOR,
+          anchor_id: anchorId,
+          document_path: documentPath,
+          page_no: pageNo,
+          label:
+            anchorLabel ||
+            [documentPath, pageNo ? `第${pageNo}页` : null].filter(Boolean).join(" · ") ||
+            anchorId,
+          quote_text: buildDocumentEvidenceQuote(text),
+          source_scope: null,
+          library_title: null,
         },
       });
     }

@@ -96,6 +96,31 @@ export function attachCitationMetadataToToolOutput(input: {
     };
   }
 
+  if (normalizedToolName === ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE) {
+    const document = asObjectRecord(output.document);
+    const pages = Array.isArray(document?.pages) ? document.pages : [];
+    if (!document) {
+      return input.output;
+    }
+
+    return {
+      ...output,
+      document: {
+        ...document,
+        pages: pages.map((page) => {
+          const record = asObjectRecord(page);
+          const anchorId =
+            record && typeof record.anchor_id === "string" ? record.anchor_id.trim() : "";
+          if (!record || !anchorId) {
+            return page;
+          }
+
+          return withCitationFields(record, input.registry.registerDocumentAnchor(anchorId));
+        }),
+      },
+    };
+  }
+
   if (normalizedToolName === ASSISTANT_TOOL.READ_CITATION_ANCHOR) {
     const anchor = asObjectRecord(output.anchor);
     const anchorId =

@@ -40,14 +40,21 @@
 - 输入：`conversation_id`、`query`、`top_k`
 - 输出：与 `search_workspace_knowledge` 同形的结果结构，包含 `locator`
 
-### 3.3 `read_citation_anchor`
+### 3.3 `read_conversation_attachment_range`
+
+- 作用：按 `document_id + page_start/page_end` 读取当前会话附件中的一段连续页正文。
+- 输入：`conversation_id`、`document_id`、`page_start`、`page_end`
+- 输出：文档元信息、实际加载页范围、是否因窗口上限被截断，以及逐页正文数组
+- 约束：单次最多返回一个小页窗；当预载 prompt 已提示“内容过长已省略”时，模型应优先用这个工具深读附件正文。
+
+### 3.4 `read_citation_anchor`
 
 - 作用：读取某条引用锚点及其上下文。
 - 输入：`anchor_id`
 - 授权：按当前 workspace 的 accessible library scope 校验，而不是仅按 `documents.workspace_id`
 - 输出：文档、页码、`locator`、`bbox`、正文片段及其上下文
 
-### 3.4 `search_web_general`
+### 3.5 `search_web_general`
 
 - 作用：检索公开网络结果。
 - 输入：`query`、`top_k`
@@ -55,7 +62,7 @@
 - 输出：标题、URL、域名、摘要
 - 约束：它只提供候选链接与摘要，不直接形成最终 citation。
 
-### 3.5 `fetch_source`
+### 3.6 `fetch_source`
 
 - 作用：抓取指定 URL 的文本内容。
 - 输入：`url`
@@ -63,7 +70,7 @@
 - 输出：标题、抓取时间、内容类型、段落数组
 - 约束：网页引用必须基于 `fetch_source` 返回的正文段落进入 grounded evidence；不要直接把搜索结果摘要当成最终引用。
 
-### 3.6 `fetch_sources`
+### 3.7 `fetch_sources`
 
 - 作用：批量抓取多个 URL 的文本内容。
 - 输入：`urls[]`
@@ -71,13 +78,13 @@
 - 输出：`sources[]` 与 `failures[]`
 - 约束：批量抓取仍受 `fetch_allowed_domains` 白名单与 `fetch_source_max_concurrency` 并发上限约束；单个 URL 失败不应伪造成功结果，也不应吞掉其他已成功抓取的网页正文。
 
-### 3.7 `create_report_outline`
+### 3.8 `create_report_outline`
 
 - 作用：基于当前任务生成报告大纲。
 - 输入：`workspace_id`、`title`、`task`、可选 `evidence_anchor_ids`
 - 输出：标题和 section 列表
 
-### 3.8 `write_report_section`
+### 3.9 `write_report_section`
 
 - 作用：基于指令和证据生成某个章节草稿。
 - 输入：`report_id`、`section_id`、`instruction`、可选 `evidence_anchor_ids`

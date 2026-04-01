@@ -7,6 +7,7 @@ import {
   createReportOutlineInputSchema,
   fetchSourceInputSchema,
   fetchSourcesInputSchema,
+  readConversationAttachmentRangeInputSchema,
   readCitationAnchorInputSchema,
   searchConversationAttachmentsInputSchema,
   searchStatutesInputSchema,
@@ -24,6 +25,7 @@ import { asToolText } from "./tool-output";
 import { createReportOutlineHandler } from "./tools/create-report-outline";
 import { fetchSourceHandler } from "./tools/fetch-source-tool";
 import { fetchSourcesHandler } from "./tools/fetch-sources-tool";
+import { readConversationAttachmentRangeHandler } from "./tools/read-conversation-attachment-range";
 import { readCitationAnchorHandler } from "./tools/read-citation-anchor";
 import { searchConversationAttachmentsHandler } from "./tools/search-conversation-attachments";
 import { searchStatutesHandler } from "./tools/search-statutes";
@@ -38,6 +40,7 @@ export {
   createReportOutlineHandler,
   fetchSourceHandler,
   fetchSourcesHandler,
+  readConversationAttachmentRangeHandler,
   readCitationAnchorHandler,
   searchConversationAttachmentsHandler,
   searchStatutesHandler,
@@ -52,6 +55,12 @@ export const assistantToolDefinitions = [
     description: "Search temporary files attached to the current conversation",
     inputShape: searchConversationAttachmentsInputSchema.shape,
     execute: async (args: unknown) => searchConversationAttachmentsHandler(args),
+  },
+  {
+    name: ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE,
+    description: "Read a focused page range from a temporary file attached to the current conversation",
+    inputShape: readConversationAttachmentRangeInputSchema.shape,
+    execute: async (args: unknown) => readConversationAttachmentRangeHandler(args),
   },
   {
     name: ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,

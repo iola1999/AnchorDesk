@@ -8,6 +8,7 @@ describe("assistantToolDefinitions", () => {
   it("registers every assistant tool once in a stable order", () => {
     expect(assistantToolDefinitions.map((definition) => definition.name)).toEqual([
       ASSISTANT_TOOL.SEARCH_CONVERSATION_ATTACHMENTS,
+      ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE,
       ASSISTANT_TOOL.SEARCH_WORKSPACE_KNOWLEDGE,
       ASSISTANT_TOOL.READ_CITATION_ANCHOR,
       ASSISTANT_TOOL.SEARCH_STATUTES,

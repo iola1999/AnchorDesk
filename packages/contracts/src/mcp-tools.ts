@@ -5,6 +5,7 @@ import {
   DEFAULT_SEARCH_WEB_GENERAL_TOP_K,
   DEFAULT_SEARCH_WORKSPACE_KNOWLEDGE_TOP_K,
   MAX_FETCH_SOURCE_BATCH_URLS,
+  MAX_READ_CONVERSATION_ATTACHMENT_RANGE_PAGES,
   DEFAULT_STATUTES_JURISDICTION,
   MAX_SEARCH_STATUTES_TOP_K,
   MAX_SEARCH_WEB_GENERAL_TOP_K,
@@ -103,6 +104,53 @@ export const searchConversationAttachmentsSuccessSchema = z.object({
 
 export const searchConversationAttachmentsOutputSchema = z.union([
   searchConversationAttachmentsSuccessSchema,
+  toolFailureSchema,
+]);
+
+const conversationAttachmentPageSchema = z
+  .object({
+    anchor_id: z.string().uuid(),
+    anchor_label: z.string().optional(),
+    page_no: z.number().int().min(1),
+    text: z.string(),
+  })
+  .extend(toolCitationReferenceSchema.shape);
+
+export const readConversationAttachmentRangeInputSchema = z
+  .object({
+    conversation_id: z.string().uuid(),
+    document_id: z.string().uuid(),
+    page_start: z.number().int().min(1),
+    page_end: z.number().int().min(1),
+  })
+  .refine((value) => value.page_end >= value.page_start, {
+    message: "page_end must be greater than or equal to page_start",
+    path: ["page_end"],
+  });
+
+export const readConversationAttachmentRangeSuccessSchema = z.object({
+  ok: z.literal(true),
+  document: z.object({
+    document_id: z.string().uuid(),
+    document_title: z.string(),
+    document_path: z.string(),
+    requested_page_start: z.number().int().min(1),
+    requested_page_end: z.number().int().min(1),
+    loaded_page_start: z.number().int().min(1),
+    loaded_page_end: z.number().int().min(1),
+    total_pages: z.number().int().min(1),
+    truncated: z.boolean(),
+    max_page_window: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_READ_CONVERSATION_ATTACHMENT_RANGE_PAGES),
+    pages: z.array(conversationAttachmentPageSchema).min(1),
+  }),
+});
+
+export const readConversationAttachmentRangeOutputSchema = z.union([
+  readConversationAttachmentRangeSuccessSchema,
   toolFailureSchema,
 ]);
 
@@ -289,6 +337,12 @@ export type SearchConversationAttachmentsInput = z.infer<
 >;
 export type SearchConversationAttachmentsOutput = z.infer<
   typeof searchConversationAttachmentsOutputSchema
+>;
+export type ReadConversationAttachmentRangeInput = z.infer<
+  typeof readConversationAttachmentRangeInputSchema
+>;
+export type ReadConversationAttachmentRangeOutput = z.infer<
+  typeof readConversationAttachmentRangeOutputSchema
 >;
 
 export type ReadCitationAnchorInput = z.infer<typeof readCitationAnchorInputSchema>;

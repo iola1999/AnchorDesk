@@ -43,7 +43,7 @@
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
 - 第一个注册成功的用户现在会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 和全局资料库入口统一读取该标记授权，不再依赖 `SUPER_ADMIN_USERNAMES`。
-- 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把它们连同 locator 信息一起送给 agent。
+- 首屏提问区已支持先上传“会话级临时资料”；首条消息创建会话后会自动认领这些附件，并把附件清单与“小文档全文 / 长文档节选”一起预载给 agent；被截断的内容仍通过附件工具按需读取。
 - 账号页已补齐修改密码与退出登录的基础入口；工作空间当前只保留软删除，不再提供归档。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 private library；super admin 可维护 `global_managed` library；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可读和可检索的全局资料范围。
 - `search_workspace_knowledge`、文档阅读授权和 citation 跳转都已切到 library scope；默认召回 workspace 私有库 + 已激活且开启检索的全局订阅库。
@@ -77,6 +77,7 @@
 - 上传链路已明确收口：OCR 明确保持 disabled，图片/扫描件暂不纳入当前可用范围，前后端会直接限制并提示。
 - 文档阅读页已经支持 PDF 基础阅读、解析块查看和按引用锚点回跳，但仍没有 bbox 级高亮与更细粒度定位。
 - 新增 `search_conversation_attachments` tool，临时资料现在可在回答中被检索、引用，并跳转到对应文档块或行号附近。
+- 新增 `read_conversation_attachment_range` tool，模型现在可按 `document_id + page_start/page_end` 成批读取会话附件的几页正文，而不是只能逐段检索或逐锚点读取。
 - 会话已支持生成公开只读分享链接；匿名访问共享会话时，内部资料引用不提供跳转，外部链接仍可打开。
 - 系统参数页和 `system_settings` 已经接管大部分 provider / infra 配置，并新增了注册开关；Claude-compatible 模型改由 `/admin/models` 与 `llm_model_profiles` 维护，`DATABASE_URL`、`AUTH_SECRET` 继续保持 env-only。
 - web / worker / agent-runtime 启动时通过 `initRuntimeSettings()` 从 DB 加载运行时配置到 `process.env`；Docker 生产部署中这三个服务只需 bootstrap env。

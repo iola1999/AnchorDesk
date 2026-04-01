@@ -130,6 +130,7 @@ flowchart LR
 - workspace 资料库页会在根层挂出已订阅的全局资料库；切入后使用只读挂载视图，workspace 侧不能在这些共享资料上执行重命名、移动、删除或上传。
 - 首条消息前可先上传“会话级临时资料”；这条链路会走 `parse/chunk/citation anchor`，但明确跳过 embedding 和 Qdrant indexing。
 - 会话级临时资料会落到 `conversation_attachments`，回答阶段可通过独立 MCP tool 检索，并继续复用 `citation_anchors -> message_citations -> 阅读页跳转` 链路。
+- `Agent Runtime` 现在会把会话附件清单和“小文档全文 / 长文档节选”一并预载到用户 prompt，帮助模型快速理解聊天里刚上传的资料；若预载内容被截断，模型需继续通过附件工具按页范围读取。
 - 文本类临时资料现在会额外保留 line / block locator，前端引用标签和阅读页可显示行号或段号。
 
 当前已知缺口：

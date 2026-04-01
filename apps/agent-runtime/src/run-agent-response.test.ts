@@ -71,6 +71,10 @@ describe("buildAgentSystemPrompt", () => {
       "Prefer conversation attachments and workspace knowledge before web tools whenever local materials may be relevant.",
     );
     expect(prompt).toContain(
+      "If attachment text is preloaded into the user prompt for quick reading, treat it as orientation only",
+    );
+    expect(prompt).toContain("read_conversation_attachment_range");
+    expect(prompt).toContain(
       "Use search_statutes only when the user explicitly asks for laws, regulations, or statute-level references and local workspace materials or attachments do not already cover the needed legal text.",
     );
     expect(prompt).toContain(

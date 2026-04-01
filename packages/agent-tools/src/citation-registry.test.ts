@@ -75,6 +75,40 @@ describe("attachCitationMetadataToToolOutput", () => {
     expect(
       attachCitationMetadataToToolOutput({
         registry,
+        toolName: ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE,
+        output: {
+          ok: true,
+          document: {
+            document_id: "doc-1",
+            pages: [
+              {
+                anchor_id: "anchor-3",
+                page_no: 1,
+                text: "第一页",
+              },
+            ],
+          },
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      document: {
+        document_id: "doc-1",
+        pages: [
+          {
+            anchor_id: "anchor-3",
+            page_no: 1,
+            text: "第一页",
+            citation_id: 3,
+            citation_token: "[[cite:3]]",
+          },
+        ],
+      },
+    });
+
+    expect(
+      attachCitationMetadataToToolOutput({
+        registry,
         toolName: ASSISTANT_TOOL.FETCH_SOURCE,
         output: {
           ok: true,
@@ -91,8 +125,8 @@ describe("attachCitationMetadataToToolOutput", () => {
         url: "https://example.com/post",
         title: "Example",
         paragraphs: ["正文"],
-        citation_id: 3,
-        citation_token: "[[cite:3]]",
+        citation_id: 4,
+        citation_token: "[[cite:4]]",
       },
     });
   });

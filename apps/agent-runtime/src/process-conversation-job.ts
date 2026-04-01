@@ -45,6 +45,10 @@ import {
   materializeAssistantAnswer,
   toDisplayInlineCitationText,
 } from "./assistant-answer";
+import {
+  buildConversationPromptWithAttachments,
+  loadConversationAttachmentPromptAttachments,
+} from "./conversation-attachment-context";
 import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";
 import { buildToolTimelineMessage } from "./timeline";
@@ -744,10 +748,28 @@ export async function processConversationResponseJob(
       const modelProfile = payload.modelProfileId
         ? await resolveUsableModelProfileById(payload.modelProfileId, db)
         : await resolveDefaultUsableModelProfile(db);
+      let prompt = payload.prompt;
+
+      try {
+        const attachments = await loadConversationAttachmentPromptAttachments(
+          payload.conversationId,
+        );
+        prompt = buildConversationPromptWithAttachments({
+          prompt,
+          attachments,
+        });
+      } catch (attachmentContextError) {
+        jobLogger.warn(
+          {
+            error: serializeErrorForLog(attachmentContextError),
+          },
+          "failed to hydrate conversation attachment preload context",
+        );
+      }
 
       const agentResponse = await runAgentResponse(
         {
-          prompt: payload.prompt,
+          prompt,
           workspaceId: conversation.workspaceId,
           conversationId: payload.conversationId,
           modelProfile,
