@@ -6,7 +6,6 @@ import { MESSAGE_STATUS } from "@anchordesk/contracts";
 
 import {
   Composer,
-  type ComposerAttachment,
   type ComposerSubmittedTurn,
 } from "@/components/chat/composer";
 import { ConversationSession } from "@/components/chat/conversation-session";
@@ -62,7 +61,6 @@ export function WorkspaceConversationPanel({
   initialMessages,
   initialTimelineMessagesByAssistant,
   initialCitations,
-  initialAttachments,
   availableModelProfiles,
   selectedModelProfileId,
   scrollToBottomOnMount = false,
@@ -75,7 +73,6 @@ export function WorkspaceConversationPanel({
   initialMessages: ConversationChatMessage[];
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialCitations?: ConversationMessageCitation[];
-  initialAttachments: ComposerAttachment[];
   availableModelProfiles: EnabledModelProfileOption[];
   selectedModelProfileId?: string | null;
   scrollToBottomOnMount?: boolean;
@@ -208,6 +205,7 @@ export function WorkspaceConversationPanel({
 
       <div className={conversationDensityClassNames.composerShell}>
         <Composer
+          key={conversationId}
           conversationId={conversationId}
           workspaceId={workspaceId}
           variant="stage"
@@ -217,7 +215,7 @@ export function WorkspaceConversationPanel({
           className="border-transparent bg-transparent p-0 shadow-none backdrop-blur-0"
           textareaClassName="bg-transparent"
           availableModelProfiles={availableModelProfiles}
-          initialAttachments={initialAttachments}
+          initialAttachments={[]}
           isStreaming={activeAssistantStatus === MESSAGE_STATUS.STREAMING}
           onStop={handleStopStreamingAssistant}
           onSelectedModelProfileIdChange={onSelectedModelProfileIdChange}

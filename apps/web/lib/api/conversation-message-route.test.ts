@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => {
   const tables = {
     conversationAttachments: Symbol("conversationAttachments"),
     conversations: Symbol("conversations"),
+    documents: Symbol("documents"),
     messages: Symbol("messages"),
   };
 
@@ -101,6 +102,7 @@ vi.mock("@anchordesk/queue", () => ({
 vi.mock("@anchordesk/db", () => ({
   conversationAttachments: mocks.tables.conversationAttachments,
   conversations: mocks.tables.conversations,
+  documents: mocks.tables.documents,
   getDb: () => mocks.db,
   messages: mocks.tables.messages,
   resolveSelectedModelProfile: mocks.resolveSelectedModelProfile,

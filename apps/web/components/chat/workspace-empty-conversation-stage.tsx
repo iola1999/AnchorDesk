@@ -16,7 +16,6 @@ import {
 import { ui } from "@/lib/ui";
 
 type PendingConversationState = {
-  attachments: ComposerSubmittedTurn["attachments"];
   conversationId: string;
   messages: ReturnType<typeof appendSubmittedConversationTurn>;
 };
@@ -55,7 +54,6 @@ export function WorkspaceEmptyConversationStage({
         userMessage: turn.userMessage,
         assistantMessage: turn.assistantMessage,
       }),
-      attachments: turn.attachments,
     });
     onSubmittedTurn?.(turn);
 
@@ -72,7 +70,6 @@ export function WorkspaceEmptyConversationStage({
         initialTimelineMessagesByAssistant={{}}
         initialMessages={pendingConversation.messages}
         initialCitations={[]}
-        initialAttachments={pendingConversation.attachments}
         availableModelProfiles={availableModelProfiles}
         selectedModelProfileId={selectedModelProfileId}
         scrollToBottomOnMount

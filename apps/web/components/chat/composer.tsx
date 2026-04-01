@@ -20,6 +20,7 @@ import {
   COMPOSER_ATTACHMENT_STATUS,
   canSubmitWithAttachments,
   hasReadyAttachments,
+  resolveSubmittedAttachmentIds,
   resolveComposerAttachmentStatus,
   type ComposerAttachmentStatus,
 } from "@/lib/api/conversation-attachments";
@@ -41,7 +42,11 @@ import {
 import { SUPPORTED_UPLOAD_ACCEPT } from "@/lib/api/upload-policy";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
 import { buttonStyles, cn, menuItemStyles, ui } from "@/lib/ui";
-import type { ConversationChatMessage } from "@/lib/api/conversation-session";
+import {
+  applyConversationMessageAttachments,
+  type ConversationChatMessage,
+  type ConversationMessageAttachment,
+} from "@/lib/api/conversation-session";
 
 export type ComposerAttachment = {
   id: string;
@@ -58,7 +63,7 @@ export type ComposerAttachment = {
 
 export type ComposerSubmittedTurn = {
   assistantMessage: ConversationChatMessage;
-  attachments: ComposerAttachment[];
+  attachments: ConversationMessageAttachment[];
   conversationId: string;
   modelProfileId: string | null;
   userMessage: ConversationChatMessage;
@@ -104,6 +109,31 @@ function mergeAttachments(
   return Array.from(merged.values()).sort((left, right) =>
     left.sourceFilename.localeCompare(right.sourceFilename, "zh-CN"),
   );
+}
+
+function buildSubmittedMessageAttachments(
+  attachments: ComposerAttachment[],
+): ConversationMessageAttachment[] {
+  const submittedAttachments: ConversationMessageAttachment[] = [];
+
+  for (const attachmentId of resolveSubmittedAttachmentIds(attachments)) {
+    const attachment = attachments.find(
+      (item) => (item.attachmentId ?? item.id) === attachmentId,
+    );
+
+    if (!attachment) {
+      continue;
+    }
+
+    submittedAttachments.push({
+      attachmentId,
+      documentId: attachment.documentId ?? null,
+      documentVersionId: attachment.documentVersionId ?? null,
+      sourceFilename: attachment.sourceFilename,
+    });
+  }
+
+  return submittedAttachments;
 }
 
 function ModelProfileSelector({
@@ -679,10 +709,12 @@ export function Composer({
     }
 
     setStatus("正在发送...");
+    const submittedAttachments = buildSubmittedMessageAttachments(attachments);
     const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        attachmentIds: submittedAttachments.map((attachment) => attachment.attachmentId),
         content: prompt,
         modelProfileId: currentModelProfileId ?? undefined,
         draftUploadId:
@@ -702,14 +734,22 @@ export function Composer({
       setStatus(resolveComposerSubmitStatus(body?.agentError ?? null));
       const submittedTurn = buildComposerSubmittedTurn({
         conversationId: targetConversationId,
-        userMessage: body?.userMessage ?? null,
+        userMessage: body?.userMessage
+          ? applyConversationMessageAttachments({
+              attachments: submittedAttachments,
+              message: body.userMessage,
+            })
+          : null,
         assistantMessage: body?.assistantMessage ?? null,
       });
+      setAttachments([]);
+      draftUploadIdRef.current =
+        typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-draft`;
 
       if (submittedTurn && onSubmitted) {
         onSubmitted({
           ...submittedTurn,
-          attachments,
+          attachments: submittedAttachments,
           modelProfileId: currentModelProfileId ?? null,
         });
       } else {

@@ -2,16 +2,24 @@ export const conversationDensityClassNames = {
   sessionStack: "grid min-w-0 gap-5 pb-3 min-[720px]:gap-6 min-[720px]:pb-4 md:gap-7 md:pb-5",
   assistantSection: "grid min-w-0 gap-3 min-[720px]:gap-4",
   userWrap: "ml-auto w-full min-w-0 max-w-[860px]",
+  userStack: "grid justify-items-end gap-2",
   userBubble:
     "min-w-0 rounded-[20px] border border-app-border/60 bg-app-surface-strong/54 px-4 py-3 shadow-[0_10px_24px_rgba(23,22,18,0.03)] min-[720px]:rounded-[22px] min-[720px]:px-5 min-[720px]:py-3.5",
   userText: "text-[14px] leading-7 text-app-text md:text-[15px]",
+  userAttachmentList: "flex max-w-full flex-wrap justify-end gap-2",
+  userAttachmentChip:
+    "inline-flex max-w-[min(360px,82vw)] items-center rounded-full border border-app-border/70 bg-white/94 px-3 py-1.5 text-[12px] font-medium text-app-muted-strong shadow-[0_8px_18px_rgba(23,22,18,0.04)] transition hover:border-app-border-strong hover:text-app-text",
   resultPanel: "grid min-w-0 gap-3 min-[720px]:gap-4",
   resultHeader:
     "flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-app-border/60 pb-2",
   answerText: "max-w-none text-[14px] leading-7 text-app-text md:text-[15px]",
   thinkingPanel:
-    "grid min-w-0 gap-2 rounded-2xl border border-app-border/60 bg-app-surface-soft/68 px-3.5 py-3",
-  thinkingHeader: "text-[11px] font-semibold uppercase tracking-[0.12em] text-app-muted",
+    "group/thinking min-w-0 max-w-full rounded-2xl border border-app-border/60 bg-app-surface-soft/68 px-3.5 py-3 shadow-[0_6px_18px_rgba(23,22,18,0.02)]",
+  thinkingSummary:
+    "flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] [&::-webkit-details-marker]:hidden",
+  thinkingMeta:
+    "inline-flex items-center rounded-full border border-app-border/70 bg-white/76 px-2 py-0.5 text-[10px] font-medium tracking-[0.02em] text-app-muted-strong",
+  thinkingBody: "mt-2 border-t border-app-border/55 pt-2.5",
   thinkingText:
     "min-w-0 whitespace-pre-wrap break-words text-[13px] leading-6 text-app-muted-strong",
   sourcesList: "grid gap-2",

@@ -5,8 +5,6 @@ import { MESSAGE_ROLE } from "@anchordesk/contracts";
 import {
   conversationAttachments,
   conversations,
-  documentJobs,
-  documentVersions,
   documents,
   getDb,
   listEnabledModelProfiles,
@@ -17,9 +15,14 @@ import {
 
 import { auth } from "@/auth";
 import { WorkspaceChatView } from "@/components/chat/workspace-chat-view";
-import { resolveComposerAttachmentStatus } from "@/lib/api/conversation-attachments";
 import { groupAssistantProcessMessages } from "@/lib/api/conversation-process";
 import { chooseWorkspaceConversationWithMeta } from "@/lib/api/conversations";
+import {
+  applyConversationMessageAttachments,
+  readConversationMessageAttachments,
+  type ConversationChatMessage,
+  type ConversationMessageAttachment,
+} from "@/lib/api/conversation-session";
 
 export default async function WorkspacePage({
   params,
@@ -102,28 +105,47 @@ export default async function WorkspacePage({
       ? await db
           .select({
             id: conversationAttachments.id,
-            documentId: documents.id,
-            documentVersionId: documentVersions.id,
+            documentId: conversationAttachments.documentId,
+            documentVersionId: conversationAttachments.documentVersionId,
             sourceFilename: documents.sourceFilename,
-            jobId: documentJobs.id,
-            jobStatus: documentJobs.status,
-            stage: documentJobs.stage,
-            progress: documentJobs.progress,
-            errorMessage: documentJobs.errorMessage,
           })
           .from(conversationAttachments)
           .innerJoin(documents, eq(documents.id, conversationAttachments.documentId))
-          .innerJoin(
-            documentVersions,
-            eq(documentVersions.id, conversationAttachments.documentVersionId),
-          )
-          .leftJoin(
-            documentJobs,
-            eq(documentJobs.documentVersionId, conversationAttachments.documentVersionId),
-          )
           .where(eq(conversationAttachments.conversationId, activeConversation.id))
           .orderBy(asc(conversationAttachments.createdAt))
       : [];
+
+  const initialMessages: ConversationChatMessage[] = chatThread.map((message) => ({
+    id: message.id,
+    role: message.role,
+    status: message.status,
+    contentMarkdown: message.contentMarkdown,
+    structuredJson:
+      (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
+  }));
+  const legacyAttachmentSnapshots: ConversationMessageAttachment[] = attachmentRows.map(
+    (attachment) => ({
+      attachmentId: attachment.id,
+      documentId: attachment.documentId,
+      documentVersionId: attachment.documentVersionId,
+      sourceFilename: attachment.sourceFilename,
+    }),
+  );
+  const firstUserMessageIndex = initialMessages.findIndex(
+    (message) => message.role === MESSAGE_ROLE.USER,
+  );
+
+  if (
+    firstUserMessageIndex >= 0 &&
+    legacyAttachmentSnapshots.length > 0 &&
+    readConversationMessageAttachments(initialMessages[firstUserMessageIndex]?.structuredJson)
+      .length === 0
+  ) {
+    initialMessages[firstUserMessageIndex] = applyConversationMessageAttachments({
+      attachments: legacyAttachmentSnapshots,
+      message: initialMessages[firstUserMessageIndex]!,
+    });
+  }
 
   return (
     <WorkspaceChatView
@@ -168,14 +190,7 @@ export default async function WorkspacePage({
             (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
         })),
       )}
-      initialMessages={chatThread.map((message) => ({
-        id: message.id,
-        role: message.role,
-        status: message.status,
-        contentMarkdown: message.contentMarkdown,
-        structuredJson:
-          (message.structuredJson as Record<string, unknown> | null | undefined) ?? null,
-      }))}
+      initialMessages={initialMessages}
       initialCitations={citations.map((citation) => ({
         id: citation.id,
         messageId: citation.messageId,
@@ -188,21 +203,6 @@ export default async function WorkspacePage({
         sourceUrl: citation.sourceUrl,
         sourceDomain: citation.sourceDomain,
         sourceTitle: citation.sourceTitle,
-      }))}
-      initialAttachments={attachmentRows.map((attachment) => ({
-        id: attachment.id,
-        attachmentId: attachment.id,
-        documentId: attachment.documentId,
-        documentVersionId: attachment.documentVersionId,
-        documentJobId: attachment.jobId ?? undefined,
-        sourceFilename: attachment.sourceFilename,
-        status: resolveComposerAttachmentStatus({
-          jobStatus: attachment.jobStatus ?? null,
-          parseStage: attachment.stage ?? null,
-        }),
-        progress: attachment.progress ?? 0,
-        stage: attachment.stage ?? null,
-        errorMessage: attachment.errorMessage ?? null,
       }))}
       availableModelProfiles={availableModelProfiles.map((profile) => ({
         id: profile.id,

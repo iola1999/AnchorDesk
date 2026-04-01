@@ -7,6 +7,7 @@ import {
 } from "@anchordesk/contracts";
 
 import {
+  buildConversationAttachmentLinkTarget,
   applyAssistantThinkingDeltaEvent,
   applyAssistantDeltaEvent,
   appendSubmittedConversationTurn,
@@ -19,6 +20,30 @@ import {
   restartAssistantSessionSnapshotForRetry,
   restartAssistantMessageForRetry,
 } from "./conversation-session";
+
+describe("buildConversationAttachmentLinkTarget", () => {
+  test("opens attachment documents in a new browser tab", () => {
+    expect(
+      buildConversationAttachmentLinkTarget({
+        workspaceId: "workspace-1",
+        documentId: "document-1",
+      }),
+    ).toEqual({
+      href: "/workspaces/workspace-1/documents/document-1",
+      target: "_blank",
+      rel: "noopener noreferrer",
+    });
+  });
+
+  test("returns null when the attachment cannot resolve to a document page", () => {
+    expect(
+      buildConversationAttachmentLinkTarget({
+        workspaceId: "workspace-1",
+        documentId: null,
+      }),
+    ).toBeNull();
+  });
+});
 
 describe("appendSubmittedConversationTurn", () => {
   test("appends the new user turn and assistant placeholder to the current thread", () => {

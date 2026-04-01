@@ -13,8 +13,11 @@ describe("conversationDensityClassNames", () => {
   it("widens user turns and tightens text leading for denser reading", () => {
     expect(conversationDensityClassNames.userWrap).toContain("min-w-0");
     expect(conversationDensityClassNames.userWrap).toContain("max-w-[860px]");
+    expect(conversationDensityClassNames.userStack).toContain("justify-items-end");
     expect(conversationDensityClassNames.userText).toContain("text-[14px]");
     expect(conversationDensityClassNames.userText).toContain("leading-7");
+    expect(conversationDensityClassNames.userAttachmentList).toContain("justify-end");
+    expect(conversationDensityClassNames.userAttachmentChip).toContain("rounded-full");
     expect(conversationDensityClassNames.resultPanel).toContain("min-w-0");
     expect(conversationDensityClassNames.answerText).toContain("text-[14px]");
     expect(conversationDensityClassNames.answerText).toContain("leading-7");

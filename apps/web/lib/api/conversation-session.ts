@@ -20,6 +20,15 @@ export type ConversationChatMessage = {
   structuredJson?: Record<string, unknown> | null;
 };
 
+export const USER_MESSAGE_ATTACHMENT_SNAPSHOT_KEY = "submitted_attachments" as const;
+
+export type ConversationMessageAttachment = {
+  attachmentId: string;
+  documentId?: string | null;
+  documentVersionId?: string | null;
+  sourceFilename: string;
+};
+
 export type ConversationMessageCitation = {
   id: string;
   messageId: string;
@@ -69,6 +78,118 @@ type AssistantThinkingDeltaEvent = Extract<
 >;
 
 const CONVERSATION_EXPORT_FILENAME_STEM_LENGTH = 48;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeConversationMessageAttachment(
+  value: unknown,
+): ConversationMessageAttachment | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const attachmentId = typeof value.attachmentId === "string" ? value.attachmentId.trim() : "";
+  const sourceFilename =
+    typeof value.sourceFilename === "string" ? value.sourceFilename.trim() : "";
+
+  if (!attachmentId || !sourceFilename) {
+    return null;
+  }
+
+  return {
+    attachmentId,
+    documentId:
+      typeof value.documentId === "string" && value.documentId.trim()
+        ? value.documentId
+        : null,
+    documentVersionId:
+      typeof value.documentVersionId === "string" && value.documentVersionId.trim()
+        ? value.documentVersionId
+        : null,
+    sourceFilename,
+  };
+}
+
+export function normalizeConversationMessageAttachments(
+  attachments: ConversationMessageAttachment[],
+) {
+  const seen = new Set<string>();
+  const normalized: ConversationMessageAttachment[] = [];
+
+  for (const attachment of attachments) {
+    const nextAttachment = normalizeConversationMessageAttachment(attachment);
+    if (!nextAttachment || seen.has(nextAttachment.attachmentId)) {
+      continue;
+    }
+
+    seen.add(nextAttachment.attachmentId);
+    normalized.push(nextAttachment);
+  }
+
+  return normalized;
+}
+
+export function readConversationMessageAttachments(
+  structuredJson?: Record<string, unknown> | null,
+) {
+  const rawAttachments = structuredJson?.[USER_MESSAGE_ATTACHMENT_SNAPSHOT_KEY];
+  if (!Array.isArray(rawAttachments)) {
+    return [];
+  }
+
+  return rawAttachments
+    .map((attachment) => normalizeConversationMessageAttachment(attachment))
+    .filter((attachment): attachment is ConversationMessageAttachment => attachment !== null);
+}
+
+export function writeConversationMessageAttachments(input: {
+  attachments: ConversationMessageAttachment[];
+  structuredJson?: Record<string, unknown> | null;
+}) {
+  const attachments = normalizeConversationMessageAttachments(input.attachments);
+  if (attachments.length === 0) {
+    return input.structuredJson ?? null;
+  }
+
+  return {
+    ...(input.structuredJson ?? {}),
+    [USER_MESSAGE_ATTACHMENT_SNAPSHOT_KEY]: attachments,
+  };
+}
+
+export function applyConversationMessageAttachments(input: {
+  attachments: ConversationMessageAttachment[];
+  message: ConversationChatMessage;
+}) {
+  if (input.attachments.length === 0) {
+    return input.message;
+  }
+
+  return {
+    ...input.message,
+    structuredJson: writeConversationMessageAttachments({
+      attachments: input.attachments,
+      structuredJson: input.message.structuredJson ?? null,
+    }),
+  };
+}
+
+export function buildConversationAttachmentLinkTarget(input: {
+  workspaceId?: string | null;
+  documentId?: string | null;
+}) {
+  if (!input.workspaceId || !input.documentId) {
+    return null;
+  }
+
+  return {
+    href: `/workspaces/${input.workspaceId}/documents/${input.documentId}`,
+    target: "_blank" as const,
+    rel: "noopener noreferrer" as const,
+  };
+}
 
 function replaceMessageCitations(
   citations: ConversationMessageCitation[],

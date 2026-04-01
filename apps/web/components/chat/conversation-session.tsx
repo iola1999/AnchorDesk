@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
@@ -27,6 +28,7 @@ import { MarkdownContent } from "@/components/shared/markdown-content";
 import {
   canShowAssistantResultPanel,
   describeAssistantStreamingStatus,
+  isAssistantThinkingActive,
 } from "@/lib/api/conversation-process";
 import { buildCitationSourceBadges } from "@/lib/api/knowledge-libraries";
 import {
@@ -35,11 +37,14 @@ import {
 } from "@/lib/api/conversation-retry";
 import {
   applyAssistantThinkingDeltaEvent,
+  buildConversationAttachmentLinkTarget,
+  readConversationMessageAttachments,
   applyAssistantDeltaEvent,
   applyAssistantTerminalEvent,
   applyAssistantTerminalEventToSessionSnapshot,
   buildConversationExportFilename,
   type ConversationChatMessage,
+  type ConversationMessageAttachment,
   type ConversationMessageCitation,
   type ConversationSessionSnapshot,
   type ConversationTimelineMessagesByAssistant,
@@ -71,6 +76,10 @@ type TabButtonProps = {
 };
 type CitationSourceBadgeProps = {
   citation: MessageCitation;
+};
+type UserAttachmentChipProps = {
+  attachment: ConversationMessageAttachment;
+  workspaceId?: string | null;
 };
 type ConversationSessionProps = {
   conversationId: string;
@@ -119,6 +128,21 @@ function readAssistantThinkingText(
   const assistantMessage = messages.find((message) => message.id === assistantMessageId);
   const runState = readStreamingAssistantRunState(assistantMessage?.structuredJson ?? null);
   return runState?.thinking_text ?? null;
+}
+
+function buildThinkingActivityByMessage(messages: ChatMessage[]) {
+  return Object.fromEntries(
+    messages
+      .filter((message) => message.role === MESSAGE_ROLE.ASSISTANT)
+      .map((message) => [
+        message.id,
+        isAssistantThinkingActive({
+          status: message.status,
+          contentMarkdown: message.contentMarkdown,
+          structuredJson: message.structuredJson ?? null,
+        }),
+      ]),
+  );
 }
 
 function applyToolProgressToTimeline(
@@ -256,6 +280,30 @@ function CitationCardContent({
   );
 }
 
+function UserAttachmentChip({
+  attachment,
+  workspaceId,
+}: UserAttachmentChipProps) {
+  const content = (
+    <span className={conversationDensityClassNames.userAttachmentChip}>
+      <span className="truncate">{attachment.sourceFilename}</span>
+    </span>
+  );
+
+  const target = buildConversationAttachmentLinkTarget({
+    workspaceId,
+    documentId: attachment.documentId,
+  });
+
+  if (!target) {
+    return content;
+  }
+
+  return (
+    <Link href={target.href} target={target.target} rel={target.rel}>{content}</Link>
+  );
+}
+
 export function ConversationSession({
   conversationId,
   workspaceId,
@@ -296,9 +344,13 @@ export function ConversationSession({
   >({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null);
+  const [thinkingPanelOpenByMessage, setThinkingPanelOpenByMessage] = useState<
+    Record<string, boolean>
+  >({});
   const chatMessagesRef = useRef(initialMessages);
   const messageCitationsRef = useRef(initialCitations ?? []);
   const timelineMessagesByAssistantRef = useRef(initialTimelineMessagesByAssistant ?? {});
+  const thinkingActivityByMessageRef = useRef(buildThinkingActivityByMessage(initialMessages));
   const seenTimelineIdsRef = useRef(
     flattenTimelineMessageIds(initialTimelineMessagesByAssistant ?? {}),
   );
@@ -312,9 +364,11 @@ export function ConversationSession({
     setActionStatusByMessage({});
     setCopiedMessageId(null);
     setRegeneratingMessageId(null);
+    setThinkingPanelOpenByMessage({});
     chatMessagesRef.current = initialMessages;
     messageCitationsRef.current = initialCitations ?? [];
     timelineMessagesByAssistantRef.current = initialTimelineMessagesByAssistant ?? {};
+    thinkingActivityByMessageRef.current = buildThinkingActivityByMessage(initialMessages);
     const nextStreamingAssistantMessageId = resolveConversationStreamingAssistantMessageId({
       assistantMessageId,
       assistantStatus,
@@ -349,6 +403,35 @@ export function ConversationSession({
 
   useEffect(() => {
     chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
+  useEffect(() => {
+    const previousThinkingActivityByMessage = thinkingActivityByMessageRef.current;
+    const nextThinkingActivityByMessage = buildThinkingActivityByMessage(chatMessages);
+    const endedThinkingMessageIds = Object.entries(nextThinkingActivityByMessage)
+      .filter(
+        ([messageId, isThinkingActive]) =>
+          previousThinkingActivityByMessage[messageId] === true && isThinkingActive === false,
+      )
+      .map(([messageId]) => messageId);
+
+    if (endedThinkingMessageIds.length > 0) {
+      setThinkingPanelOpenByMessage((current) => {
+        let changed = false;
+        const nextState = { ...current };
+
+        for (const messageId of endedThinkingMessageIds) {
+          if (nextState[messageId] !== false) {
+            nextState[messageId] = false;
+            changed = true;
+          }
+        }
+
+        return changed ? nextState : current;
+      });
+    }
+
+    thinkingActivityByMessageRef.current = nextThinkingActivityByMessage;
   }, [chatMessages]);
 
   useEffect(() => {
@@ -732,6 +815,13 @@ export function ConversationSession({
           const hasSources = citations.length > 0;
           const processMessages = timelineMessagesByAssistant[message.id] ?? [];
           const thinkingText = readAssistantThinkingText(chatMessages, message.id) ?? "";
+          const thinkingActive = isAssistantThinkingActive({
+            status: message.status,
+            contentMarkdown: message.contentMarkdown,
+            structuredJson: message.structuredJson ?? null,
+          });
+          const thinkingPanelOpen =
+            thinkingPanelOpenByMessage[message.id] ?? thinkingActive;
           const showThinkingPanel = isAssistant && Boolean(thinkingText.trim());
           const showResultPanel =
             isAssistant &&
@@ -755,13 +845,28 @@ export function ConversationSession({
             Boolean(answerText.trim());
 
           if (isUser) {
+            const attachments = readConversationMessageAttachments(message.structuredJson);
+
             return (
               <article key={message.id} className={conversationDensityClassNames.userWrap}>
-                <div className={conversationDensityClassNames.userBubble}>
-                  <LinkifiedText
-                    text={message.contentMarkdown}
-                    className={conversationDensityClassNames.userText}
-                  />
+                <div className={conversationDensityClassNames.userStack}>
+                  <div className={conversationDensityClassNames.userBubble}>
+                    <LinkifiedText
+                      text={message.contentMarkdown}
+                      className={conversationDensityClassNames.userText}
+                    />
+                  </div>
+                  {attachments.length > 0 ? (
+                    <div className={conversationDensityClassNames.userAttachmentList}>
+                      {attachments.map((attachment) => (
+                        <UserAttachmentChip
+                          key={attachment.attachmentId}
+                          attachment={attachment}
+                          workspaceId={workspaceId}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
@@ -776,12 +881,36 @@ export function ConversationSession({
               />
 
               {showThinkingPanel ? (
-                <div className={conversationDensityClassNames.thinkingPanel}>
-                  <div className={conversationDensityClassNames.thinkingHeader}>思考</div>
-                  <pre className={conversationDensityClassNames.thinkingText}>
-                    {thinkingText}
-                  </pre>
-                </div>
+                <details
+                  data-thinking-panel={message.id}
+                  className={conversationDensityClassNames.thinkingPanel}
+                  open={thinkingPanelOpen}
+                  onToggle={(event) => {
+                    const nextOpen = event.currentTarget.open;
+                    setThinkingPanelOpenByMessage((current) => ({
+                      ...current,
+                      [message.id]: nextOpen,
+                    }));
+                  }}
+                >
+                  <summary className={conversationDensityClassNames.thinkingSummary}>
+                    <span className="inline-flex items-center gap-2 font-medium text-app-text">
+                      <span className="text-sm leading-none transition group-open/thinking:rotate-90">
+                        ›
+                      </span>
+                      思考
+                    </span>
+                    <span className={conversationDensityClassNames.thinkingMeta}>
+                      {thinkingActive ? "进行中" : "已完成"}
+                    </span>
+                  </summary>
+
+                  <div className={conversationDensityClassNames.thinkingBody}>
+                    <pre className={conversationDensityClassNames.thinkingText}>
+                      {thinkingText}
+                    </pre>
+                  </div>
+                </details>
               ) : null}
 
               {showResultPanel ? (

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   buildAssistantFailedMessageState,
   buildInitialStreamingAssistantRunState,
@@ -10,6 +10,7 @@ import {
 import {
   conversationAttachments,
   conversations,
+  documents,
   getDb,
   messages,
   resolveSelectedModelProfile,
@@ -21,6 +22,10 @@ import { auth } from "@/auth";
 import { buildConversationTitleFromPrompt } from "@/lib/api/conversations";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 import { buildConversationPrompt } from "@/lib/api/workspace-prompt";
+import {
+  writeConversationMessageAttachments,
+  type ConversationMessageAttachment,
+} from "@/lib/api/conversation-session";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 
 export const runtime = "nodejs";
@@ -75,10 +80,20 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => ({}))) as {
+    attachmentIds?: string[];
     content?: string;
     draftUploadId?: string;
     modelProfileId?: string;
   };
+  const attachmentIds = Array.isArray(body.attachmentIds)
+    ? Array.from(
+        new Set(
+          body.attachmentIds
+            .map((attachmentId) => String(attachmentId ?? "").trim())
+            .filter(Boolean),
+        ),
+      )
+    : [];
   const content = String(body.content ?? "").trim();
   const draftUploadId = String(body.draftUploadId ?? "").trim() || null;
   if (!content) {
@@ -94,6 +109,27 @@ export async function POST(
   }
 
   const db = getDb();
+  const submittedAttachments: ConversationMessageAttachment[] =
+    attachmentIds.length > 0
+      ? await db
+          .select({
+            attachmentId: conversationAttachments.id,
+            documentId: conversationAttachments.documentId,
+            documentVersionId: conversationAttachments.documentVersionId,
+            sourceFilename: documents.sourceFilename,
+          })
+          .from(conversationAttachments)
+          .innerJoin(documents, eq(documents.id, conversationAttachments.documentId))
+          .where(
+            and(
+              eq(conversationAttachments.workspaceId, conversation.workspaceId),
+              inArray(conversationAttachments.id, attachmentIds),
+              draftUploadId
+                ? eq(conversationAttachments.draftUploadId, draftUploadId)
+                : eq(conversationAttachments.conversationId, conversationId),
+            ),
+          )
+      : [];
   let selectedModelProfile;
   try {
     selectedModelProfile = await resolveSelectedModelProfile(
@@ -131,6 +167,9 @@ export async function POST(
       role: MESSAGE_ROLE.USER,
       status: MESSAGE_STATUS.COMPLETED,
       contentMarkdown: content,
+      structuredJson: writeConversationMessageAttachments({
+        attachments: submittedAttachments,
+      }),
     })
     .returning();
 

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { type ConversationStatus } from "@anchordesk/contracts";
 
 import { ConversationPageActions } from "@/components/chat/conversation-page-actions";
-import { type ComposerAttachment, type ComposerSubmittedTurn } from "@/components/chat/composer";
+import { type ComposerSubmittedTurn } from "@/components/chat/composer";
 import { WorkspaceEmptyConversationStage } from "@/components/chat/workspace-empty-conversation-stage";
 import { WorkspaceConversationPanel } from "@/components/chat/workspace-conversation-panel";
 import {
@@ -42,7 +42,6 @@ export function WorkspaceChatView({
   initialTimelineMessagesByAssistant,
   initialMessages,
   initialCitations,
-  initialAttachments,
   availableModelProfiles,
   defaultModelProfileId,
 }: {
@@ -66,7 +65,6 @@ export function WorkspaceChatView({
   initialTimelineMessagesByAssistant?: TimelineMessagesByAssistant;
   initialMessages?: ConversationChatMessage[];
   initialCitations?: ConversationMessageCitation[];
-  initialAttachments?: ComposerAttachment[];
   availableModelProfiles: EnabledModelProfileOption[];
   defaultModelProfileId?: string | null;
 }) {
@@ -192,7 +190,6 @@ export function WorkspaceChatView({
           initialTimelineMessagesByAssistant={initialTimelineMessagesByAssistant ?? {}}
           initialMessages={initialMessages ?? []}
           initialCitations={initialCitations ?? []}
-          initialAttachments={initialAttachments ?? []}
           availableModelProfiles={availableModelProfiles}
           selectedModelProfileId={selectedModelProfileId}
           onSelectedModelProfileIdChange={setSelectedModelProfileId}

@@ -7,6 +7,7 @@ import {
   buildTemporaryAttachmentLogicalPath,
   canSubmitWithAttachments,
   hasReadyAttachments,
+  resolveSubmittedAttachmentIds,
   resolveComposerAttachmentStatus,
 } from "./conversation-attachments";
 
@@ -69,5 +70,29 @@ describe("conversation attachment helpers", () => {
     expect(resolveComposerAttachmentStatus({ jobStatus: "running" })).toBe(
       COMPOSER_ATTACHMENT_STATUS.PARSING,
     );
+  });
+
+  test("only includes ready attachments in the submitted attachment list", () => {
+    expect(
+      resolveSubmittedAttachmentIds([
+        {
+          id: "attachment-1",
+          status: COMPOSER_ATTACHMENT_STATUS.READY,
+        },
+        {
+          id: "local-2",
+          attachmentId: "attachment-2",
+          status: COMPOSER_ATTACHMENT_STATUS.READY,
+        },
+        {
+          id: "attachment-2",
+          status: COMPOSER_ATTACHMENT_STATUS.READY,
+        },
+        {
+          id: "attachment-3",
+          status: COMPOSER_ATTACHMENT_STATUS.FAILED,
+        },
+      ]),
+    ).toEqual(["attachment-1", "attachment-2"]);
   });
 });

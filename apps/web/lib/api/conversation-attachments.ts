@@ -22,6 +22,11 @@ export const COMPOSER_ATTACHMENT_STATUS_VALUES = [
   COMPOSER_ATTACHMENT_STATUS.FAILED,
 ] as const;
 export type ComposerAttachmentStatus = ValueOf<typeof COMPOSER_ATTACHMENT_STATUS>;
+type ComposerAttachmentLike = {
+  id: string;
+  attachmentId?: string | null;
+  status: ComposerAttachmentStatus;
+};
 
 function sanitizeToken(value: string) {
   const normalized = value.replace(/[^a-zA-Z0-9-_]/g, "").slice(0, 8);
@@ -66,6 +71,29 @@ export function canSubmitWithAttachments(statuses: ComposerAttachmentStatus[]) {
 
 export function hasReadyAttachments(statuses: ComposerAttachmentStatus[]) {
   return statuses.some((status) => status === COMPOSER_ATTACHMENT_STATUS.READY);
+}
+
+export function resolveSubmittedAttachmentIds<T extends ComposerAttachmentLike>(
+  attachments: T[],
+) {
+  const seen = new Set<string>();
+  const submitted: string[] = [];
+
+  for (const attachment of attachments) {
+    if (attachment.status !== COMPOSER_ATTACHMENT_STATUS.READY) {
+      continue;
+    }
+
+    const attachmentId = attachment.attachmentId ?? attachment.id;
+    if (!attachmentId || seen.has(attachmentId)) {
+      continue;
+    }
+
+    seen.add(attachmentId);
+    submitted.push(attachmentId);
+  }
+
+  return submitted;
 }
 
 export function resolveComposerAttachmentStatus(input: {
