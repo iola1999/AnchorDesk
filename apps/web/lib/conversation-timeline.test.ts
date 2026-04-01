@@ -59,12 +59,14 @@ describe("buildConversationTimelineEntryView", () => {
         value: "影视飓风：从顶流UP主，到年入过亿的内容公司",
         meta: "digitaling.com",
         tone: "default",
+        href: "https://digitaling.com/articles/1347429.html",
       },
       {
         label: "结果 2",
         value: "B站UP主接广告的正确姿势",
         meta: "toolsite.example.com",
         tone: "default",
+        href: "https://www.toolsite.example.com/ad-price",
       },
     ]);
   });
@@ -100,6 +102,7 @@ describe("buildConversationTimelineEntryView", () => {
         value: "品牌合作报价指南",
         meta: "example.com",
         tone: "default",
+        href: "https://www.example.com/articles/pricing-guide",
       },
       {
         label: "摘录",
@@ -166,6 +169,30 @@ describe("buildConversationTimelineEntryView", () => {
     expect(view.previewSummary).toBe("queue offline");
     expect(view.previewItems).toEqual([]);
     expect(canExpandConversationTimelineEntry(view)).toBe(false);
+  });
+
+  test("turns thinking steps into compact expandable rows", () => {
+    const view = buildConversationTimelineEntryView({
+      ...baseEntry,
+      id: "thinking-1",
+      kind: "thinking",
+      toolName: null,
+      status: MESSAGE_STATUS.COMPLETED,
+      contentMarkdown:
+        "先确认当前分支已经提供了 thinking 事件，再决定如何穿插展示，并把旧的独立思考面板完全移除。",
+      input: null,
+      output: null,
+      error: null,
+    });
+
+    expect(view.displayName.startsWith("先确认当前分支已经提供了 thinking 事件")).toBe(true);
+    expect(view.displayName.endsWith("...")).toBe(true);
+    expect(view.statusLabel).toBe("已分析");
+    expect(view.icon).toBe("thinking");
+    expect(view.detailText).toBe(
+      "先确认当前分支已经提供了 thinking 事件，再决定如何穿插展示，并把旧的独立思考面板完全移除。",
+    );
+    expect(canExpandConversationTimelineEntry(view)).toBe(true);
   });
 });
 

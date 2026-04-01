@@ -151,58 +151,63 @@ describe("groupAssistantProcessMessages", () => {
 describe("buildAssistantProcessTimelineEntries", () => {
   test("merges started and completed tool events from the same tool_use_id into one entry", () => {
     expect(
-      buildAssistantProcessTimelineEntries([
-        {
-          id: "tool-start-1",
-          status: MESSAGE_STATUS.STREAMING,
-          contentMarkdown: "开始调用工具：search_web_general",
-          createdAt: "2026-03-29T08:00:02.000Z",
-          structuredJson: {
-            timeline_event: TIMELINE_EVENT.TOOL_STARTED,
-            tool_name: "search_web_general",
-            tool_input: {
-              query: "伊朗局势",
+      buildAssistantProcessTimelineEntries({
+        assistantContentMarkdown: "",
+        assistantStatus: MESSAGE_STATUS.STREAMING,
+        assistantStructuredJson: null,
+        timelineMessages: [
+          {
+            id: "tool-start-1",
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "开始调用工具：search_web_general",
+            createdAt: "2026-03-29T08:00:02.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.TOOL_STARTED,
+              tool_name: "search_web_general",
+              tool_input: {
+                query: "伊朗局势",
+              },
+              tool_use_id: "tool-use-1",
             },
-            tool_use_id: "tool-use-1",
           },
-        },
-        {
-          id: "tool-finish-1",
-          status: MESSAGE_STATUS.COMPLETED,
-          contentMarkdown: "工具执行完成：search_web_general",
-          createdAt: "2026-03-29T08:00:04.000Z",
-          structuredJson: {
-            timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
-            tool_name: "search_web_general",
-            tool_input: {
-              query: "伊朗局势",
+          {
+            id: "tool-finish-1",
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "工具执行完成：search_web_general",
+            createdAt: "2026-03-29T08:00:04.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+              tool_name: "search_web_general",
+              tool_input: {
+                query: "伊朗局势",
+              },
+              tool_response: {
+                results: [
+                  {
+                    title: "最新局势",
+                  },
+                ],
+              },
+              tool_use_id: "tool-use-1",
             },
-            tool_response: {
-              results: [
-                {
-                  title: "最新局势",
-                },
-              ],
-            },
-            tool_use_id: "tool-use-1",
           },
-        },
-        {
-          id: "tool-failed-1",
-          status: MESSAGE_STATUS.FAILED,
-          contentMarkdown: "工具执行失败：fetch_source · timeout",
-          createdAt: "2026-03-29T08:00:06.000Z",
-          structuredJson: {
-            timeline_event: TIMELINE_EVENT.TOOL_FAILED,
-            tool_name: "fetch_source",
-            tool_input: {
-              url: "https://example.com",
+          {
+            id: "tool-failed-1",
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "工具执行失败：fetch_source · timeout",
+            createdAt: "2026-03-29T08:00:06.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.TOOL_FAILED,
+              tool_name: "fetch_source",
+              tool_input: {
+                url: "https://example.com",
+              },
+              error: "timeout",
+              tool_use_id: "tool-use-2",
             },
-            error: "timeout",
-            tool_use_id: "tool-use-2",
           },
-        },
-      ]),
+        ],
+      }),
     ).toEqual([
       {
         id: "tool-use-1",
@@ -247,18 +252,23 @@ describe("buildAssistantProcessTimelineEntries", () => {
 
   test("keeps run_failed messages as standalone status events", () => {
     expect(
-      buildAssistantProcessTimelineEntries([
-        {
-          id: "tool-run-failed-1",
-          status: MESSAGE_STATUS.FAILED,
-          contentMarkdown: "运行失败：queue offline",
-          createdAt: "2026-03-29T08:00:08.000Z",
-          structuredJson: {
-            timeline_event: TIMELINE_EVENT.RUN_FAILED,
-            error: "queue offline",
+      buildAssistantProcessTimelineEntries({
+        assistantContentMarkdown: "",
+        assistantStatus: MESSAGE_STATUS.FAILED,
+        assistantStructuredJson: null,
+        timelineMessages: [
+          {
+            id: "tool-run-failed-1",
+            status: MESSAGE_STATUS.FAILED,
+            contentMarkdown: "运行失败：queue offline",
+            createdAt: "2026-03-29T08:00:08.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.RUN_FAILED,
+              error: "queue offline",
+            },
           },
-        },
-      ]),
+        ],
+      }),
     ).toEqual([
       {
         id: "tool-run-failed-1",
@@ -271,6 +281,136 @@ describe("buildAssistantProcessTimelineEntries", () => {
         input: null,
         output: null,
         error: "queue offline",
+        progressText: null,
+        elapsedSeconds: null,
+      },
+    ]);
+  });
+
+  test("interleaves persisted thinking steps with tool entries in chronological order", () => {
+    expect(
+      buildAssistantProcessTimelineEntries({
+        assistantContentMarkdown: "",
+        assistantStatus: MESSAGE_STATUS.STREAMING,
+        assistantStructuredJson: {
+          process_steps: [
+            {
+              id: "thinking-1",
+              kind: "thinking",
+              status: "completed",
+              created_at: "2026-03-29T08:00:00.000Z",
+              updated_at: "2026-03-29T08:00:01.000Z",
+              completed_at: "2026-03-29T08:00:01.000Z",
+              text: "先确认本地资料",
+            },
+            {
+              id: "tool-use-1",
+              kind: "tool",
+              status: "completed",
+              created_at: "2026-03-29T08:00:02.000Z",
+              updated_at: "2026-03-29T08:00:04.000Z",
+              completed_at: "2026-03-29T08:00:04.000Z",
+              tool_name: "search_web_general",
+              tool_use_id: "tool-use-1",
+              tool_message_id: "tool-start-1",
+            },
+            {
+              id: "thinking-2",
+              kind: "thinking",
+              status: "streaming",
+              created_at: "2026-03-29T08:00:05.000Z",
+              updated_at: "2026-03-29T08:00:05.000Z",
+              completed_at: null,
+              text: "继续整理网页证据",
+            },
+          ],
+        },
+        timelineMessages: [
+          {
+            id: "tool-start-1",
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "开始调用工具：search_web_general",
+            createdAt: "2026-03-29T08:00:02.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.TOOL_STARTED,
+              tool_name: "search_web_general",
+              tool_input: {
+                query: "伊朗局势",
+              },
+              tool_use_id: "tool-use-1",
+            },
+          },
+          {
+            id: "tool-finish-1",
+            status: MESSAGE_STATUS.COMPLETED,
+            contentMarkdown: "工具执行完成：search_web_general",
+            createdAt: "2026-03-29T08:00:04.000Z",
+            structuredJson: {
+              timeline_event: TIMELINE_EVENT.TOOL_FINISHED,
+              tool_name: "search_web_general",
+              tool_input: {
+                query: "伊朗局势",
+              },
+              tool_response: {
+                results: [
+                  {
+                    title: "最新局势",
+                  },
+                ],
+              },
+              tool_use_id: "tool-use-1",
+            },
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        id: "thinking-1",
+        kind: "thinking",
+        toolName: null,
+        status: MESSAGE_STATUS.COMPLETED,
+        createdAt: "2026-03-29T08:00:00.000Z",
+        completedAt: "2026-03-29T08:00:01.000Z",
+        contentMarkdown: "先确认本地资料",
+        input: null,
+        output: null,
+        error: null,
+        progressText: null,
+        elapsedSeconds: null,
+      },
+      {
+        id: "tool-use-1",
+        kind: "tool_call",
+        toolName: "search_web_general",
+        status: MESSAGE_STATUS.COMPLETED,
+        createdAt: "2026-03-29T08:00:02.000Z",
+        completedAt: "2026-03-29T08:00:04.000Z",
+        contentMarkdown: "工具执行完成：search_web_general",
+        input: {
+          query: "伊朗局势",
+        },
+        output: {
+          results: [
+            {
+              title: "最新局势",
+            },
+          ],
+        },
+        error: null,
+        progressText: null,
+        elapsedSeconds: null,
+      },
+      {
+        id: "thinking-2",
+        kind: "thinking",
+        toolName: null,
+        status: MESSAGE_STATUS.STREAMING,
+        createdAt: "2026-03-29T08:00:05.000Z",
+        completedAt: null,
+        contentMarkdown: "继续整理网页证据",
+        input: null,
+        output: null,
+        error: null,
         progressText: null,
         elapsedSeconds: null,
       },

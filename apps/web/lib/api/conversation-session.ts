@@ -1,6 +1,8 @@
 import {
+  appendStreamingAssistantThinkingProcessStep,
   buildAssistantFailedMessageState,
   buildInitialStreamingAssistantRunState,
+  closeStreamingAssistantThinkingProcessSteps,
   CONVERSATION_STREAM_EVENT,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
@@ -8,6 +10,8 @@ import {
   type KnowledgeSourceScope,
   type MessageRole,
   type MessageStatus,
+  readStreamingAssistantProcessSteps,
+  upsertStreamingAssistantToolProcessStep,
 } from "@anchordesk/contracts";
 
 import { slugify } from "./slug";
@@ -202,6 +206,50 @@ function replaceMessageCitations(
   ];
 }
 
+function readToolTimelineString(
+  structuredJson: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  const value = structuredJson?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function applyToolProcessStepToMessage(input: {
+  assistantMessageId: string;
+  messages: ConversationChatMessage[];
+  timelineMessage: ConversationTimelineMessage;
+}) {
+  return input.messages.map((message) => {
+    if (message.id !== input.assistantMessageId) {
+      return message;
+    }
+
+    const structuredJson = message.structuredJson ?? null;
+    const timelineStructuredJson = input.timelineMessage.structuredJson ?? null;
+    const toolUseId = readToolTimelineString(timelineStructuredJson, "tool_use_id");
+    const toolName = readToolTimelineString(timelineStructuredJson, "tool_name");
+    const processSteps = upsertStreamingAssistantToolProcessStep(
+      readStreamingAssistantProcessSteps(structuredJson),
+      {
+        stepId: toolUseId ?? input.timelineMessage.id,
+        status: input.timelineMessage.status,
+        now: new Date(input.timelineMessage.createdAt),
+        toolName,
+        toolUseId,
+        toolMessageId: input.timelineMessage.id,
+      },
+    );
+
+    return {
+      ...message,
+      structuredJson: {
+        ...(structuredJson ?? {}),
+        process_steps: processSteps,
+      },
+    };
+  });
+}
+
 export function appendSubmittedConversationTurn(input: {
   assistantMessage: ConversationChatMessage;
   messages: ConversationChatMessage[];
@@ -369,6 +417,12 @@ export function applyAssistantDeltaEvent(input: {
       contentMarkdown: input.event.delta_text
         ? `${message.contentMarkdown}${input.event.delta_text}`
         : input.event.content_markdown,
+      structuredJson: {
+        ...(message.structuredJson ?? {}),
+        process_steps: closeStreamingAssistantThinkingProcessSteps(
+          readStreamingAssistantProcessSteps(message.structuredJson ?? null),
+        ),
+      },
     };
   });
 }
@@ -390,9 +444,24 @@ export function applyAssistantThinkingDeltaEvent(input: {
         thinking_text: input.event.delta_text
           ? `${typeof message.structuredJson?.thinking_text === "string" ? message.structuredJson.thinking_text : ""}${input.event.delta_text}`
           : input.event.thinking_text,
+        process_steps: appendStreamingAssistantThinkingProcessStep(
+          readStreamingAssistantProcessSteps(message.structuredJson ?? null),
+          {
+            deltaText: input.event.delta_text ?? null,
+            fullText: input.event.thinking_text,
+          },
+        ),
       },
     };
   });
+}
+
+export function applyAssistantToolMessageEvent(input: {
+  assistantMessageId: string;
+  messages: ConversationChatMessage[];
+  timelineMessage: ConversationTimelineMessage;
+}) {
+  return applyToolProcessStepToMessage(input);
 }
 
 export function applyAssistantTerminalEvent(input: {
@@ -427,8 +496,12 @@ export function applyAssistantTerminalEvent(input: {
             message.contentMarkdown,
           structuredJson:
             input.event.structured ??
-            fallbackFailedState?.structuredJson ??
-            null,
+            (fallbackFailedState
+              ? {
+                  ...(message.structuredJson ?? {}),
+                  ...fallbackFailedState.structuredJson,
+                }
+              : null),
         }
       : message,
   );

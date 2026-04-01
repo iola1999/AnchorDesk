@@ -1,7 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import {
+  appendStreamingAssistantThinkingProcessStep,
   ASSISTANT_STREAM_PHASE,
+  closeStreamingAssistantThinkingProcessSteps,
   CONVERSATION_STREAM_EVENT,
   finalizeStreamingAssistantRunState,
   GROUNDED_EVIDENCE_KIND,
@@ -14,6 +16,7 @@ import {
   normalizeConversationFailureMessage,
   refreshStreamingAssistantRunState,
   updateStreamingAssistantRunState,
+  upsertStreamingAssistantToolProcessStep,
   type AssistantStreamPhase,
   type GroundedEvidence,
   type ToolTimelineState,
@@ -514,6 +517,9 @@ async function processConversationResponseJobWithContext(
       activeTaskId?: string | null;
       thinkingText?: string | null;
       contentMarkdown?: string;
+      processSteps?: NonNullable<
+        ReturnType<typeof readStreamingAssistantRunState>
+      >["process_steps"];
     }) {
       const now = input.now ?? new Date();
       currentRunState = updateStreamingAssistantRunState(currentRunState, {
@@ -525,6 +531,7 @@ async function processConversationResponseJobWithContext(
         activeToolUseId: input.activeToolUseId,
         activeTaskId: input.activeTaskId,
         thinkingText: input.thinkingText,
+        processSteps: input.processSteps,
       });
       await updateStreamingAssistantSnapshot({
         assistantMessageId: payload.assistantMessageId,
@@ -617,6 +624,22 @@ async function processConversationResponseJobWithContext(
         ...(eventId ? { streamEventId: eventId } : {}),
         activeToolName: input.clearActiveTool ? null : input.toolName,
         activeToolUseId: input.clearActiveTool ? null : (input.toolUseId ?? null),
+        processSteps: upsertStreamingAssistantToolProcessStep(
+          currentRunState.process_steps ?? [],
+          {
+            stepId: input.toolUseId ?? inserted?.id ?? `${input.toolName}-${Date.now()}`,
+            status:
+              input.state === TOOL_TIMELINE_STATE.STARTED
+                ? MESSAGE_STATUS.STREAMING
+                : input.state === TOOL_TIMELINE_STATE.FAILED
+                  ? MESSAGE_STATUS.FAILED
+                  : MESSAGE_STATUS.COMPLETED,
+            now: new Date(),
+            toolName: input.toolName,
+            toolUseId: input.toolUseId ?? null,
+            toolMessageId: inserted?.id ?? null,
+          },
+        ),
       });
     }
 
@@ -692,17 +715,27 @@ async function processConversationResponseJobWithContext(
         ...(input.statusText === undefined ? {} : { statusText: input.statusText }),
         ...(eventId ? { streamEventId: eventId } : {}),
         contentMarkdown: nextText,
+        processSteps: closeStreamingAssistantThinkingProcessSteps(
+          currentRunState.process_steps ?? [],
+          new Date(now),
+        ),
       });
       lastPersistedAssistantText = nextText;
       lastPersistedAt = now;
     }
 
-    async function persistAssistantThinking(nextText: string) {
+    async function persistAssistantThinking(input: {
+      fullText: string;
+      deltaText?: string | null;
+    }) {
+      const nextText = input.fullText;
       if (nextText === lastPersistedThinkingText) {
         return;
       }
 
-      const deltaText = deriveStreamDeltaText(lastPersistedThinkingText, nextText);
+      const deltaText =
+        input.deltaText ?? deriveStreamDeltaText(lastPersistedThinkingText, nextText);
+      const now = new Date();
       await assertAssistantMessageStillStreaming();
       const eventId = await publishConversationEvent(
         buildAssistantThinkingDeltaEvent({
@@ -713,9 +746,17 @@ async function processConversationResponseJobWithContext(
         }),
       );
       await persistAssistantRunState({
-        now: new Date(),
+        now,
         ...(eventId ? { streamEventId: eventId } : {}),
         thinkingText: nextText,
+        processSteps: appendStreamingAssistantThinkingProcessStep(
+          currentRunState.process_steps ?? [],
+          {
+            now,
+            deltaText,
+            fullText: nextText,
+          },
+        ),
       });
       lastPersistedThinkingText = nextText;
     }
@@ -887,8 +928,11 @@ async function processConversationResponseJobWithContext(
               statusText: "助手正在生成回答...",
             });
           },
-          onAssistantThinkingDelta: async ({ fullThinking }) => {
-            await persistAssistantThinking(fullThinking);
+          onAssistantThinkingDelta: async ({ fullThinking, thinkingDelta }) => {
+            await persistAssistantThinking({
+              fullText: fullThinking,
+              deltaText: thinkingDelta,
+            });
           },
         },
       );

@@ -1,6 +1,6 @@
 export const conversationDensityClassNames = {
   sessionStack: "grid min-w-0 gap-5 pb-3 min-[720px]:gap-6 min-[720px]:pb-4 md:gap-7 md:pb-5",
-  assistantSection: "grid min-w-0 gap-3 min-[720px]:gap-4",
+  assistantSection: "grid min-w-0 gap-2.5 min-[720px]:gap-3",
   userWrap: "ml-auto w-full min-w-0 max-w-[860px]",
   userStack: "grid justify-items-end gap-2",
   userBubble:
@@ -9,9 +9,9 @@ export const conversationDensityClassNames = {
   userAttachmentList: "flex max-w-full flex-wrap justify-end gap-2",
   userAttachmentChip:
     "inline-flex max-w-[min(360px,82vw)] items-center rounded-full border border-app-border/70 bg-white/94 px-3 py-1.5 text-[12px] font-medium text-app-muted-strong shadow-[0_8px_18px_rgba(23,22,18,0.04)] transition hover:border-app-border-strong hover:text-app-text",
-  resultPanel: "grid min-w-0 gap-3 min-[720px]:gap-4",
+  resultPanel: "grid min-w-0 gap-2.5 min-[720px]:gap-3",
   resultHeader:
-    "flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-app-border/60 pb-2",
+    "flex min-w-0 flex-wrap items-center justify-between gap-2.5 border-b border-app-border/60 pb-1.5",
   answerText: "max-w-none text-[14px] leading-7 text-app-text md:text-[15px]",
   thinkingPanel:
     "group/thinking min-w-0 max-w-full rounded-2xl border border-app-border/60 bg-app-surface-soft/68 px-3.5 py-3 shadow-[0_6px_18px_rgba(23,22,18,0.02)]",
@@ -24,13 +24,13 @@ export const conversationDensityClassNames = {
     "min-w-0 whitespace-pre-wrap break-words text-[13px] leading-6 text-app-muted-strong",
   sourcesList: "grid gap-2",
   sourceCard:
-    "grid min-w-0 gap-1 rounded-2xl border border-app-border/55 bg-white/72 px-3.5 py-2.5 text-left transition hover:border-app-border-strong hover:bg-white",
+    "grid min-w-0 gap-1 rounded-[18px] border border-app-border/55 bg-white/72 px-3 py-2 text-left transition hover:border-app-border-strong hover:bg-white",
   actionStatus: "text-[12px] leading-5 text-app-muted",
   timelineShell:
-    "group min-w-0 max-w-full rounded-[24px] border border-app-border/60 bg-app-surface-soft/56 px-4 py-3 shadow-[0_10px_24px_rgba(23,22,18,0.03)]",
+    "group min-w-0 max-w-full rounded-[18px] border border-app-border/60 bg-app-surface-soft/56 px-3 py-2.5 shadow-[0_8px_18px_rgba(23,22,18,0.025)]",
   timelineList:
-    "relative mt-3 grid min-w-0 gap-3 border-t border-app-border/55 pt-3 before:absolute before:bottom-2 before:left-4 before:top-6 before:w-px before:bg-app-border/70",
-  timelineEntry: "group/timeline-entry grid min-w-0 gap-2.5",
+    "relative mt-2 grid min-w-0 gap-2 border-t border-app-border/55 pt-2 before:absolute before:bottom-2 before:left-[8px] before:top-3 before:w-px before:bg-app-border/75",
+  timelineEntry: "group/timeline-entry grid min-w-0 gap-0",
   timelineEntrySummary:
     "grid min-w-0 list-none grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 text-left [&::-webkit-details-marker]:hidden",
   timelineEntryRail: "relative z-10 flex items-start justify-center pt-1",

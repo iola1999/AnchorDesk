@@ -1,14 +1,18 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  appendStreamingAssistantThinkingProcessStep,
   STREAMING_ASSISTANT_LEASE_TIMEOUT_MS,
   buildInitialStreamingAssistantRunState,
   finalizeStreamingAssistantRunState,
   buildStreamingAssistantRunState,
+  closeStreamingAssistantThinkingProcessSteps,
   isStreamingAssistantRunExpired,
+  readStreamingAssistantProcessSteps,
   readStreamingAssistantRunState,
   refreshStreamingAssistantRunState,
   updateStreamingAssistantRunState,
+  upsertStreamingAssistantToolProcessStep,
 } from "./conversation-run";
 import { ASSISTANT_STREAM_PHASE } from "./domain";
 
@@ -30,6 +34,7 @@ describe("buildStreamingAssistantRunState", () => {
       active_tool_use_id: null,
       active_task_id: null,
       thinking_text: null,
+      process_steps: [],
     });
   });
 });
@@ -72,6 +77,7 @@ describe("refreshStreamingAssistantRunState", () => {
       active_tool_use_id: null,
       active_task_id: null,
       thinking_text: null,
+      process_steps: [],
     });
   });
 });
@@ -113,6 +119,7 @@ describe("updateStreamingAssistantRunState", () => {
       active_tool_use_id: null,
       active_task_id: null,
       thinking_text: "先搜索本地资料",
+      process_steps: [],
     });
   });
 });
@@ -136,6 +143,7 @@ describe("buildInitialStreamingAssistantRunState", () => {
       active_tool_use_id: null,
       active_task_id: null,
       thinking_text: null,
+      process_steps: [],
     });
   });
 });
@@ -174,7 +182,118 @@ describe("finalizeStreamingAssistantRunState", () => {
       active_tool_use_id: null,
       active_task_id: null,
       thinking_text: "先确认工具是否可用",
+      process_steps: [],
     });
+  });
+});
+
+describe("streaming assistant process steps", () => {
+  test("appends thinking into one step until a tool boundary starts a new segment", () => {
+    const firstThinking = appendStreamingAssistantThinkingProcessStep([], {
+      now: new Date("2026-04-02T10:00:00.000Z"),
+      fullText: "先确认本地资料",
+    });
+    const withTool = upsertStreamingAssistantToolProcessStep(firstThinking, {
+      stepId: "tool-1",
+      status: "streaming",
+      now: new Date("2026-04-02T10:00:01.000Z"),
+      toolName: "search_workspace_knowledge",
+      toolUseId: "tool-1",
+      toolMessageId: "tool-message-1",
+    });
+    const secondThinking = appendStreamingAssistantThinkingProcessStep(withTool, {
+      now: new Date("2026-04-02T10:00:02.000Z"),
+      fullText: "先确认本地资料再决定是否联网",
+    });
+
+    expect(secondThinking).toEqual([
+      {
+        id: expect.any(String),
+        kind: "thinking",
+        status: "completed",
+        created_at: "2026-04-02T10:00:00.000Z",
+        updated_at: "2026-04-02T10:00:01.000Z",
+        completed_at: "2026-04-02T10:00:01.000Z",
+        text: "先确认本地资料",
+      },
+      {
+        id: "tool-1",
+        kind: "tool",
+        status: "streaming",
+        created_at: "2026-04-02T10:00:01.000Z",
+        updated_at: "2026-04-02T10:00:01.000Z",
+        completed_at: null,
+        tool_name: "search_workspace_knowledge",
+        tool_use_id: "tool-1",
+        tool_message_id: "tool-message-1",
+      },
+      {
+        id: expect.any(String),
+        kind: "thinking",
+        status: "streaming",
+        created_at: "2026-04-02T10:00:02.000Z",
+        updated_at: "2026-04-02T10:00:02.000Z",
+        completed_at: null,
+        text: "再决定是否联网",
+      },
+    ]);
+  });
+
+  test("reads persisted process steps from structured state", () => {
+    expect(
+      readStreamingAssistantProcessSteps({
+        process_steps: [
+          {
+            id: "thinking-1",
+            kind: "thinking",
+            status: "completed",
+            created_at: "2026-04-02T10:00:00.000Z",
+            updated_at: "2026-04-02T10:00:01.000Z",
+            completed_at: "2026-04-02T10:00:01.000Z",
+            text: "先确认工具是否可用",
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        id: "thinking-1",
+        kind: "thinking",
+        status: "completed",
+        created_at: "2026-04-02T10:00:00.000Z",
+        updated_at: "2026-04-02T10:00:01.000Z",
+        completed_at: "2026-04-02T10:00:01.000Z",
+        text: "先确认工具是否可用",
+      },
+    ]);
+  });
+
+  test("closes active thinking steps when drafting starts", () => {
+    expect(
+      closeStreamingAssistantThinkingProcessSteps(
+        [
+          {
+            id: "thinking-1",
+            kind: "thinking",
+            status: "streaming",
+            created_at: "2026-04-02T10:00:00.000Z",
+            updated_at: "2026-04-02T10:00:00.000Z",
+            completed_at: null,
+            text: "先整理上下文",
+          },
+        ],
+        new Date("2026-04-02T10:00:01.000Z"),
+      ),
+    ).toEqual([
+      {
+        id: "thinking-1",
+        kind: "thinking",
+        status: "completed",
+        created_at: "2026-04-02T10:00:00.000Z",
+        updated_at: "2026-04-02T10:00:01.000Z",
+        completed_at: "2026-04-02T10:00:01.000Z",
+        text: "先整理上下文",
+      },
+    ]);
   });
 });
 

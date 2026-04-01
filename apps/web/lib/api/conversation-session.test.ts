@@ -9,6 +9,7 @@ import {
 import {
   buildConversationAttachmentLinkTarget,
   applyAssistantThinkingDeltaEvent,
+  applyAssistantToolMessageEvent,
   applyAssistantDeltaEvent,
   appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
@@ -392,6 +393,17 @@ describe("applyAssistantThinkingDeltaEvent", () => {
               phase: "analyzing",
               status_text: "助手正在分析问题并准备回答...",
               thinking_text: "先确认",
+              process_steps: [
+                {
+                  id: "thinking-1",
+                  kind: "thinking",
+                  status: "streaming",
+                  created_at: "2026-04-02T10:00:00.000Z",
+                  updated_at: "2026-04-02T10:00:00.000Z",
+                  completed_at: null,
+                  text: "先确认",
+                },
+              ],
             },
           },
         ],
@@ -418,6 +430,89 @@ describe("applyAssistantThinkingDeltaEvent", () => {
           phase: "analyzing",
           status_text: "助手正在分析问题并准备回答...",
           thinking_text: "先确认 SDK 有没有暴露 thinking",
+          process_steps: [
+            {
+              id: "thinking-1",
+              kind: "thinking",
+              status: "streaming",
+              created_at: "2026-04-02T10:00:00.000Z",
+              updated_at: expect.any(String),
+              completed_at: null,
+              text: "先确认 SDK 有没有暴露 thinking",
+            },
+          ],
+        },
+      },
+    ]);
+  });
+});
+
+describe("applyAssistantToolMessageEvent", () => {
+  test("records tool boundaries into the assistant process steps", () => {
+    expect(
+      applyAssistantToolMessageEvent({
+        assistantMessageId: "assistant-1",
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "",
+            structuredJson: {
+              process_steps: [
+                {
+                  id: "thinking-1",
+                  kind: "thinking",
+                  status: "streaming",
+                  created_at: "2026-04-02T10:00:00.000Z",
+                  updated_at: "2026-04-02T10:00:00.000Z",
+                  completed_at: null,
+                  text: "先确认资料库是否可用",
+                },
+              ],
+            },
+          },
+        ],
+        timelineMessage: {
+          id: "tool-message-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "开始调用工具：search_workspace_knowledge",
+          createdAt: "2026-04-02T10:00:01.000Z",
+          structuredJson: {
+            tool_name: "search_workspace_knowledge",
+            tool_use_id: "tool-use-1",
+          },
+        },
+      }),
+    ).toEqual([
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          process_steps: [
+            {
+              id: "thinking-1",
+              kind: "thinking",
+              status: "completed",
+              created_at: "2026-04-02T10:00:00.000Z",
+              updated_at: "2026-04-02T10:00:01.000Z",
+              completed_at: "2026-04-02T10:00:01.000Z",
+              text: "先确认资料库是否可用",
+            },
+            {
+              id: "tool-use-1",
+              kind: "tool",
+              status: MESSAGE_STATUS.STREAMING,
+              created_at: "2026-04-02T10:00:01.000Z",
+              updated_at: "2026-04-02T10:00:01.000Z",
+              completed_at: null,
+              tool_name: "search_workspace_knowledge",
+              tool_use_id: "tool-use-1",
+              tool_message_id: "tool-message-1",
+            },
+          ],
         },
       },
     ]);
@@ -472,6 +567,7 @@ describe("restartAssistantMessageForRetry", () => {
             active_tool_name: null,
             active_tool_use_id: null,
             active_task_id: null,
+            process_steps: [],
           }),
         }),
       ],
@@ -599,6 +695,7 @@ describe("restartAssistantSessionSnapshotForRetry", () => {
             active_tool_name: null,
             active_tool_use_id: null,
             active_task_id: null,
+            process_steps: [],
           }),
         }),
       ],
@@ -777,6 +874,7 @@ describe("applyAssistantTerminalEvent", () => {
         contentMarkdown: "Agent 处理失败：Assistant message not found.",
         structuredJson: {
           agent_error: "Assistant message not found.",
+          run_started_at: "2026-03-30T10:00:00.000Z",
         },
       }),
     ]);
@@ -822,6 +920,7 @@ describe("applyAssistantDeltaEvent", () => {
           run_started_at: "2026-03-31T10:00:00.000Z",
           run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
           run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+          process_steps: [],
         },
       },
     ]);
@@ -864,6 +963,7 @@ describe("applyAssistantDeltaEvent", () => {
           run_started_at: "2026-03-31T10:00:00.000Z",
           run_last_heartbeat_at: "2026-03-31T10:00:10.000Z",
           run_lease_expires_at: "2026-03-31T10:00:55.000Z",
+          process_steps: [],
         },
       },
     ]);
