@@ -20,18 +20,25 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.answerText).toContain("leading-7");
   });
 
-  it("uses a flatter timeline list instead of nested oversized cards", () => {
+  it("uses a stepped timeline layout with a vertical rail and expandable task cards", () => {
     expect(conversationDensityClassNames.timelineShell).toContain("max-w-full");
-    expect(conversationDensityClassNames.timelineEntry).toContain("border-l-[1.5px]");
-    expect(conversationDensityClassNames.timelineEntry).toContain("min-w-0");
-    expect(conversationDensityClassNames.timelineEntry).not.toContain("rounded-[20px]");
-    expect(conversationDensityClassNames.timelineEntryDetails).toContain("border-t");
-    expect(conversationDensityClassNames.timelineEntryMeta).toContain("text-[11px]");
+    expect(conversationDensityClassNames.timelineShell).toContain("rounded-[24px]");
+    expect(conversationDensityClassNames.timelineList).toContain("before:absolute");
+    expect(conversationDensityClassNames.timelineEntry).toContain("group/timeline-entry");
+    expect(conversationDensityClassNames.timelineEntrySummary).toContain(
+      "grid-cols-[2rem_minmax(0,1fr)]",
+    );
+    expect(conversationDensityClassNames.timelineEntryCard).toContain("rounded-[22px]");
+    expect(conversationDensityClassNames.timelineEntryDetails).toContain(
+      "grid-cols-[2rem_minmax(0,1fr)]",
+    );
+    expect(conversationDensityClassNames.timelineArgument).toContain("rounded-xl");
+    expect(conversationDensityClassNames.timelinePreviewItem).toContain("rounded-xl");
     expect(conversationDensityClassNames.payloadDisclosure).toContain("overflow-hidden");
     expect(conversationDensityClassNames.payloadPre).toContain("max-w-full");
     expect(conversationDensityClassNames.payloadPre).toContain("break-all");
     expect(conversationDensityClassNames.payloadPre).toContain("select-text");
-    expect(conversationDensityClassNames.payloadDisclosure).toContain("rounded-xl");
+    expect(conversationDensityClassNames.payloadDisclosure).toContain("bg-app-surface-soft");
   });
 
   it("keeps the stage composer compact while preserving attachment visibility", () => {
