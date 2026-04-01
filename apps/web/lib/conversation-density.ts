@@ -27,15 +27,38 @@ export const conversationDensityClassNames = {
     "grid min-w-0 gap-1 rounded-2xl border border-app-border/55 bg-white/72 px-3.5 py-2.5 text-left transition hover:border-app-border-strong hover:bg-white",
   actionStatus: "text-[12px] leading-5 text-app-muted",
   timelineShell:
-    "group min-w-0 max-w-full rounded-2xl border border-app-border/60 bg-white/68 px-3.5 py-2.5 shadow-[0_6px_18px_rgba(23,22,18,0.03)]",
-  timelineList: "mt-2 grid min-w-0 gap-2 border-t border-app-border/55 pt-2.5",
-  timelineEntry: "grid min-w-0 gap-2 border-l-[1.5px] border-app-border/70 pl-3",
+    "group min-w-0 max-w-full rounded-[24px] border border-app-border/60 bg-app-surface-soft/56 px-4 py-3 shadow-[0_10px_24px_rgba(23,22,18,0.03)]",
+  timelineList:
+    "relative mt-3 grid min-w-0 gap-3 border-t border-app-border/55 pt-3 before:absolute before:bottom-2 before:left-4 before:top-6 before:w-px before:bg-app-border/70",
+  timelineEntry: "group/timeline-entry grid min-w-0 gap-2.5",
   timelineEntrySummary:
-    "flex min-w-0 list-none items-start justify-between gap-2 rounded-lg text-left",
-  timelineEntryDetails: "grid min-w-0 gap-1.5 border-t border-app-border/55 pt-2",
-  timelineEntryMeta: "flex flex-wrap items-center gap-1.5 text-[11px] text-app-muted",
+    "grid min-w-0 list-none grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 text-left [&::-webkit-details-marker]:hidden",
+  timelineEntryRail: "relative z-10 flex items-start justify-center pt-1",
+  timelineEntryCard: "grid min-w-0 gap-2.5 rounded-[22px] border px-3.5 py-3",
+  timelineEntryHeader: "flex min-w-0 items-start justify-between gap-3",
+  timelineEntryBody: "grid min-w-0 gap-2",
+  timelineEntryTitleRow: "flex min-w-0 flex-wrap items-center gap-2",
+  timelineEntryTime: "shrink-0 pt-0.5 text-[11px] text-app-muted",
+  timelineEntryDetails: "grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-3",
+  timelineEntryDetailsPanel: "grid min-w-0 gap-2.5 rounded-[20px] border border-app-border/65 bg-white/80 px-3.5 py-3",
+  timelineEntrySection: "grid min-w-0 gap-2",
+  timelineEntrySectionTitle:
+    "text-[11px] font-semibold uppercase tracking-[0.12em] text-app-muted",
+  timelineStatusPill:
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+  timelineArgumentList: "flex flex-wrap gap-2",
+  timelineArgument:
+    "inline-flex max-w-full items-start gap-1.5 rounded-xl border border-app-border/70 bg-app-surface-soft/78 px-2.5 py-1.5 text-[11px] text-app-muted-strong",
+  timelineArgumentLabel: "shrink-0 font-medium text-app-muted",
+  timelineArgumentValue: "min-w-0 break-words text-app-text",
+  timelineSummaryText: "text-[12px] leading-5 text-app-muted-strong [overflow-wrap:anywhere]",
+  timelinePreviewList: "grid min-w-0 gap-1.5",
+  timelinePreviewItem: "grid min-w-0 gap-0.5 rounded-xl bg-white/72 px-3 py-2 text-left",
+  timelinePreviewLabelRow: "flex items-center gap-2 text-[11px] text-app-muted",
+  timelinePreviewValue: "text-[12px] leading-5 text-app-text [overflow-wrap:anywhere]",
+  timelinePreviewMeta: "text-[11px] leading-4 text-app-muted",
   payloadDisclosure:
-    "group/payload min-w-0 max-w-full overflow-hidden rounded-xl border border-app-border/65 bg-white/78 px-3 py-2",
+    "group/payload min-w-0 max-w-full overflow-hidden rounded-xl border border-app-border/65 bg-app-surface-soft/64 px-3 py-2.5",
   payloadPre:
     "min-w-0 max-w-full max-h-[220px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-xl bg-app-surface-soft px-3 py-2 text-[11px] leading-5 text-app-muted-strong",
   composerShell:

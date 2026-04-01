@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-import { MESSAGE_STATUS, type MessageStatus } from "@anchordesk/contracts";
+import { type MessageStatus } from "@anchordesk/contracts";
 
+import {
+  AnswerIcon,
+  ChevronDownIcon,
+  GlobeIcon,
+  LibraryIcon,
+  SlidersIcon,
+  SourceIcon,
+} from "@/components/icons";
 import {
   buildAssistantProcessTimelineEntries,
   canShowAssistantProcess,
@@ -11,8 +19,10 @@ import {
 } from "@/lib/api/conversation-process";
 import { conversationDensityClassNames } from "@/lib/conversation-density";
 import {
+  buildConversationTimelineEntryView,
   canExpandConversationTimelineEntry,
-  describeConversationTimelineEntryDetailsLabel,
+  type ConversationTimelinePreviewItem,
+  type ConversationTimelineEntryView,
 } from "@/lib/conversation-timeline";
 import { cn, ui } from "@/lib/ui";
 
@@ -41,48 +51,6 @@ function formatTimeRange(startAt: string, completedAt: string | null) {
   const completedLabel = formatTime(completedAt);
 
   return startLabel === completedLabel ? completedLabel : `${startLabel} → ${completedLabel}`;
-}
-
-function getTimelineTone(status: MessageStatus) {
-  if (status === MESSAGE_STATUS.FAILED) {
-    return "border-red-200/80 bg-red-50/70 text-red-700";
-  }
-
-  if (status === MESSAGE_STATUS.STREAMING) {
-    return "border-amber-200/80 bg-amber-50/70 text-amber-800";
-  }
-
-  return "border-emerald-200/80 bg-emerald-50/70 text-emerald-800";
-}
-
-function describeEntryStatus(status: MessageStatus) {
-  return status === MESSAGE_STATUS.STREAMING
-    ? "进行中"
-    : status === MESSAGE_STATUS.FAILED
-      ? "失败"
-      : "完成";
-}
-
-function describeEntryHeadline(input: {
-  toolName: string | null;
-  status: MessageStatus;
-  error: string | null;
-  contentMarkdown: string;
-  progressText: string | null;
-}) {
-  if (!input.toolName) {
-    return input.contentMarkdown;
-  }
-
-  if (input.status === MESSAGE_STATUS.STREAMING) {
-    return input.progressText ?? "正在等待工具结果";
-  }
-
-  if (input.status === MESSAGE_STATUS.FAILED) {
-    return input.error ?? "调用失败";
-  }
-
-  return "已收到工具结果";
 }
 
 function formatPayloadValue(value: unknown) {
@@ -129,6 +97,60 @@ function describePayloadPreview(value: unknown) {
   return String(value);
 }
 
+function resolveTimelineIcon(entry: ConversationTimelineEntryView) {
+  switch (entry.icon) {
+    case "knowledge":
+    case "attachment":
+      return <LibraryIcon className="size-4" />;
+    case "web":
+      return <GlobeIcon className="size-4" />;
+    case "fetch":
+      return <SourceIcon className="size-4" />;
+    case "report":
+      return <AnswerIcon className="size-4" />;
+    default:
+      return <SlidersIcon className="size-4" />;
+  }
+}
+
+function resolveMarkerClasses(entry: ConversationTimelineEntryView) {
+  return entry.tone === "danger"
+    ? "border-red-200/80 bg-red-50 text-red-700"
+    : entry.tone === "active"
+      ? "border-amber-200/80 bg-amber-50 text-amber-800"
+      : entry.tone === "success"
+        ? "border-emerald-200/80 bg-white text-emerald-800"
+        : "border-app-border/70 bg-white text-app-muted-strong";
+}
+
+function resolveCardClasses(entry: ConversationTimelineEntryView) {
+  return entry.tone === "danger"
+    ? "border-red-200/80 bg-red-50/60"
+    : entry.tone === "active"
+      ? "border-amber-200/80 bg-amber-50/52"
+      : entry.tone === "success"
+        ? "border-app-border/70 bg-white/92"
+        : "border-app-border/70 bg-white/84";
+}
+
+function resolveStatusClasses(entry: ConversationTimelineEntryView) {
+  return entry.tone === "danger"
+    ? "border-red-200/80 bg-red-50/80 text-red-700"
+    : entry.tone === "active"
+      ? "border-amber-200/80 bg-amber-50/80 text-amber-800"
+      : entry.tone === "success"
+        ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-800"
+        : "border-app-border/70 bg-white/88 text-app-muted-strong";
+}
+
+function resolvePreviewItemClasses(item: ConversationTimelinePreviewItem) {
+  return item.tone === "danger"
+    ? "border border-red-200/80 bg-red-50/72"
+    : item.tone === "warning"
+      ? "border border-amber-200/80 bg-amber-50/72"
+      : "border border-app-border/60 bg-white/72";
+}
+
 function ToolPayloadBlock({
   label,
   value,
@@ -154,50 +176,131 @@ function ToolPayloadBlock({
   );
 }
 
-function TimelineEntrySummary({
+function TimelinePreviewList({
+  items,
+  limit,
+}: {
+  items: ConversationTimelinePreviewItem[];
+  limit?: number;
+}) {
+  const visibleItems = typeof limit === "number" ? items.slice(0, limit) : items;
+  const hiddenCount = typeof limit === "number" ? Math.max(items.length - limit, 0) : 0;
+
+  if (visibleItems.length === 0 && hiddenCount === 0) {
+    return null;
+  }
+
+  return (
+    <ul className={conversationDensityClassNames.timelinePreviewList}>
+      {visibleItems.map((item, index) => (
+        <li
+          key={`${item.label}-${index}`}
+          className={cn(
+            conversationDensityClassNames.timelinePreviewItem,
+            resolvePreviewItemClasses(item),
+          )}
+        >
+          <div className={conversationDensityClassNames.timelinePreviewLabelRow}>
+            <span className="font-medium text-app-muted-strong">{item.label}</span>
+            {item.meta ? <span className={conversationDensityClassNames.timelinePreviewMeta}>{item.meta}</span> : null}
+          </div>
+          <p className={conversationDensityClassNames.timelinePreviewValue}>{item.value}</p>
+        </li>
+      ))}
+
+      {hiddenCount > 0 ? (
+        <li className={cn(conversationDensityClassNames.timelinePreviewItem, "border border-dashed border-app-border/70 bg-white/54")}>
+          <div className={conversationDensityClassNames.timelinePreviewLabelRow}>
+            <span className="font-medium text-app-muted-strong">其余</span>
+          </div>
+          <p className={conversationDensityClassNames.timelinePreviewValue}>
+            还有 {hiddenCount} 项
+          </p>
+        </li>
+      ) : null}
+    </ul>
+  );
+}
+
+function TimelineEntryCard({
   entry,
   expandable = false,
 }: {
-  entry: ReturnType<typeof buildAssistantProcessTimelineEntries>[number];
+  entry: ConversationTimelineEntryView;
   expandable?: boolean;
 }) {
   return (
     <div className={conversationDensityClassNames.timelineEntrySummary}>
-      <div className="grid min-w-0 gap-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          {expandable ? (
-            <span className="text-sm leading-none text-app-muted transition group-open/timeline-entry:rotate-90">
-              ›
-            </span>
-          ) : null}
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
-              getTimelineTone(entry.status),
-            )}
-          >
-            {describeEntryStatus(entry.status)}
-          </span>
-          {entry.toolName ? <span className={ui.codeChip}>{entry.toolName}</span> : null}
-        </div>
-        <p className="text-[12px] leading-5 text-app-muted-strong [overflow-wrap:anywhere]">
-          {describeEntryHeadline({
-            toolName: entry.toolName,
-            status: entry.status,
-            error: entry.error,
-            contentMarkdown: entry.contentMarkdown,
-            progressText: entry.progressText,
-          })}
-        </p>
-        {expandable ? (
-          <span className={conversationDensityClassNames.timelineEntryMeta}>
-            {describeConversationTimelineEntryDetailsLabel(entry)}
-          </span>
-        ) : null}
+      <div className={conversationDensityClassNames.timelineEntryRail}>
+        <span
+          className={cn(
+            "inline-flex size-8 items-center justify-center rounded-full border shadow-[0_8px_18px_rgba(23,22,18,0.04)]",
+            resolveMarkerClasses(entry),
+          )}
+        >
+          {resolveTimelineIcon(entry)}
+        </span>
       </div>
-      <span className="shrink-0 pt-0.5 text-[11px] text-app-muted">
-        {formatTimeRange(entry.createdAt, entry.completedAt)}
-      </span>
+
+      <div
+        className={cn(
+          conversationDensityClassNames.timelineEntryCard,
+          resolveCardClasses(entry),
+        )}
+      >
+        <div className={conversationDensityClassNames.timelineEntryHeader}>
+          <div className={conversationDensityClassNames.timelineEntryBody}>
+            <div className={conversationDensityClassNames.timelineEntryTitleRow}>
+              <span className="text-[14px] font-semibold text-app-text">{entry.displayName}</span>
+              <span
+                className={cn(
+                  conversationDensityClassNames.timelineStatusPill,
+                  resolveStatusClasses(entry),
+                )}
+              >
+                {entry.statusLabel}
+              </span>
+            </div>
+
+            {entry.arguments.length > 0 ? (
+              <div className={conversationDensityClassNames.timelineArgumentList}>
+                {entry.arguments.map((item) => (
+                  <div
+                    key={`${item.label}-${item.value}`}
+                    className={conversationDensityClassNames.timelineArgument}
+                  >
+                    <span className={conversationDensityClassNames.timelineArgumentLabel}>
+                      {item.label}
+                    </span>
+                    <span className={conversationDensityClassNames.timelineArgumentValue}>
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {entry.previewSummary ? (
+              <p className={conversationDensityClassNames.timelineSummaryText}>
+                {entry.previewSummary}
+              </p>
+            ) : null}
+
+            <TimelinePreviewList items={entry.previewItems} limit={3} />
+          </div>
+
+          <div className="flex shrink-0 items-start gap-2">
+            <span className={conversationDensityClassNames.timelineEntryTime}>
+              {formatTimeRange(entry.createdAt, entry.completedAt)}
+            </span>
+            {expandable ? (
+              <span className="pt-0.5 text-app-muted transition group-open/timeline-entry:rotate-180">
+                <ChevronDownIcon className="size-4" />
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -212,7 +315,9 @@ export function ConversationTimeline({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const timelineEntries = buildAssistantProcessTimelineEntries(timelineMessages);
+  const timelineEntries = buildAssistantProcessTimelineEntries(timelineMessages).map(
+    buildConversationTimelineEntryView,
+  );
 
   useEffect(() => {
     setOpen(defaultOpen);
@@ -242,9 +347,11 @@ export function ConversationTimeline({
         setOpen(event.currentTarget.open);
       }}
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2.5 text-[13px] text-app-muted-strong">
+      <summary className="flex cursor-pointer list-none items-center gap-2.5 text-[13px] text-app-muted-strong [&::-webkit-details-marker]:hidden">
         <span className="inline-flex items-center gap-2 font-medium text-app-text">
-          <span className="text-sm leading-none transition group-open:rotate-90">›</span>
+          <span className="text-app-muted transition group-open:rotate-180">
+            <ChevronDownIcon className="size-4" />
+          </span>
           {summary}
         </span>
       </summary>
@@ -257,7 +364,7 @@ export function ConversationTimeline({
             if (!expandable) {
               return (
                 <article key={entry.id} className={conversationDensityClassNames.timelineEntry}>
-                  <TimelineEntrySummary entry={entry} />
+                  <TimelineEntryCard entry={entry} />
                 </article>
               );
             }
@@ -265,22 +372,32 @@ export function ConversationTimeline({
             return (
               <details
                 key={entry.id}
-                className={cn(
-                  conversationDensityClassNames.timelineEntry,
-                  "group/timeline-entry rounded-r-lg",
-                )}
+                className={conversationDensityClassNames.timelineEntry}
               >
-                <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-                  <TimelineEntrySummary entry={entry} expandable />
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <TimelineEntryCard entry={entry} expandable />
                 </summary>
 
                 <div className={conversationDensityClassNames.timelineEntryDetails}>
-                  {entry.input !== null ? (
-                    <ToolPayloadBlock label="入参" value={entry.input} />
-                  ) : null}
-                  {entry.output !== null ? (
-                    <ToolPayloadBlock label="结果" value={entry.output} />
-                  ) : null}
+                  <div />
+                  <div className={conversationDensityClassNames.timelineEntryDetailsPanel}>
+                    {entry.previewItems.length > 0 ? (
+                      <section className={conversationDensityClassNames.timelineEntrySection}>
+                        <h4 className={conversationDensityClassNames.timelineEntrySectionTitle}>
+                          结果摘要
+                        </h4>
+                        <TimelinePreviewList items={entry.previewItems} />
+                      </section>
+                    ) : null}
+
+                    {entry.input !== null ? (
+                      <ToolPayloadBlock label="原始入参" value={entry.input} />
+                    ) : null}
+
+                    {entry.output !== null ? (
+                      <ToolPayloadBlock label="原始结果" value={entry.output} />
+                    ) : null}
+                  </div>
                 </div>
               </details>
             );
@@ -289,7 +406,7 @@ export function ConversationTimeline({
       ) : null}
 
       {timelineEntries.length === 0 && runtimeStatus ? (
-        <p className={cn(ui.muted, "mt-2 border-t border-app-border/55 pt-2.5 text-[12px]")}>
+        <p className={cn(ui.muted, "mt-3 border-t border-app-border/55 pt-3 text-[12px]")}>
           {runtimeStatus}
         </p>
       ) : null}
