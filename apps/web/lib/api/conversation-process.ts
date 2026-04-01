@@ -3,9 +3,11 @@ import {
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
+  readStreamingAssistantProcessSteps,
   readStreamingAssistantRunState,
   type MessageRole,
   type MessageStatus,
+  type StreamingAssistantProcessStep,
 } from "@anchordesk/contracts";
 
 export type ConversationProcessThreadMessage = {
@@ -27,7 +29,7 @@ export type AssistantProcessMessage = {
 
 export type AssistantProcessTimelineEntry = {
   id: string;
-  kind: "tool_call" | "status_event";
+  kind: "thinking" | "tool_call" | "status_event";
   toolName: string | null;
   status: MessageStatus;
   createdAt: string;
@@ -170,7 +172,7 @@ export function groupAssistantProcessMessages(
   return Object.fromEntries(grouped);
 }
 
-export function buildAssistantProcessTimelineEntries(
+function buildToolTimelineEntries(
   timelineMessages: AssistantProcessMessage[],
 ) {
   const entries: AssistantProcessTimelineEntry[] = [];
@@ -293,6 +295,152 @@ export function buildAssistantProcessTimelineEntries(
   }
 
   return entries;
+}
+
+function buildThinkingTimelineEntry(step: Extract<
+  StreamingAssistantProcessStep,
+  { kind: "thinking" }
+>): AssistantProcessTimelineEntry {
+  return {
+    id: step.id,
+    kind: "thinking",
+    toolName: null,
+    status: step.status,
+    createdAt: step.created_at,
+    completedAt:
+      step.completed_at ??
+      (step.status === MESSAGE_STATUS.STREAMING ? null : step.updated_at),
+    contentMarkdown: step.text,
+    input: null,
+    output: null,
+    error: null,
+    progressText: null,
+    elapsedSeconds: null,
+  };
+}
+
+function buildSyntheticToolTimelineEntry(step: Extract<
+  StreamingAssistantProcessStep,
+  { kind: "tool" }
+>): AssistantProcessTimelineEntry {
+  const toolName = step.tool_name ?? null;
+  return {
+    id: step.id,
+    kind: "tool_call",
+    toolName,
+    status: step.status,
+    createdAt: step.created_at,
+    completedAt:
+      step.completed_at ??
+      (step.status === MESSAGE_STATUS.STREAMING ? null : step.updated_at),
+    contentMarkdown:
+      step.status === MESSAGE_STATUS.FAILED
+        ? `工具执行失败：${toolName ?? "unknown"}`
+        : step.status === MESSAGE_STATUS.STREAMING
+          ? `开始调用工具：${toolName ?? "unknown"}`
+          : `工具执行完成：${toolName ?? "unknown"}`,
+    input: null,
+    output: null,
+    error: null,
+    progressText: null,
+    elapsedSeconds: null,
+  };
+}
+
+function buildFallbackThinkingTimelineEntry(input: {
+  assistantContentMarkdown: string;
+  assistantStatus: MessageStatus;
+  assistantStructuredJson?: Record<string, unknown> | null;
+}) {
+  const runState = readStreamingAssistantRunState(input.assistantStructuredJson ?? null);
+  const thinkingText = runState?.thinking_text?.trim();
+  if (!thinkingText || !runState) {
+    return null;
+  }
+
+  const thinkingStillActive =
+    input.assistantStatus === MESSAGE_STATUS.STREAMING &&
+    !input.assistantContentMarkdown.trim();
+
+  return {
+    id: `thinking-${runState.run_id}`,
+    kind: "thinking" as const,
+    toolName: null,
+    status: thinkingStillActive ? MESSAGE_STATUS.STREAMING : MESSAGE_STATUS.COMPLETED,
+    createdAt: runState.run_started_at,
+    completedAt: thinkingStillActive ? null : runState.run_last_heartbeat_at,
+    contentMarkdown: thinkingText,
+    input: null,
+    output: null,
+    error: null,
+    progressText: null,
+    elapsedSeconds: null,
+  };
+}
+
+export function buildAssistantProcessTimelineEntries(input: {
+  assistantContentMarkdown: string;
+  assistantStatus: MessageStatus;
+  assistantStructuredJson?: Record<string, unknown> | null;
+  timelineMessages: AssistantProcessMessage[];
+}) {
+  const toolEntries = buildToolTimelineEntries(input.timelineMessages);
+  const processSteps = readStreamingAssistantProcessSteps(input.assistantStructuredJson ?? null);
+  const orderedEntries: Array<{
+    entry: AssistantProcessTimelineEntry;
+    sequence: number;
+  }> = [];
+  const consumedToolEntryIds = new Set<string>();
+  const toolEntriesById = new Map(
+    toolEntries
+      .filter((entry) => entry.kind === "tool_call")
+      .map((entry) => [entry.id, entry] as const),
+  );
+
+  if (processSteps.length > 0) {
+    processSteps.forEach((step, index) => {
+      if (step.kind === "thinking") {
+        orderedEntries.push({
+          entry: buildThinkingTimelineEntry(step),
+          sequence: index,
+        });
+        return;
+      }
+
+      const toolEntry =
+        toolEntriesById.get(step.id) ?? buildSyntheticToolTimelineEntry(step);
+      consumedToolEntryIds.add(toolEntry.id);
+      orderedEntries.push({
+        entry: toolEntry,
+        sequence: index,
+      });
+    });
+  } else {
+    const fallbackThinkingEntry = buildFallbackThinkingTimelineEntry(input);
+    if (fallbackThinkingEntry) {
+      orderedEntries.push({
+        entry: fallbackThinkingEntry,
+        sequence: -1,
+      });
+    }
+  }
+
+  const leftoverEntries = toolEntries.filter(
+    (entry) => entry.kind === "status_event" || !consumedToolEntryIds.has(entry.id),
+  );
+
+  return [...orderedEntries, ...leftoverEntries.map((entry, index) => ({
+    entry,
+    sequence: processSteps.length + index,
+  }))].sort((left, right) => {
+    const leftTime = new Date(left.entry.createdAt).getTime();
+    const rightTime = new Date(right.entry.createdAt).getTime();
+    if (leftTime !== rightTime) {
+      return leftTime - rightTime;
+    }
+
+    return left.sequence - right.sequence;
+  }).map((item) => item.entry);
 }
 
 export function describeAssistantProcessSummary(input: {

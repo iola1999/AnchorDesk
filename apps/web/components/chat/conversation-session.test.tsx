@@ -80,7 +80,7 @@ describe("ConversationSession", () => {
     expect(excerpt?.textContent).toContain("部署手册");
   });
 
-  test("renders streamed thinking before the final answer starts", () => {
+  test("renders streamed thinking inside the unified process timeline", () => {
     act(() => {
       root.render(
         createElement(ConversationSession, {
@@ -103,6 +103,17 @@ describe("ConversationSession", () => {
                 phase: "analyzing",
                 status_text: "助手正在分析问题并准备回答...",
                 thinking_text: "先确认 Cloud Agent SDK 的流事件类型，再决定怎么展示",
+                process_steps: [
+                  {
+                    id: "thinking-1",
+                    kind: "thinking",
+                    status: "streaming",
+                    created_at: "2026-04-02T10:00:00.000Z",
+                    updated_at: "2026-04-02T10:00:00.000Z",
+                    completed_at: null,
+                    text: "先确认 Cloud Agent SDK 的流事件类型，再决定怎么展示",
+                  },
+                ],
               },
             },
           ],
@@ -110,18 +121,14 @@ describe("ConversationSession", () => {
       );
     });
 
-    const thinkingDisclosure = container.querySelector(
-      'details[data-thinking-panel="assistant-1"]',
-    ) as HTMLDetailsElement | null;
-
-    expect(thinkingDisclosure?.open).toBe(true);
-    expect(container.textContent).toContain("思考");
+    expect(container.querySelector('details[data-thinking-panel="assistant-1"]')).toBeNull();
+    expect(container.textContent).toContain("助手正在分析问题并准备回答... · 1 个步骤");
     expect(container.textContent).toContain(
       "先确认 Cloud Agent SDK 的流事件类型，再决定怎么展示",
     );
   });
 
-  test("collapses the thinking disclosure after answer drafting starts", () => {
+  test("keeps the process timeline compact after answer drafting starts", () => {
     act(() => {
       root.render(
         createElement(ConversationSession, {
@@ -144,18 +151,23 @@ describe("ConversationSession", () => {
                 phase: "analyzing",
                 status_text: "助手正在分析问题并准备回答...",
                 thinking_text: "先查来源，再整理结论",
+                process_steps: [
+                  {
+                    id: "thinking-1",
+                    kind: "thinking",
+                    status: "streaming",
+                    created_at: "2026-04-02T10:00:00.000Z",
+                    updated_at: "2026-04-02T10:00:00.000Z",
+                    completed_at: null,
+                    text: "先查来源，再整理结论",
+                  },
+                ],
               },
             },
           ],
         }),
       );
     });
-
-    const thinkingDisclosure = container.querySelector(
-      'details[data-thinking-panel="assistant-1"]',
-    ) as HTMLDetailsElement | null;
-
-    expect(thinkingDisclosure?.open).toBe(true);
 
     act(() => {
       root.render(
@@ -179,6 +191,17 @@ describe("ConversationSession", () => {
                 phase: "drafting",
                 status_text: "助手正在生成回答...",
                 thinking_text: "先查来源，再整理结论",
+                process_steps: [
+                  {
+                    id: "thinking-1",
+                    kind: "thinking",
+                    status: "completed",
+                    created_at: "2026-04-02T10:00:00.000Z",
+                    updated_at: "2026-04-02T10:00:01.000Z",
+                    completed_at: "2026-04-02T10:00:01.000Z",
+                    text: "先查来源，再整理结论",
+                  },
+                ],
               },
             },
           ],
@@ -186,11 +209,11 @@ describe("ConversationSession", () => {
       );
     });
 
-    expect(thinkingDisclosure?.open).toBe(false);
+    expect(container.querySelector('details[data-thinking-panel="assistant-1"]')).toBeNull();
     expect(container.textContent).toContain("已完成");
   });
 
-  test("allows manually collapsing the thinking disclosure", () => {
+  test("interleaves thinking and tool rows inside one process list", () => {
     act(() => {
       root.render(
         createElement(ConversationSession, {
@@ -213,27 +236,89 @@ describe("ConversationSession", () => {
                 phase: "analyzing",
                 status_text: "助手正在分析问题并准备回答...",
                 thinking_text: "先查来源，再整理结论",
+                process_steps: [
+                  {
+                    id: "thinking-1",
+                    kind: "thinking",
+                    status: "completed",
+                    created_at: "2026-04-02T10:00:00.000Z",
+                    updated_at: "2026-04-02T10:00:01.000Z",
+                    completed_at: "2026-04-02T10:00:01.000Z",
+                    text: "先查来源，再整理结论",
+                  },
+                  {
+                    id: "tool-use-1",
+                    kind: "tool",
+                    status: "completed",
+                    created_at: "2026-04-02T10:00:02.000Z",
+                    updated_at: "2026-04-02T10:00:03.000Z",
+                    completed_at: "2026-04-02T10:00:03.000Z",
+                    tool_name: "search_web_general",
+                    tool_use_id: "tool-use-1",
+                    tool_message_id: "tool-1",
+                  },
+                  {
+                    id: "thinking-2",
+                    kind: "thinking",
+                    status: "streaming",
+                    created_at: "2026-04-02T10:00:04.000Z",
+                    updated_at: "2026-04-02T10:00:04.000Z",
+                    completed_at: null,
+                    text: "继续整理网页结果",
+                  },
+                ],
               },
             },
           ],
+          initialTimelineMessagesByAssistant: {
+            "assistant-1": [
+              {
+                id: "tool-1",
+                status: MESSAGE_STATUS.STREAMING,
+                contentMarkdown: "开始调用工具：search_web_general",
+                createdAt: "2026-04-02T10:00:02.000Z",
+                structuredJson: {
+                  timeline_event: "tool_started",
+                  tool_name: "search_web_general",
+                  tool_input: {
+                    query: "B站 影视飓风 广告报价",
+                  },
+                  tool_use_id: "tool-use-1",
+                },
+              },
+              {
+                id: "tool-2",
+                status: MESSAGE_STATUS.COMPLETED,
+                contentMarkdown: "工具执行完成：search_web_general",
+                createdAt: "2026-04-02T10:00:03.000Z",
+                structuredJson: {
+                  timeline_event: "tool_finished",
+                  tool_name: "search_web_general",
+                  tool_input: {
+                    query: "B站 影视飓风 广告报价",
+                  },
+                  tool_response: {
+                    results: [
+                      {
+                        title: "影视飓风：从顶流UP主，到年入过亿的内容公司",
+                        url: "https://digitaling.com/articles/1347429.html",
+                        domain: "digitaling.com",
+                      },
+                    ],
+                  },
+                  tool_use_id: "tool-use-1",
+                },
+              },
+            ],
+          },
         }),
       );
     });
 
-    const thinkingDisclosure = container.querySelector(
-      'details[data-thinking-panel="assistant-1"]',
-    ) as HTMLDetailsElement | null;
-
-    expect(thinkingDisclosure?.open).toBe(true);
-
-    act(() => {
-      if (thinkingDisclosure) {
-        thinkingDisclosure.open = false;
-        thinkingDisclosure.dispatchEvent(new Event("toggle", { bubbles: true }));
-      }
-    });
-
-    expect(thinkingDisclosure?.open).toBe(false);
+    expect(container.querySelector('details[data-thinking-panel="assistant-1"]')).toBeNull();
+    expect(container.textContent).toContain("先查来源，再整理结论");
+    expect(container.textContent).toContain("搜索网页");
+    expect(container.textContent).toContain("继续整理网页结果");
   });
 
   test("renders submitted attachments beside the user message in a new tab", () => {

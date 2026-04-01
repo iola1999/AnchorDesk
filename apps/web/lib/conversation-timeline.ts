@@ -10,6 +10,7 @@ type TimelineEntryIcon =
   | "knowledge"
   | "report"
   | "status"
+  | "thinking"
   | "web";
 
 type TimelineRecord = Record<string, unknown>;
@@ -24,6 +25,7 @@ export type ConversationTimelinePreviewItem = {
   value: string;
   meta: string | null;
   tone: TimelinePreviewTone;
+  href?: string | null;
 };
 
 export type ConversationTimelineEntryView = AssistantProcessTimelineEntry & {
@@ -34,6 +36,7 @@ export type ConversationTimelineEntryView = AssistantProcessTimelineEntry & {
   arguments: ConversationTimelineArgument[];
   previewSummary: string | null;
   previewItems: ConversationTimelinePreviewItem[];
+  detailText: string | null;
 };
 
 function isRecord(value: unknown): value is TimelineRecord {
@@ -137,6 +140,10 @@ function buildStatusLabel(status: AssistantProcessTimelineEntry["status"]) {
 }
 
 function buildEntryTone(entry: AssistantProcessTimelineEntry): TimelineEntryTone {
+  if (entry.kind === "thinking") {
+    return entry.status === MESSAGE_STATUS.STREAMING ? "active" : "neutral";
+  }
+
   if (entry.status === MESSAGE_STATUS.FAILED) {
     return "danger";
   }
@@ -148,7 +155,12 @@ function buildEntryTone(entry: AssistantProcessTimelineEntry): TimelineEntryTone
   return entry.kind === "status_event" ? "neutral" : "success";
 }
 
-function buildEntryIcon(toolName: string | null): TimelineEntryIcon {
+function buildEntryIcon(entry: AssistantProcessTimelineEntry): TimelineEntryIcon {
+  if (entry.kind === "thinking") {
+    return "thinking";
+  }
+
+  const toolName = entry.toolName;
   switch (toolName) {
     case ASSISTANT_TOOL.SEARCH_CONVERSATION_ATTACHMENTS:
     case ASSISTANT_TOOL.READ_CONVERSATION_ATTACHMENT_RANGE:
@@ -171,6 +183,15 @@ function buildEntryIcon(toolName: string | null): TimelineEntryIcon {
 }
 
 function buildDisplayName(entry: AssistantProcessTimelineEntry) {
+  if (entry.kind === "thinking") {
+    const summary = stripMarkdown(entry.contentMarkdown) ?? cleanText(entry.contentMarkdown);
+    if (!summary) {
+      return "继续分析";
+    }
+
+    return summary.length > 40 ? `${summary.slice(0, 40).trimEnd()}...` : summary;
+  }
+
   if (!entry.toolName) {
     return entry.status === MESSAGE_STATUS.FAILED ? "运行失败" : "运行状态";
   }
@@ -315,6 +336,7 @@ function buildWebSearchPreview(output: TimelineRecord | null) {
       value: readString(result.title) ?? readString(result.url) ?? `候选链接 ${index + 1}`,
       meta: readString(result.domain) ?? readHostname(readString(result.url)),
       tone: "default" as const,
+      href: readString(result.url),
     })),
   };
 }
@@ -398,6 +420,7 @@ function buildFetchSourcePreview(output: TimelineRecord | null) {
       value: title,
       meta: readHostname(url),
       tone: "default",
+      href: url,
     },
   ];
 
@@ -436,6 +459,7 @@ function buildFetchSourcesPreview(output: TimelineRecord | null) {
     value: readString(source.title) ?? readString(source.url) ?? `网页 ${index + 1}`,
     meta: readHostname(readString(source.url)),
     tone: "default",
+    href: readString(source.url),
   }));
 
   if (failures.length > 0) {
@@ -573,6 +597,13 @@ function buildReportSectionPreview(output: TimelineRecord | null) {
 }
 
 function buildGenericPreview(entry: AssistantProcessTimelineEntry) {
+  if (entry.kind === "thinking") {
+    return {
+      previewSummary: null,
+      previewItems: [],
+    };
+  }
+
   const failureMessage = readToolFailureMessage(entry.output) ?? entry.error;
 
   if (entry.status === MESSAGE_STATUS.FAILED) {
@@ -631,22 +662,39 @@ export function buildConversationTimelineEntryView(
   entry: AssistantProcessTimelineEntry,
 ): ConversationTimelineEntryView {
   const preview = buildGenericPreview(entry);
+  const detailText =
+    entry.kind === "thinking" && cleanText(entry.contentMarkdown)
+      ? entry.contentMarkdown.trim()
+      : null;
 
   return {
     ...entry,
     displayName: buildDisplayName(entry),
-    statusLabel: buildStatusLabel(entry.status),
+    statusLabel:
+      entry.kind === "thinking"
+        ? entry.status === MESSAGE_STATUS.STREAMING
+          ? "分析中"
+          : "已分析"
+        : buildStatusLabel(entry.status),
     tone: buildEntryTone(entry),
-    icon: buildEntryIcon(entry.toolName),
+    icon: buildEntryIcon(entry),
     arguments: buildToolArguments(entry),
     previewSummary: preview.previewSummary,
     previewItems: preview.previewItems,
+    detailText,
   };
 }
 
 export function canExpandConversationTimelineEntry(
   entry: ConversationTimelineEntryView,
 ) {
+  if (entry.kind === "thinking") {
+    return Boolean(
+      entry.detailText &&
+        (entry.detailText.includes("\n") || entry.detailText !== entry.displayName),
+    );
+  }
+
   return (
     entry.kind === "tool_call" &&
     (entry.input !== null ||

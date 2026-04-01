@@ -451,6 +451,134 @@ describe("processConversationResponseJob", () => {
     );
   });
 
+  it("persists interleaved thinking and tool process steps on the assistant snapshot", async () => {
+    mocks.queryResults.conversations = [
+      {
+        id: "conversation-1",
+        workspaceId: "workspace-1",
+        agentSessionId: null,
+        agentWorkdir: null,
+      },
+    ];
+    mocks.queryResults.messages = [
+      {
+        id: "assistant-1",
+        conversationId: "conversation-1",
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-03-31T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-03-31T10:00:00.000Z",
+          run_lease_expires_at: "2026-03-31T10:00:45.000Z",
+        },
+      },
+    ];
+    mocks.insertReturningQueue.push(
+      [
+        {
+          id: "tool-message-started",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "开始调用工具：search_workspace_knowledge",
+          createdAt: new Date("2026-03-31T10:00:01.000Z"),
+          structuredJson: {
+            timeline_event: "tool_started",
+            tool_name: "search_workspace_knowledge",
+            tool_input: {
+              query: "总结一下",
+            },
+            tool_response: null,
+            tool_use_id: "tool-1",
+          },
+        },
+      ],
+      [
+        {
+          id: "tool-message-finished",
+          status: MESSAGE_STATUS.COMPLETED,
+          contentMarkdown: "工具执行完成：search_workspace_knowledge",
+          createdAt: new Date("2026-03-31T10:00:02.000Z"),
+          structuredJson: {
+            timeline_event: "tool_finished",
+            tool_name: "search_workspace_knowledge",
+            tool_input: {
+              query: "总结一下",
+            },
+            tool_response: {
+              ok: true,
+            },
+            tool_use_id: "tool-1",
+          },
+        },
+      ],
+      [],
+    );
+    mocks.runAgentResponse.mockImplementation(async (_input, hooks) => {
+      await hooks?.onAssistantThinkingDelta?.({
+        thinkingDelta: "先确认本地资料",
+        fullThinking: "先确认本地资料",
+      });
+      await hooks?.onToolStarted?.({
+        toolInput: { query: "总结一下" },
+        toolName: "search_workspace_knowledge",
+        toolUseId: "tool-1",
+      });
+      await hooks?.onToolFinished?.({
+        toolInput: { query: "总结一下" },
+        toolName: "search_workspace_knowledge",
+        toolResponse: { ok: true },
+        toolUseId: "tool-1",
+      });
+      await hooks?.onAssistantThinkingDelta?.({
+        thinkingDelta: "再决定是否联网",
+        fullThinking: "先确认本地资料再决定是否联网",
+      });
+
+      return {
+        citations: [],
+        ok: true as const,
+        sessionId: "session-1",
+        text: "最终回答",
+        workdir: "/tmp/agent-session",
+      };
+    });
+
+    await processConversationResponseJob({
+      assistantMessageId: "assistant-1",
+      conversationId: "conversation-1",
+      runId: "run-1",
+      prompt: "总结一下",
+      userMessageId: "user-1",
+    });
+
+    expect(mocks.updates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table: mocks.tables.messages,
+          values: expect.objectContaining({
+            structuredJson: expect.objectContaining({
+              process_steps: expect.arrayContaining([
+                expect.objectContaining({
+                  kind: "thinking",
+                  text: "先确认本地资料",
+                }),
+                expect.objectContaining({
+                  kind: "tool",
+                  tool_name: "search_workspace_knowledge",
+                  tool_use_id: "tool-1",
+                }),
+                expect.objectContaining({
+                  kind: "thinking",
+                  text: "再决定是否联网",
+                }),
+              ]),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
   it("passes ready local-knowledge availability into the agent input", async () => {
     mocks.queryResults.conversations = [
       {
