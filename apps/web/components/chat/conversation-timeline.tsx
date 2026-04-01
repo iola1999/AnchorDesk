@@ -110,20 +110,36 @@ function resolveMarkerClasses(entry: ConversationTimelineEntryView) {
   return entry.tone === "danger"
     ? "border-red-200/90 bg-red-50 text-red-700"
     : entry.tone === "active"
-      ? "border-amber-200/90 bg-amber-50 text-amber-800"
-      : entry.tone === "success"
-        ? "border-emerald-200/80 bg-white text-emerald-800"
-        : "border-app-border/70 bg-app-bg text-app-muted-strong";
+      ? "border-app-border-strong bg-white text-app-text"
+      : "border-app-border/70 bg-app-bg text-app-muted-strong";
 }
 
 function resolveStatusClasses(entry: ConversationTimelineEntryView) {
   return entry.tone === "danger"
     ? "border-red-200/80 bg-red-50/88 text-red-700"
     : entry.tone === "active"
-      ? "border-amber-200/80 bg-amber-50/88 text-amber-800"
-      : entry.tone === "success"
-        ? "border-emerald-200/80 bg-emerald-50/88 text-emerald-800"
-        : "border-app-border/70 bg-white/82 text-app-muted-strong";
+      ? "border-app-border/80 bg-app-surface-soft/82 text-app-text"
+      : "border-app-border/70 bg-white/78 text-app-muted-strong";
+}
+
+function resolvePreviewToneClasses(tone: ConversationTimelinePreviewItem["tone"]) {
+  return tone === "danger"
+    ? {
+        pill: "border-red-200/80 bg-red-50 text-red-700",
+        value: "text-red-700",
+        meta: "text-red-600/85",
+      }
+    : tone === "warning"
+      ? {
+          pill: "border-amber-200/80 bg-amber-50 text-amber-800",
+          value: "text-amber-900",
+          meta: "text-amber-700/85",
+        }
+      : {
+          pill: "border-app-border/70 bg-app-surface-soft/76 text-app-muted-strong",
+          value: "text-app-text",
+          meta: "text-app-muted",
+        };
 }
 
 function ToolPayloadBlock({
@@ -133,17 +149,36 @@ function ToolPayloadBlock({
   label: string;
   value: unknown;
 }) {
-  return (
-    <details className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-app-border/65 bg-app-surface-soft/66 px-2.5 py-2">
-      <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-3 text-[11px] text-app-muted-strong [&::-webkit-details-marker]:hidden">
-        <span className="font-medium text-app-text">{label}</span>
-        <span className="min-w-0 truncate">{describePayloadPreview(value)}</span>
-      </summary>
+  const [open, setOpen] = useState(false);
 
-      <pre className="mt-2 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto rounded-[12px] border border-app-border/55 bg-white/78 px-2.5 py-2 text-[11px] leading-5 text-app-muted-strong whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-        {formatPayloadValue(value)}
-      </pre>
-    </details>
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        className={cn(
+          conversationDensityClassNames.payloadDisclosure,
+          open && "bg-app-surface-soft/84 text-app-text",
+        )}
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((current) => !current);
+        }}
+      >
+        <span className="font-medium">{label}</span>
+        <span className="min-w-0 max-w-[180px] truncate text-app-muted min-[720px]:max-w-[260px]">
+          {describePayloadPreview(value)}
+        </span>
+        <ChevronDownIcon
+          className={cn("size-3 shrink-0 text-app-muted transition-transform", open && "rotate-180")}
+        />
+      </button>
+
+      {open ? (
+        <pre className={cn("mt-1.5", conversationDensityClassNames.payloadPre)}>
+          {formatPayloadValue(value)}
+        </pre>
+      ) : null}
+    </div>
   );
 }
 
@@ -154,36 +189,52 @@ function TimelinePreviewList({
   items: ConversationTimelinePreviewItem[];
   limit?: number;
 }) {
-  const visibleItems = typeof limit === "number" ? items.slice(0, limit) : items;
-  const hiddenCount = typeof limit === "number" ? Math.max(items.length - limit, 0) : 0;
+  const [showAll, setShowAll] = useState(false);
+  const visibleItems =
+    showAll || typeof limit !== "number" ? items : items.slice(0, limit);
+  const hiddenCount =
+    typeof limit === "number" && !showAll ? Math.max(items.length - limit, 0) : 0;
+  const canToggle = typeof limit === "number" && items.length > limit;
 
   if (visibleItems.length === 0 && hiddenCount === 0) {
     return null;
   }
 
   return (
-    <div className="grid gap-1.5">
+    <div className={conversationDensityClassNames.timelinePreviewList}>
       {visibleItems.map((item, index) => {
+        const toneClasses = resolvePreviewToneClasses(item.tone);
         const content = (
           <span
             className={cn(
-              "group flex min-w-0 items-center gap-2 rounded-[13px] border border-app-border/65 bg-white/82 px-2.5 py-1.5 text-left",
-              item.href ? "hover:border-app-border-strong hover:bg-white" : "",
+              conversationDensityClassNames.timelinePreviewItem,
+              item.href ? "group hover:bg-white/74" : "",
             )}
           >
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-app-muted">
+            <span
+              className={cn(
+                "inline-flex h-5 shrink-0 items-center rounded-full border px-1.5 text-[9.5px] font-semibold",
+                toneClasses.pill,
+              )}
+            >
               {item.label}
             </span>
             <span
               className={cn(
-                "min-w-0 flex-1 truncate text-[11.5px] leading-4.5 text-app-text",
+                "min-w-0 flex-1 truncate text-[11px] leading-4.5",
+                toneClasses.value,
                 item.href ? "group-hover:underline" : "",
               )}
             >
               {item.value}
             </span>
             {item.meta ? (
-              <span className="shrink-0 text-[10px] leading-4 text-app-muted">
+              <span
+                className={cn(
+                  "hidden max-w-[42%] shrink-0 truncate text-[10px] leading-4 min-[520px]:inline",
+                  toneClasses.meta,
+                )}
+              >
                 {item.meta}
               </span>
             ) : null}
@@ -204,10 +255,16 @@ function TimelinePreviewList({
         );
       })}
 
-      {hiddenCount > 0 ? (
-        <div className="rounded-[13px] border border-dashed border-app-border/70 bg-white/70 px-2.5 py-1.5 text-[11px] text-app-muted-strong">
-          另外还有 {hiddenCount} 项
-        </div>
+      {canToggle ? (
+        <button
+          type="button"
+          className="w-fit rounded-full px-1 py-0.5 text-[10.5px] font-medium text-app-muted transition hover:text-app-text"
+          onClick={() => {
+            setShowAll((current) => !current);
+          }}
+        >
+          {showAll ? "收起" : `+ 其他 ${hiddenCount} 项`}
+        </button>
       ) : null}
     </div>
   );
@@ -221,6 +278,8 @@ function TimelineEntry({
   defaultOpen?: boolean;
 }) {
   const expandable = canExpandConversationTimelineEntry(entry);
+  const visibleArguments = entry.arguments.slice(0, 2);
+  const hiddenArgumentCount = Math.max(entry.arguments.length - visibleArguments.length, 0);
   const [open, setOpen] = useState(defaultOpen);
 
   useEffect(() => {
@@ -228,11 +287,11 @@ function TimelineEntry({
   }, [defaultOpen, entry.id]);
 
   const summary = (
-    <span className="grid min-w-0 grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-2.5">
-      <span className="relative z-10 flex justify-center pt-1">
+    <span className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)_auto] items-start gap-2">
+      <span className="relative z-10 flex justify-center pt-[3px]">
         <span
           className={cn(
-            "inline-flex size-[18px] items-center justify-center rounded-full border",
+            "inline-flex size-4 items-center justify-center rounded-full border",
             resolveMarkerClasses(entry),
           )}
         >
@@ -242,36 +301,41 @@ function TimelineEntry({
 
       <span className="min-w-0">
         <span className="flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 truncate text-[12.5px] leading-5 text-app-text">
+          <span className="min-w-0 flex-1 truncate text-[12px] leading-4.5 text-app-text">
             {entry.displayName}
           </span>
         </span>
 
-        {entry.arguments.length > 0 ? (
-          <span className="mt-1 flex flex-wrap gap-1">
-            {entry.arguments.map((item) => (
+        {visibleArguments.length > 0 || hiddenArgumentCount > 0 ? (
+          <span className="mt-0.5 flex flex-wrap gap-1">
+            {visibleArguments.map((item) => (
               <span
                 key={`${item.label}-${item.value}`}
-                className="inline-flex max-w-full items-center gap-1 rounded-full border border-app-border/70 bg-white/82 px-2 py-0.5 text-[10px] text-app-muted-strong"
+                className={conversationDensityClassNames.timelineArgument}
               >
                 <span className="shrink-0 text-app-muted">{item.label}</span>
                 <span className="min-w-0 truncate text-app-text">{item.value}</span>
               </span>
             ))}
+            {hiddenArgumentCount > 0 ? (
+              <span className="inline-flex items-center rounded-full border border-app-border/65 bg-white/74 px-1.5 py-0.5 text-[10px] text-app-muted">
+                +{hiddenArgumentCount}
+              </span>
+            ) : null}
           </span>
         ) : null}
 
         {entry.previewSummary && !open ? (
-          <span className="mt-1 block text-[11px] leading-4.5 text-app-muted-strong">
+          <span className="mt-0.5 block truncate text-[10.5px] leading-4 text-app-muted">
             {entry.previewSummary}
           </span>
         ) : null}
       </span>
 
-      <span className="flex items-start gap-1.5 pt-0.5">
+      <span className="flex items-start gap-1 pt-[1px]">
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+            "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9.5px] font-semibold",
             resolveStatusClasses(entry),
           )}
         >
@@ -292,25 +356,31 @@ function TimelineEntry({
   );
 
   const details = (
-    <div className="ml-[28px] mt-1.5 grid min-w-0 max-w-full gap-2.5 overflow-hidden">
+    <div className="ml-[22px] mt-1 grid min-w-0 max-w-full gap-1.5 overflow-hidden">
       {entry.kind === "thinking" && entry.detailText ? (
-        <div className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-app-border/65 bg-white/78 px-3 py-2.5">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-[12px] bg-app-surface-soft/52 px-2.5 py-2">
           <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-5 text-app-muted-strong">
             {entry.detailText}
           </pre>
         </div>
       ) : null}
 
-      {entry.previewSummary && entry.kind !== "thinking" ? (
-        <p className="text-[11px] leading-4.5 text-app-muted-strong">{entry.previewSummary}</p>
+      {entry.previewSummary && entry.kind !== "thinking" && entry.previewItems.length === 0 ? (
+        <p className="text-[10.5px] leading-4.5 text-app-muted-strong">{entry.previewSummary}</p>
       ) : null}
 
-      {entry.previewItems.length > 0 ? <TimelinePreviewList items={entry.previewItems} /> : null}
+      {entry.previewItems.length > 0 ? (
+        <TimelinePreviewList items={entry.previewItems} limit={3} />
+      ) : null}
 
-      {entry.input !== null ? <ToolPayloadBlock label="原始入参" value={entry.input} /> : null}
-      {entry.output !== null ? <ToolPayloadBlock label="原始结果" value={entry.output} /> : null}
+      {entry.input !== null || entry.output !== null ? (
+        <div className="grid gap-1">
+          {entry.input !== null ? <ToolPayloadBlock label="查看原始入参" value={entry.input} /> : null}
+          {entry.output !== null ? <ToolPayloadBlock label="查看原始结果" value={entry.output} /> : null}
+        </div>
+      ) : null}
 
-      <p className="text-[10px] leading-4 text-app-muted">
+      <p className="pl-0.5 text-[10px] leading-4 text-app-muted">
         {formatTimeRange(entry.createdAt, entry.completedAt)}
       </p>
     </div>
@@ -328,7 +398,7 @@ function TimelineEntry({
     <article className={conversationDensityClassNames.timelineEntry}>
       <button
         type="button"
-        className="w-full cursor-pointer text-left"
+        className="w-full cursor-pointer rounded-[12px] px-0.5 py-0.5 text-left transition hover:bg-white/48"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);
@@ -388,7 +458,7 @@ export function ConversationTimeline({
     <div className={conversationDensityClassNames.timelineShell}>
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center gap-1.5 text-[12px] font-medium text-app-muted-strong"
+        className="flex w-full cursor-pointer items-center gap-1 text-[11.5px] font-semibold text-app-muted-strong transition hover:text-app-text"
         aria-expanded={open}
         onClick={() => {
           setOpen((current) => !current);

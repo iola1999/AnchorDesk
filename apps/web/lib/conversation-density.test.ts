@@ -25,23 +25,25 @@ describe("conversationDensityClassNames", () => {
 
   it("uses a stepped timeline layout with a vertical rail and expandable task cards", () => {
     expect(conversationDensityClassNames.timelineShell).toContain("max-w-full");
-    expect(conversationDensityClassNames.timelineShell).toContain("rounded-[24px]");
+    expect(conversationDensityClassNames.timelineShell).toContain("rounded-[16px]");
     expect(conversationDensityClassNames.timelineList).toContain("before:absolute");
     expect(conversationDensityClassNames.timelineEntry).toContain("group/timeline-entry");
     expect(conversationDensityClassNames.timelineEntrySummary).toContain(
-      "grid-cols-[2rem_minmax(0,1fr)]",
+      "grid-cols-[1.75rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineEntryCard).toContain("rounded-[22px]");
+    expect(conversationDensityClassNames.timelineEntryCard).toContain("rounded-[16px]");
     expect(conversationDensityClassNames.timelineEntryDetails).toContain(
-      "grid-cols-[2rem_minmax(0,1fr)]",
+      "grid-cols-[1.75rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineArgument).toContain("rounded-xl");
-    expect(conversationDensityClassNames.timelinePreviewItem).toContain("rounded-xl");
-    expect(conversationDensityClassNames.payloadDisclosure).toContain("overflow-hidden");
+    expect(conversationDensityClassNames.timelineArgument).toContain("rounded-full");
+    expect(conversationDensityClassNames.timelinePreviewList).toContain("gap-0.5");
+    expect(conversationDensityClassNames.timelinePreviewItem).toContain("rounded-[11px]");
+    expect(conversationDensityClassNames.payloadDisclosure).toContain("rounded-full");
     expect(conversationDensityClassNames.payloadPre).toContain("max-w-full");
+    expect(conversationDensityClassNames.payloadPre).toContain("max-h-[180px]");
     expect(conversationDensityClassNames.payloadPre).toContain("break-all");
     expect(conversationDensityClassNames.payloadPre).toContain("select-text");
-    expect(conversationDensityClassNames.payloadDisclosure).toContain("bg-app-surface-soft");
+    expect(conversationDensityClassNames.payloadDisclosure).toContain("bg-white/78");
   });
 
   it("keeps the stage composer compact while preserving attachment visibility", () => {
