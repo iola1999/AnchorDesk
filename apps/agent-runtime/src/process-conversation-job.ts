@@ -107,7 +107,26 @@ function buildAnswerDeltaEvent(input: {
   };
 }
 
-function deriveAnswerDeltaText(previousText: string, nextText: string) {
+function buildAssistantThinkingDeltaEvent(input: {
+  conversationId: string;
+  assistantMessageId: string;
+  thinkingText: string;
+  deltaText?: string | null;
+}): Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA }
+> {
+  return {
+    type: CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA,
+    conversation_id: input.conversationId,
+    message_id: input.assistantMessageId,
+    status: MESSAGE_STATUS.STREAMING,
+    thinking_text: input.thinkingText,
+    delta_text: input.deltaText ?? null,
+  };
+}
+
+function deriveStreamDeltaText(previousText: string, nextText: string) {
   if (!nextText.startsWith(previousText)) {
     return null;
   }
@@ -463,6 +482,7 @@ export async function processConversationResponseJob(
       buildInitialStreamingAssistantRunState({
         runId: payload.runId,
       });
+    let lastPersistedThinkingText = currentRunState.thinking_text ?? "";
 
     async function publishConversationEvent(event: ConversationStreamEvent) {
       try {
@@ -491,6 +511,7 @@ export async function processConversationResponseJob(
       activeToolName?: string | null;
       activeToolUseId?: string | null;
       activeTaskId?: string | null;
+      thinkingText?: string | null;
       contentMarkdown?: string;
     }) {
       const now = input.now ?? new Date();
@@ -502,6 +523,7 @@ export async function processConversationResponseJob(
         activeToolName: input.activeToolName,
         activeToolUseId: input.activeToolUseId,
         activeTaskId: input.activeTaskId,
+        thinkingText: input.thinkingText,
       });
       await updateStreamingAssistantSnapshot({
         assistantMessageId: payload.assistantMessageId,
@@ -653,7 +675,7 @@ export async function processConversationResponseJob(
         return;
       }
 
-      const deltaText = deriveAnswerDeltaText(lastPersistedAssistantText, nextText);
+      const deltaText = deriveStreamDeltaText(lastPersistedAssistantText, nextText);
       await assertAssistantMessageStillStreaming();
       const eventId = await publishConversationEvent(
         buildAnswerDeltaEvent({
@@ -672,6 +694,29 @@ export async function processConversationResponseJob(
       });
       lastPersistedAssistantText = nextText;
       lastPersistedAt = now;
+    }
+
+    async function persistAssistantThinking(nextText: string) {
+      if (nextText === lastPersistedThinkingText) {
+        return;
+      }
+
+      const deltaText = deriveStreamDeltaText(lastPersistedThinkingText, nextText);
+      await assertAssistantMessageStillStreaming();
+      const eventId = await publishConversationEvent(
+        buildAssistantThinkingDeltaEvent({
+          conversationId: payload.conversationId,
+          assistantMessageId: payload.assistantMessageId,
+          thinkingText: nextText,
+          deltaText,
+        }),
+      );
+      await persistAssistantRunState({
+        now: new Date(),
+        ...(eventId ? { streamEventId: eventId } : {}),
+        thinkingText: nextText,
+      });
+      lastPersistedThinkingText = nextText;
     }
 
     async function persistAssistantHeartbeat(now: Date = new Date()) {
@@ -840,6 +885,9 @@ export async function processConversationResponseJob(
               phase: ASSISTANT_STREAM_PHASE.DRAFTING,
               statusText: "助手正在生成回答...",
             });
+          },
+          onAssistantThinkingDelta: async ({ fullThinking }) => {
+            await persistAssistantThinking(fullThinking);
           },
         },
       );

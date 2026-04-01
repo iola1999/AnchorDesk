@@ -9,6 +9,11 @@ export const conversationDensityClassNames = {
   resultHeader:
     "flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-app-border/60 pb-2",
   answerText: "max-w-none text-[14px] leading-7 text-app-text md:text-[15px]",
+  thinkingPanel:
+    "grid min-w-0 gap-2 rounded-2xl border border-app-border/60 bg-app-surface-soft/68 px-3.5 py-3",
+  thinkingHeader: "text-[11px] font-semibold uppercase tracking-[0.12em] text-app-muted",
+  thinkingText:
+    "min-w-0 whitespace-pre-wrap break-words text-[13px] leading-6 text-app-muted-strong",
   sourcesList: "grid gap-2",
   sourceCard:
     "grid min-w-0 gap-1 rounded-2xl border border-app-border/55 bg-white/72 px-3.5 py-2.5 text-left transition hover:border-app-border-strong hover:bg-white",

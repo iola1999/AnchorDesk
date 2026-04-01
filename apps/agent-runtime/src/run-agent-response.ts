@@ -21,6 +21,7 @@ import {
   type ModelProfileRecord,
 } from "@anchordesk/db";
 import {
+  extractAssistantThinkingDelta,
   extractAssistantRuntimeSignal,
   extractAssistantTextDelta,
 } from "./assistant-stream";
@@ -495,6 +496,10 @@ export type RunAgentResponseHooks = {
     textDelta: string;
     fullText: string;
   }) => Promise<void> | void;
+  onAssistantThinkingDelta?: (input: {
+    thinkingDelta: string;
+    fullThinking: string;
+  }) => Promise<void> | void;
 };
 
 export async function runAgentResponse(
@@ -540,6 +545,7 @@ export async function runAgentResponse(
   });
   let finalResult = "";
   let streamedAnswer = "";
+  let streamedThinking = "";
   let sessionId = input.agentSessionId ?? null;
   const citationMap = new Map<string, CollectedGroundedEvidence>();
   const webSearchResultsByUrl = new Map<
@@ -728,6 +734,15 @@ export async function runAgentResponse(
       }
 
       const textDelta = extractAssistantTextDelta(message);
+      const thinkingDelta = extractAssistantThinkingDelta(message);
+      if (thinkingDelta) {
+        streamedThinking += thinkingDelta;
+        await hooks.onAssistantThinkingDelta?.({
+          thinkingDelta,
+          fullThinking: streamedThinking,
+        });
+      }
+
       if (textDelta) {
         streamedAnswer += textDelta;
         await hooks.onAssistantStatus?.({

@@ -23,6 +23,7 @@ import {
 } from "@/lib/api/assistant-run-expiration";
 import {
   buildAssistantStatusStreamEvent,
+  buildAssistantThinkingStreamEvent,
   buildAssistantDeltaStreamEvent,
   buildAssistantTerminalStreamEvent,
   buildToolMessageStreamEvent,
@@ -194,6 +195,7 @@ export async function GET(
       const redis = createRedisClient();
       const emittedMessageIds = new Set<string>();
       let lastAssistantContent = "";
+      let lastAssistantThinking = "";
       let lastAssistantStatus = "";
       let terminalEventType: ConversationStreamEvent["type"] | null = null;
       let currentRunId: string | null = null;
@@ -224,6 +226,13 @@ export async function GET(
           lastAssistantContent = event.delta_text
             ? `${lastAssistantContent}${event.delta_text}`
             : event.content_markdown;
+          return;
+        }
+
+        if (event.type === CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA) {
+          lastAssistantThinking = event.delta_text
+            ? `${lastAssistantThinking}${event.delta_text}`
+            : event.thinking_text;
           return;
         }
 
@@ -370,6 +379,27 @@ export async function GET(
             lastAssistantStatus = signature;
             enqueueEvent(assistantStatusEvent);
           }
+        }
+
+        const assistantThinkingEvent =
+          effectiveAssistantMessage?.status === MESSAGE_STATUS.STREAMING
+            ? buildAssistantThinkingStreamEvent({
+                conversationId,
+                assistantMessage: {
+                  id: effectiveAssistantMessage.id,
+                  status: effectiveAssistantMessage.status,
+                  contentMarkdown: effectiveAssistantMessage.contentMarkdown,
+                  structuredJson: effectiveAssistantMessage.structuredJson,
+                },
+              })
+            : null;
+
+        if (
+          assistantThinkingEvent &&
+          assistantThinkingEvent.thinking_text !== lastAssistantThinking
+        ) {
+          lastAssistantThinking = assistantThinkingEvent.thinking_text;
+          enqueueEvent(assistantThinkingEvent);
         }
 
         if (

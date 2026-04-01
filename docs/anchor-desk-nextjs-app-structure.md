@@ -83,7 +83,7 @@
 - `/api/conversations/[conversationId]/stream`
   - 先读取数据库快照，再订阅 Redis Streams live event
   - live event 现在按 `assistant_message_id + run_id` 作用域隔离；retry 同一 assistant message 时只会消费当前 run
-  - 推送 `assistant_status` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`
+  - 推送 `assistant_status` / `assistant_thinking_delta` / `tool_progress` / `tool_message` / `answer_delta` / `answer_done` / `run_failed`
   - `answer_done` / `run_failed` 终态事件会附带最终 assistant 内容、structured state 和当前 message citations，供前端直接切到本地最终态，并同步更新当前会话的本地 meta
 - `/api/conversations/[conversationId]/retry`
   - 当最新 assistant 消息为 failed 时，复用上一条 user prompt 重新入队当前回答

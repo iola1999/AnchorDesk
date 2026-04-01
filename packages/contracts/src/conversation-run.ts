@@ -18,6 +18,7 @@ export type StreamingAssistantRunState = {
   active_tool_name?: string | null;
   active_tool_use_id?: string | null;
   active_task_id?: string | null;
+  thinking_text?: string | null;
 };
 
 function asValidDate(value: unknown) {
@@ -89,6 +90,10 @@ export function readStreamingAssistantRunState(
     typeof structuredJson.active_task_id === "string"
       ? structuredJson.active_task_id
       : null;
+  const thinkingText =
+    typeof structuredJson.thinking_text === "string"
+      ? structuredJson.thinking_text
+      : null;
 
   return {
     run_id: runId,
@@ -101,6 +106,7 @@ export function readStreamingAssistantRunState(
     active_tool_name: activeToolName,
     active_tool_use_id: activeToolUseId,
     active_task_id: activeTaskId,
+    thinking_text: thinkingText,
   };
 }
 
@@ -114,6 +120,7 @@ export function buildStreamingAssistantRunState(input: {
   activeToolName?: string | null;
   activeToolUseId?: string | null;
   activeTaskId?: string | null;
+  thinkingText?: string | null;
 } = {}): StreamingAssistantRunState {
   const now = input.now ?? new Date();
   const startedAt = asValidDate(input.startedAt) ?? now;
@@ -131,6 +138,7 @@ export function buildStreamingAssistantRunState(input: {
     active_tool_name: input.activeToolName ?? null,
     active_tool_use_id: input.activeToolUseId ?? null,
     active_task_id: input.activeTaskId ?? null,
+    thinking_text: input.thinkingText ?? null,
   };
 }
 
@@ -150,6 +158,7 @@ export function refreshStreamingAssistantRunState(
     activeToolName: existing?.active_tool_name ?? null,
     activeToolUseId: existing?.active_tool_use_id ?? null,
     activeTaskId: existing?.active_task_id ?? null,
+    thinkingText: existing?.thinking_text ?? null,
   });
 }
 
@@ -163,6 +172,7 @@ export function updateStreamingAssistantRunState(
     activeToolName?: string | null;
     activeToolUseId?: string | null;
     activeTaskId?: string | null;
+    thinkingText?: string | null;
   },
 ) {
   const existing = refreshStreamingAssistantRunState(
@@ -193,6 +203,10 @@ export function updateStreamingAssistantRunState(
       patch.activeTaskId === undefined
         ? existing.active_task_id ?? null
         : patch.activeTaskId,
+    thinkingText:
+      patch.thinkingText === undefined
+        ? existing.thinking_text ?? null
+        : patch.thinkingText,
   });
 }
 
@@ -232,6 +246,7 @@ export function finalizeStreamingAssistantRunState(
     activeToolName: null,
     activeToolUseId: null,
     activeTaskId: null,
+    thinkingText: existing.thinking_text ?? null,
   });
 }
 

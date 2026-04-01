@@ -29,6 +29,35 @@ export function extractAssistantTextDelta(message: unknown) {
     : null;
 }
 
+export function extractAssistantThinkingDelta(message: unknown) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+
+  const streamMessage = message as {
+    type?: string;
+    event?: {
+      type?: string;
+      delta?: {
+        type?: string;
+        thinking?: string;
+      };
+    };
+  };
+
+  if (
+    streamMessage.type !== "stream_event" ||
+    streamMessage.event?.type !== "content_block_delta" ||
+    streamMessage.event.delta?.type !== "thinking_delta"
+  ) {
+    return null;
+  }
+
+  return typeof streamMessage.event.delta.thinking === "string"
+    ? streamMessage.event.delta.thinking
+    : null;
+}
+
 export type AssistantRuntimeSignal =
   | {
       kind: "assistant_status";

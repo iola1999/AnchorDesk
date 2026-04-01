@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { ASSISTANT_STREAM_PHASE } from "@anchordesk/contracts";
 
 import {
+  extractAssistantThinkingDelta,
   extractAssistantRuntimeSignal,
   extractAssistantTextDelta,
 } from "./assistant-stream";
@@ -31,6 +32,38 @@ describe("extractAssistantTextDelta", () => {
           type: "message_delta",
           delta: {
             stop_reason: "end_turn",
+          },
+        },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("extractAssistantThinkingDelta", () => {
+  test("reads thinking deltas from Claude Agent SDK stream events", () => {
+    expect(
+      extractAssistantThinkingDelta({
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          delta: {
+            type: "thinking_delta",
+            thinking: "先查一下代码路径",
+          },
+        },
+      }),
+    ).toBe("先查一下代码路径");
+  });
+
+  test("ignores non-thinking stream events", () => {
+    expect(
+      extractAssistantThinkingDelta({
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          delta: {
+            type: "text_delta",
+            text: "最终回答",
           },
         },
       }),

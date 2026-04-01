@@ -63,6 +63,10 @@ type AssistantDeltaEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.ANSWER_DELTA }
 >;
+type AssistantThinkingDeltaEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA }
+>;
 
 const CONVERSATION_EXPORT_FILENAME_STEM_LENGTH = 48;
 
@@ -244,6 +248,28 @@ export function applyAssistantDeltaEvent(input: {
       contentMarkdown: input.event.delta_text
         ? `${message.contentMarkdown}${input.event.delta_text}`
         : input.event.content_markdown,
+    };
+  });
+}
+
+export function applyAssistantThinkingDeltaEvent(input: {
+  event: AssistantThinkingDeltaEvent;
+  messages: ConversationChatMessage[];
+}) {
+  return input.messages.map((message) => {
+    if (message.id !== input.event.message_id) {
+      return message;
+    }
+
+    return {
+      ...message,
+      status: input.event.status,
+      structuredJson: {
+        ...(message.structuredJson ?? {}),
+        thinking_text: input.event.delta_text
+          ? `${typeof message.structuredJson?.thinking_text === "string" ? message.structuredJson.thinking_text : ""}${input.event.delta_text}`
+          : input.event.thinking_text,
+      },
     };
   });
 }

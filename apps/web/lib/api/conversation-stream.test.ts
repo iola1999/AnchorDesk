@@ -9,6 +9,7 @@ import {
 } from "@anchordesk/contracts";
 
 import {
+  buildAssistantThinkingStreamEvent,
   buildAssistantStatusStreamEvent,
   buildAssistantDeltaStreamEvent,
   buildToolProgressStreamEvent,
@@ -97,6 +98,36 @@ describe("buildAssistantDeltaStreamEvent", () => {
       status: MESSAGE_STATUS.STREAMING,
       content_markdown: "正在生成回答",
       delta_text: "回答",
+    });
+  });
+});
+
+describe("buildAssistantThinkingStreamEvent", () => {
+  test("serializes assistant thinking deltas for SSE consumers", () => {
+    expect(
+      buildAssistantThinkingStreamEvent({
+        conversationId: "conversation-1",
+        assistantMessage: {
+          id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          contentMarkdown: "",
+          structuredJson: {
+            run_id: "run-1",
+            run_started_at: "2026-04-02T10:00:00.000Z",
+            run_last_heartbeat_at: "2026-04-02T10:00:05.000Z",
+            run_lease_expires_at: "2026-04-02T10:00:50.000Z",
+            thinking_text: "先确认 SDK 有没有暴露 thinking 事件",
+          },
+        },
+        deltaText: "thinking 事件",
+      }),
+    ).toEqual({
+      type: CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA,
+      conversation_id: "conversation-1",
+      message_id: "assistant-1",
+      status: MESSAGE_STATUS.STREAMING,
+      thinking_text: "先确认 SDK 有没有暴露 thinking 事件",
+      delta_text: "thinking 事件",
     });
   });
 });

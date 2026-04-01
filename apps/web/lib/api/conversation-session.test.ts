@@ -7,6 +7,7 @@ import {
 } from "@anchordesk/contracts";
 
 import {
+  applyAssistantThinkingDeltaEvent,
   applyAssistantDeltaEvent,
   appendSubmittedConversationTurn,
   applyAssistantTerminalEvent,
@@ -345,6 +346,56 @@ describe("resolveConversationStreamingAssistantMessageId", () => {
         messages: [],
       }),
     ).toBe("assistant-1");
+  });
+});
+
+describe("applyAssistantThinkingDeltaEvent", () => {
+  test("appends streamed thinking text into the assistant structured state", () => {
+    expect(
+      applyAssistantThinkingDeltaEvent({
+        messages: [
+          {
+            id: "assistant-1",
+            role: MESSAGE_ROLE.ASSISTANT,
+            status: MESSAGE_STATUS.STREAMING,
+            contentMarkdown: "",
+            structuredJson: {
+              run_id: "run-1",
+              run_started_at: "2026-04-02T10:00:00.000Z",
+              run_last_heartbeat_at: "2026-04-02T10:00:00.000Z",
+              run_lease_expires_at: "2026-04-02T10:00:45.000Z",
+              phase: "analyzing",
+              status_text: "助手正在分析问题并准备回答...",
+              thinking_text: "先确认",
+            },
+          },
+        ],
+        event: {
+          type: CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA,
+          conversation_id: "conversation-1",
+          message_id: "assistant-1",
+          status: MESSAGE_STATUS.STREAMING,
+          thinking_text: "先确认 SDK 有没有暴露 thinking",
+          delta_text: " SDK 有没有暴露 thinking",
+        },
+      }),
+    ).toEqual([
+      {
+        id: "assistant-1",
+        role: MESSAGE_ROLE.ASSISTANT,
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          run_id: "run-1",
+          run_started_at: "2026-04-02T10:00:00.000Z",
+          run_last_heartbeat_at: "2026-04-02T10:00:00.000Z",
+          run_lease_expires_at: "2026-04-02T10:00:45.000Z",
+          phase: "analyzing",
+          status_text: "助手正在分析问题并准备回答...",
+          thinking_text: "先确认 SDK 有没有暴露 thinking",
+        },
+      },
+    ]);
   });
 });
 

@@ -29,6 +29,7 @@ describe("buildStreamingAssistantRunState", () => {
       active_tool_name: null,
       active_tool_use_id: null,
       active_task_id: null,
+      thinking_text: null,
     });
   });
 });
@@ -70,6 +71,7 @@ describe("refreshStreamingAssistantRunState", () => {
       active_tool_name: null,
       active_tool_use_id: null,
       active_task_id: null,
+      thinking_text: null,
     });
   });
 });
@@ -88,6 +90,7 @@ describe("updateStreamingAssistantRunState", () => {
           stream_event_id: "1743328800000-0",
           active_tool_name: "fetch_source",
           active_tool_use_id: "tool-1",
+          thinking_text: "先搜索本地资料",
         },
         {
           now: new Date("2026-03-30T10:00:20.000Z"),
@@ -109,6 +112,7 @@ describe("updateStreamingAssistantRunState", () => {
       active_tool_name: null,
       active_tool_use_id: null,
       active_task_id: null,
+      thinking_text: "先搜索本地资料",
     });
   });
 });
@@ -131,6 +135,7 @@ describe("buildInitialStreamingAssistantRunState", () => {
       active_tool_name: null,
       active_tool_use_id: null,
       active_task_id: null,
+      thinking_text: null,
     });
   });
 });
@@ -150,6 +155,7 @@ describe("finalizeStreamingAssistantRunState", () => {
           active_tool_name: "fetch_source",
           active_tool_use_id: "tool-1",
           active_task_id: "task-1",
+          thinking_text: "先确认工具是否可用",
         },
         {
           now: new Date("2026-03-30T10:00:20.000Z"),
@@ -167,6 +173,7 @@ describe("finalizeStreamingAssistantRunState", () => {
       active_tool_name: null,
       active_tool_use_id: null,
       active_task_id: null,
+      thinking_text: "先确认工具是否可用",
     });
   });
 });

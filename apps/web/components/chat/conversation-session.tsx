@@ -34,6 +34,7 @@ import {
   type RetryableConversationMessage,
 } from "@/lib/api/conversation-retry";
 import {
+  applyAssistantThinkingDeltaEvent,
   applyAssistantDeltaEvent,
   applyAssistantTerminalEvent,
   applyAssistantTerminalEventToSessionSnapshot,
@@ -109,6 +110,15 @@ function readAssistantRuntimeStatus(
   const assistantMessage = messages.find((message) => message.id === assistantMessageId);
   const runState = readStreamingAssistantRunState(assistantMessage?.structuredJson ?? null);
   return runState?.status_text ?? null;
+}
+
+function readAssistantThinkingText(
+  messages: ChatMessage[],
+  assistantMessageId?: string | null,
+) {
+  const assistantMessage = messages.find((message) => message.id === assistantMessageId);
+  const runState = readStreamingAssistantRunState(assistantMessage?.structuredJson ?? null);
+  return runState?.thinking_text ?? null;
 }
 
 function applyToolProgressToTimeline(
@@ -468,6 +478,22 @@ export function ConversationSession({
       });
     };
 
+    const handleAssistantThinkingDelta = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as ConversationStreamEvent;
+      if (payload.type !== CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA) {
+        return;
+      }
+
+      setChatMessages((current) => {
+        const nextMessages = applyAssistantThinkingDeltaEvent({
+          messages: current,
+          event: payload,
+        });
+        chatMessagesRef.current = nextMessages;
+        return nextMessages;
+      });
+    };
+
     const handleAnswerDone = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ConversationStreamEvent;
       if (payload.type !== CONVERSATION_STREAM_EVENT.ANSWER_DONE) {
@@ -539,6 +565,10 @@ export function ConversationSession({
     source.addEventListener(
       CONVERSATION_STREAM_EVENT.TOOL_PROGRESS,
       handleToolProgress as EventListener,
+    );
+    source.addEventListener(
+      CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA,
+      handleAssistantThinkingDelta as EventListener,
     );
     source.addEventListener(
       CONVERSATION_STREAM_EVENT.ANSWER_DELTA,
@@ -701,6 +731,8 @@ export function ConversationSession({
           const citationSourceBadges = buildCitationSourceBadges(citations);
           const hasSources = citations.length > 0;
           const processMessages = timelineMessagesByAssistant[message.id] ?? [];
+          const thinkingText = readAssistantThinkingText(chatMessages, message.id) ?? "";
+          const showThinkingPanel = isAssistant && Boolean(thinkingText.trim());
           const showResultPanel =
             isAssistant &&
             canShowAssistantResultPanel({
@@ -742,6 +774,15 @@ export function ConversationSession({
                 runtimeStatus={isCurrentAssistant ? runtimeStatus : null}
                 defaultOpen={isStreamingAssistant}
               />
+
+              {showThinkingPanel ? (
+                <div className={conversationDensityClassNames.thinkingPanel}>
+                  <div className={conversationDensityClassNames.thinkingHeader}>思考</div>
+                  <pre className={conversationDensityClassNames.thinkingText}>
+                    {thinkingText}
+                  </pre>
+                </div>
+              ) : null}
 
               {showResultPanel ? (
                 <div className={conversationDensityClassNames.resultPanel}>

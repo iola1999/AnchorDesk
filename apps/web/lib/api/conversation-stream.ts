@@ -45,6 +45,10 @@ type AssistantStatusEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.ASSISTANT_STATUS }
 >;
+type AssistantThinkingDeltaEvent = Extract<
+  ConversationStreamEvent,
+  { type: typeof CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA }
+>;
 type ToolProgressEvent = Extract<
   ConversationStreamEvent,
   { type: typeof CONVERSATION_STREAM_EVENT.TOOL_PROGRESS }
@@ -94,6 +98,28 @@ export function buildAssistantStatusStreamEvent(input: {
     tool_name: runState.active_tool_name ?? null,
     tool_use_id: runState.active_tool_use_id ?? null,
     task_id: runState.active_task_id ?? null,
+  };
+}
+
+export function buildAssistantThinkingStreamEvent(input: {
+  conversationId: string;
+  assistantMessage: AssistantMessageRow;
+  deltaText?: string | null;
+}): AssistantThinkingDeltaEvent | null {
+  const runState = readStreamingAssistantRunState(input.assistantMessage.structuredJson ?? null);
+  const thinkingText = typeof runState?.thinking_text === "string" ? runState.thinking_text : "";
+
+  if (!thinkingText) {
+    return null;
+  }
+
+  return {
+    type: CONVERSATION_STREAM_EVENT.ASSISTANT_THINKING_DELTA,
+    conversation_id: input.conversationId,
+    message_id: input.assistantMessage.id,
+    status: input.assistantMessage.status,
+    thinking_text: thinkingText,
+    delta_text: input.deltaText ?? null,
   };
 }
 
