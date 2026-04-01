@@ -1,4 +1,5 @@
 import {
+  ASSISTANT_STREAM_PHASE,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
   TIMELINE_EVENT,
@@ -316,6 +317,28 @@ export function describeAssistantStreamingStatus(contentMarkdown: string) {
   return contentMarkdown.trim()
     ? "助手正在生成回答..."
     : "助手正在分析问题并生成回答...";
+}
+
+export function isAssistantThinkingActive(input: {
+  status: MessageStatus;
+  contentMarkdown: string;
+  structuredJson?: Record<string, unknown> | null;
+}) {
+  if (input.status !== MESSAGE_STATUS.STREAMING) {
+    return false;
+  }
+
+  if (input.contentMarkdown.trim()) {
+    return false;
+  }
+
+  const phase =
+    typeof input.structuredJson?.phase === "string" ? input.structuredJson.phase : null;
+
+  return (
+    phase !== ASSISTANT_STREAM_PHASE.DRAFTING &&
+    phase !== ASSISTANT_STREAM_PHASE.FINALIZING
+  );
 }
 
 export function canShowAssistantProcess(input: {

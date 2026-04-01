@@ -8,6 +8,7 @@ import {
   describeAssistantProcessSummary,
   describeAssistantStreamingStatus,
   groupAssistantProcessMessages,
+  isAssistantThinkingActive,
 } from "./conversation-process";
 
 describe("groupAssistantProcessMessages", () => {
@@ -349,5 +350,41 @@ describe("canShowAssistantResultPanel", () => {
         contentMarkdown: "",
       }),
     ).toBe(true);
+  });
+});
+
+describe("isAssistantThinkingActive", () => {
+  test("keeps thinking active while the assistant is still streaming without answer text", () => {
+    expect(
+      isAssistantThinkingActive({
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "",
+        structuredJson: {
+          phase: "analyzing",
+        },
+      }),
+    ).toBe(true);
+  });
+
+  test("treats drafting or terminal output as the end of thinking", () => {
+    expect(
+      isAssistantThinkingActive({
+        status: MESSAGE_STATUS.STREAMING,
+        contentMarkdown: "第一段回答",
+        structuredJson: {
+          phase: "drafting",
+        },
+      }),
+    ).toBe(false);
+
+    expect(
+      isAssistantThinkingActive({
+        status: MESSAGE_STATUS.COMPLETED,
+        contentMarkdown: "",
+        structuredJson: {
+          phase: "analyzing",
+        },
+      }),
+    ).toBe(false);
   });
 });
