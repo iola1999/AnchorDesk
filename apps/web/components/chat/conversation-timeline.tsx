@@ -134,13 +134,13 @@ function ToolPayloadBlock({
   value: unknown;
 }) {
   return (
-    <details className="rounded-[14px] border border-app-border/65 bg-app-surface-soft/66 px-2.5 py-2">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] text-app-muted-strong [&::-webkit-details-marker]:hidden">
+    <details className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-app-border/65 bg-app-surface-soft/66 px-2.5 py-2">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center justify-between gap-3 text-[11px] text-app-muted-strong [&::-webkit-details-marker]:hidden">
         <span className="font-medium text-app-text">{label}</span>
         <span className="min-w-0 truncate">{describePayloadPreview(value)}</span>
       </summary>
 
-      <pre className="mt-2 max-h-[220px] overflow-auto rounded-[12px] border border-app-border/55 bg-white/78 px-2.5 py-2 text-[11px] leading-5 text-app-muted-strong">
+      <pre className="mt-2 w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto rounded-[12px] border border-app-border/55 bg-white/78 px-2.5 py-2 text-[11px] leading-5 text-app-muted-strong whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
         {formatPayloadValue(value)}
       </pre>
     </details>
@@ -292,9 +292,9 @@ function TimelineEntry({
   );
 
   const details = (
-    <div className="ml-[28px] mt-1.5 grid gap-2.5">
+    <div className="ml-[28px] mt-1.5 grid min-w-0 max-w-full gap-2.5 overflow-hidden">
       {entry.kind === "thinking" && entry.detailText ? (
-        <div className="rounded-[14px] border border-app-border/65 bg-white/78 px-3 py-2.5">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-app-border/65 bg-white/78 px-3 py-2.5">
           <pre className="whitespace-pre-wrap break-words text-[11.5px] leading-5 text-app-muted-strong">
             {entry.detailText}
           </pre>
