@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ShareIcon } from "@/components/icons";
+import { useMessage } from "@/components/shared/message-provider";
 import {
   Popover,
   PopoverContent,
@@ -10,9 +11,7 @@ import {
 } from "@/components/shared/popover";
 import {
   buildCopyShareNotice,
-  buildEnableShareNotice,
-  SHARE_NOTICE_AUTO_DISMISS_MS,
-  type ShareNotice,
+  buildDisableShareNotice,
 } from "@/lib/api/conversation-share-feedback";
 import { formatConversationMetaTimestamp } from "@/lib/api/conversations";
 import { buttonStyles, cn, inputStyles, ui } from "@/lib/ui";
@@ -32,49 +31,22 @@ export function ConversationSharePopover({
   conversationId: string;
   onOpen?: () => void;
 }) {
+  const message = useMessage();
   const panelId = `conversation-share-${conversationId}`;
   const [open, setOpen] = useState(false);
   const [share, setShare] = useState<ShareState | null>(null);
-  const [notice, setNotice] = useState<ShareNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const loadControllerRef = useRef<AbortController | null>(null);
-  const noticeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     void loadShare();
 
     return () => {
       loadControllerRef.current?.abort();
-      if (noticeTimerRef.current) {
-        window.clearTimeout(noticeTimerRef.current);
-      }
     };
   }, [conversationId]);
-
-  useEffect(() => {
-    if (noticeTimerRef.current) {
-      window.clearTimeout(noticeTimerRef.current);
-      noticeTimerRef.current = null;
-    }
-
-    if (!notice?.autoDismiss) {
-      return;
-    }
-
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice((current) => (current === notice ? null : current));
-      noticeTimerRef.current = null;
-    }, SHARE_NOTICE_AUTO_DISMISS_MS);
-
-    return () => {
-      if (noticeTimerRef.current) {
-        window.clearTimeout(noticeTimerRef.current);
-        noticeTimerRef.current = null;
-      }
-    };
-  }, [notice]);
 
   async function loadShare({ reset = false }: { reset?: boolean } = {}) {
     loadControllerRef.current?.abort();
@@ -129,7 +101,6 @@ export function ConversationSharePopover({
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
-    setNotice(null);
 
     if (nextOpen) {
       onOpen?.();
@@ -152,10 +123,21 @@ export function ConversationSharePopover({
     }
   }
 
+  function showShareFeedback(input: {
+    tone: "success" | "error";
+    message: string;
+    duration?: number;
+  }) {
+    message.show({
+      content: input.message,
+      tone: input.tone,
+      duration: input.duration,
+    });
+  }
+
   async function handleEnableShare() {
     setIsSubmitting(true);
     setError(null);
-    setNotice(null);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/share`, {
@@ -171,15 +153,6 @@ export function ConversationSharePopover({
       }
 
       setShare(body.share);
-      const copySucceeded = body.share.shareUrl
-        ? await copyShareUrl(body.share.shareUrl)
-        : false;
-      setNotice(
-        buildEnableShareNotice({
-          shareUrl: body.share.shareUrl,
-          copySucceeded,
-        }),
-      );
     } catch {
       setError("开启分享失败");
     } finally {
@@ -190,7 +163,6 @@ export function ConversationSharePopover({
   async function handleDisableShare() {
     setIsSubmitting(true);
     setError(null);
-    setNotice(null);
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}/share`, {
@@ -206,11 +178,7 @@ export function ConversationSharePopover({
       }
 
       setShare(body.share);
-      setNotice({
-        tone: "success",
-        message: "分享已关闭",
-        autoDismiss: true,
-      });
+      showShareFeedback(buildDisableShareNotice());
     } catch {
       setError("关闭分享失败");
     } finally {
@@ -224,7 +192,7 @@ export function ConversationSharePopover({
     }
 
     setError(null);
-    setNotice(buildCopyShareNotice(await copyShareUrl(share.shareUrl)));
+    showShareFeedback(buildCopyShareNotice(await copyShareUrl(share.shareUrl)));
   }
 
   const shareStateLabel = isLoading
@@ -235,9 +203,6 @@ export function ConversationSharePopover({
         ? "已开启"
         : "未开启";
   const shareStateBadge = isLoading ? "处理中" : share?.isActive ? "公开" : "私密";
-  const noticeClassName = notice?.tone === "error"
-    ? "border-red-200 bg-red-50/80 text-red-700"
-    : "border-emerald-200 bg-emerald-50/80 text-emerald-800";
   const shareCreatedLabel = share?.createdAt
     ? formatConversationMetaTimestamp(new Date(share.createdAt))
     : null;
@@ -381,17 +346,6 @@ export function ConversationSharePopover({
                   关闭分享
                 </button>
               </div>
-              {notice ? (
-                <p
-                  aria-live="polite"
-                  className={cn(
-                    "inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[11px] leading-5",
-                    noticeClassName,
-                  )}
-                >
-                  {notice.message}
-                </p>
-              ) : null}
               {error ? (
                 <p className={cn(ui.error, "text-[13px] leading-5")}>{error}</p>
               ) : null}
@@ -405,20 +359,9 @@ export function ConversationSharePopover({
                   void handleEnableShare();
                 }}
                 type="button"
-              >
-                创建分享链接
-              </button>
-              {notice ? (
-                <p
-                  aria-live="polite"
-                  className={cn(
-                    "mt-2 inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[11px] leading-5",
-                    noticeClassName,
-                  )}
                 >
-                  {notice.message}
-                </p>
-              ) : null}
+                  创建分享链接
+                </button>
               {error ? (
                 <p className={cn(ui.error, "mt-2 text-[13px] leading-5")}>{error}</p>
               ) : null}

@@ -4,19 +4,13 @@ import {
   createContext,
   type ReactNode,
   useContext,
-  useEffect,
-  useState,
+  useMemo,
 } from "react";
-import { createPortal } from "react-dom";
+import { Toaster, toast } from "sonner";
 
-import { messageStyles, type MessageTone } from "@/lib/ui";
+import { CheckIcon, CloseIcon } from "@/components/icons";
 
-type MessageRecord = {
-  id: string;
-  content: string;
-  tone: MessageTone;
-  duration: number;
-};
+type MessageTone = "info" | "success" | "error";
 
 type MessageOptions = {
   duration?: number;
@@ -35,113 +29,82 @@ type MessageApi = {
   dismiss: (id: string) => void;
 };
 
-const MESSAGE_LIMIT = 3;
 const MESSAGE_DURATIONS: Record<MessageTone, number> = {
   info: 2800,
-  success: 2600,
+  success: 2200,
   error: 4200,
 };
 
+const MESSAGE_TOAST_CLASS =
+  "inline-flex w-auto max-w-[min(320px,calc(100vw-24px))] min-h-0 items-center gap-2.5 rounded-2xl border bg-white/94 px-3.5 py-2.5 shadow-soft backdrop-blur-md";
+
 const MessageContext = createContext<MessageApi | null>(null);
 
-function createMessageId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
+function showToast({ content, duration, tone = "info" }: MessageInput) {
+  const options = {
+    duration: duration ?? MESSAGE_DURATIONS[tone],
+  };
+
+  if (tone === "success") {
+    return String(toast.success(content, options));
   }
 
-  return `message-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  if (tone === "error") {
+    return String(toast.error(content, options));
+  }
+
+  return String(toast.message(content, options));
 }
 
 export function MessageProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<MessageRecord[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  function dismiss(id: string) {
-    setMessages((current) => current.filter((message) => message.id !== id));
-  }
-
-  function show({ content, duration, tone = "info" }: MessageInput) {
-    const id = createMessageId();
-    const nextMessage: MessageRecord = {
-      id,
-      content,
-      tone,
-      duration: duration ?? MESSAGE_DURATIONS[tone],
-    };
-
-    setMessages((current) => [...current.slice(-(MESSAGE_LIMIT - 1)), nextMessage]);
-
-    return id;
-  }
-
-  const value: MessageApi = {
-    show,
-    dismiss,
-    success: (content, options) => show({ content, tone: "success", ...options }),
-    error: (content, options) => show({ content, tone: "error", ...options }),
-    info: (content, options) => show({ content, tone: "info", ...options }),
-  };
+  const value = useMemo<MessageApi>(
+    () => ({
+      show: (input) => showToast(input),
+      success: (content, options) => showToast({ content, tone: "success", ...options }),
+      error: (content, options) => showToast({ content, tone: "error", ...options }),
+      info: (content, options) => showToast({ content, tone: "info", ...options }),
+      dismiss: (id) => {
+        toast.dismiss(id);
+      },
+    }),
+    [],
+  );
 
   return (
     <MessageContext.Provider value={value}>
       {children}
-      {isMounted
-        ? createPortal(
-            <div
-              aria-live="polite"
-              className="pointer-events-none fixed inset-x-0 top-4 z-[80] flex justify-center px-4 sm:top-6"
-            >
-              <div className="grid w-full max-w-[460px] gap-2">
-                {messages.map((message) => (
-                  <MessageItem key={message.id} message={message} onDismiss={dismiss} />
-                ))}
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </MessageContext.Provider>
-  );
-}
-
-function MessageItem({
-  message,
-  onDismiss,
-}: {
-  message: MessageRecord;
-  onDismiss: (id: string) => void;
-}) {
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      onDismiss(message.id);
-    }, message.duration);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [message.duration, message.id, onDismiss]);
-
-  return (
-    <div
-      role={message.tone === "error" ? "alert" : "status"}
-      className={messageStyles({ tone: message.tone })}
-    >
-      <span
-        aria-hidden="true"
-        className={
-          message.tone === "success"
-            ? "mt-[5px] size-2.5 rounded-full bg-emerald-600"
-            : message.tone === "error"
-              ? "mt-[5px] size-2.5 rounded-full bg-red-500"
-              : "mt-[5px] size-2.5 rounded-full bg-app-accent"
-        }
+      <Toaster
+        closeButton={false}
+        containerAriaLabel="全局消息"
+        duration={MESSAGE_DURATIONS.info}
+        expand={false}
+        icons={{
+          success: <CheckIcon className="size-[13px] text-emerald-700" strokeWidth={2.1} />,
+          error: <CloseIcon className="size-[12px] text-red-600" strokeWidth={2.1} />,
+          info: <span className="size-1.5 rounded-full bg-app-accent" />,
+        }}
+        mobileOffset={12}
+        offset={16}
+        position="top-center"
+        theme="light"
+        toastOptions={{
+          unstyled: true,
+          classNames: {
+            toast: MESSAGE_TOAST_CLASS,
+            title:
+              "whitespace-nowrap text-[13px] font-medium leading-5 tracking-[-0.01em] text-app-text",
+            content: "min-w-0 flex-none",
+            icon: "shrink-0 text-app-muted",
+            success: "border-emerald-200/70",
+            error: "border-red-200/70",
+            info: "border-app-border/85",
+            default: "border-app-border/85",
+            closeButton: "hidden",
+          },
+        }}
+        visibleToasts={3}
       />
-      <p className="min-w-0 flex-1 text-[13px] font-medium leading-5">{message.content}</p>
-    </div>
+    </MessageContext.Provider>
   );
 }
 

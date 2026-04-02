@@ -14,7 +14,6 @@ type ButtonShape = "rounded" | "pill" | "icon";
 type MenuTone = "default" | "danger";
 type WorkspaceTileVariant = "default" | "create";
 type ConversationControlSize = "default" | "compact";
-export type MessageTone = "info" | "success" | "error";
 
 export function inputStyles({ size = "md" }: { size?: FieldSize } = {}) {
   return cn(
@@ -78,21 +77,6 @@ export const ui = {
   codeChip:
     "inline-flex items-center rounded-full bg-app-surface-strong px-3 py-1 text-[13px] text-app-text",
 };
-
-export function messageStyles({
-  tone = "info",
-}: {
-  tone?: MessageTone;
-} = {}) {
-  return cn(
-    "pointer-events-auto flex w-full items-start gap-3 rounded-2xl border px-4 py-3 shadow-card backdrop-blur-md",
-    tone === "success"
-      ? "border-emerald-200 bg-emerald-50/95 text-emerald-800"
-      : tone === "error"
-        ? "border-red-200 bg-red-50/95 text-red-700"
-        : "border-app-border bg-white/98 text-app-text",
-  );
-}
 
 export function buttonStyles({
   variant = "primary",

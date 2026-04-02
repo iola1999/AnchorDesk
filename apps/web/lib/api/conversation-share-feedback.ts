@@ -1,50 +1,30 @@
-export const SHARE_NOTICE_AUTO_DISMISS_MS = 1600;
+export const SHARE_FEEDBACK_BRIEF_MS = 1600;
 
-export type ShareNotice = {
+export type ShareFeedback = {
   tone: "success" | "error";
   message: string;
-  autoDismiss: boolean;
+  duration?: number;
 };
 
-export function buildEnableShareNotice(input: {
-  shareUrl: string | null;
-  copySucceeded: boolean;
-}): ShareNotice {
-  if (!input.shareUrl) {
-    return {
-      tone: "success",
-      message: "公开分享已开启",
-      autoDismiss: true,
-    };
-  }
-
-  if (input.copySucceeded) {
-    return {
-      tone: "success",
-      message: "链接已复制",
-      autoDismiss: true,
-    };
-  }
-
+function buildBriefSuccessFeedback(message: string): ShareFeedback {
   return {
-    tone: "error",
-    message: "已创建分享链接，请手动复制",
-    autoDismiss: false,
+    tone: "success",
+    message,
+    duration: SHARE_FEEDBACK_BRIEF_MS,
   };
 }
 
-export function buildCopyShareNotice(copySucceeded: boolean): ShareNotice {
+export function buildCopyShareNotice(copySucceeded: boolean): ShareFeedback {
   if (copySucceeded) {
-    return {
-      tone: "success",
-      message: "分享链接已复制",
-      autoDismiss: true,
-    };
+    return buildBriefSuccessFeedback("分享链接已复制");
   }
 
   return {
     tone: "error",
     message: "复制链接失败",
-    autoDismiss: false,
   };
+}
+
+export function buildDisableShareNotice(): ShareFeedback {
+  return buildBriefSuccessFeedback("分享已关闭");
 }

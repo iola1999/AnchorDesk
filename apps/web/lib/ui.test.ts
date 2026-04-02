@@ -5,7 +5,6 @@ import {
   chipButtonStyles,
   createConversationNavButtonStyles,
   inputStyles,
-  messageStyles,
   menuItemStyles,
   navItemStyles,
   textSelectionStyles,
@@ -95,24 +94,6 @@ describe("menuItemStyles", () => {
     expect(classes).toContain("bg-app-surface-soft");
     expect(classes).toContain("font-medium");
     expect(classes).toContain("text-app-text");
-  });
-});
-
-describe("messageStyles", () => {
-  it("renders success messages with the approved success palette", () => {
-    const classes = messageStyles({ tone: "success" });
-
-    expect(classes).toContain("border-emerald-200");
-    expect(classes).toContain("bg-emerald-50/95");
-    expect(classes).toContain("text-emerald-800");
-  });
-
-  it("renders error messages with the approved danger palette", () => {
-    const classes = messageStyles({ tone: "error" });
-
-    expect(classes).toContain("border-red-200");
-    expect(classes).toContain("bg-red-50/95");
-    expect(classes).toContain("text-red-700");
   });
 });
 
