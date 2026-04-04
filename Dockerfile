@@ -17,6 +17,7 @@ COPY scripts ./scripts
 
 FROM workspace AS deps
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm config set registry https://registry.npmmirror.com && \
   pnpm install --store-dir=/pnpm/store --frozen-lockfile
 
 FROM deps AS web-build
@@ -25,19 +26,24 @@ RUN --mount=type=cache,id=pnpm-web-store,target=/pnpm/web-store \
   pnpm --filter @anchordesk/web build
 
 FROM deps AS worker-deploy
-RUN pnpm --filter @anchordesk/worker deploy --prod /deploy/worker
+RUN pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/worker deploy --prod /deploy/worker
 
 FROM deps AS agent-runtime-deploy
-RUN pnpm --filter @anchordesk/agent-runtime deploy --prod /deploy/agent-runtime
+RUN pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/agent-runtime deploy --prod /deploy/agent-runtime
 
 FROM deps AS db-check-deploy
-RUN pnpm --filter @anchordesk/db deploy --prod /deploy/packages/db
+RUN pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/db deploy --prod /deploy/packages/db
 
 FROM deps AS upgrade-db-deploy
-RUN pnpm --filter @anchordesk/db deploy /deploy/packages/db
+RUN pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/db deploy /deploy/packages/db
 
 FROM deps AS upgrade-storage-deploy
-RUN pnpm --filter @anchordesk/storage deploy --prod /deploy/packages/storage
+RUN pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/storage deploy --prod /deploy/packages/storage
 
 FROM base AS web-runtime
 ENV NODE_ENV=production
