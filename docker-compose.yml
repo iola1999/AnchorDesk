@@ -1,3 +1,4 @@
+name: anchordesk-dev
 services:
   postgres:
     image: postgres:17
