@@ -25,6 +25,7 @@ import {
   extractAssistantRuntimeSignal,
   extractAssistantTextDelta,
 } from "./assistant-stream";
+import { AgentQueryTimeoutError, guardAgentQueryStream } from "./agent-query-guard";
 import { type CollectedGroundedEvidence } from "./assistant-answer";
 import {
   buildClaudeAgentSdkRequestLogPayload,
@@ -42,6 +43,11 @@ const CLAUDE_AGENT_MESSAGE_TYPE = {
 const CLAUDE_AGENT_RESULT_SUBTYPE = {
   SUCCESS: "success",
 } as const;
+
+const CLAUDE_AGENT_FIRST_EVENT_TIMEOUT_MS = 15_000;
+const CLAUDE_AGENT_IDLE_TIMEOUT_MS = 45_000;
+const CLAUDE_AGENT_QUERY_TIMEOUT_ERROR =
+  "模型供应商长时间未响应，当前回答已超时。";
 
 function getAgentWorkdirRoot() {
   return process.env.AGENT_WORKDIR_ROOT
@@ -473,6 +479,9 @@ export type RunAgentResponseInput = {
 };
 
 export type RunAgentResponseHooks = {
+  onCancelReady?: (
+    cancel: (reason: string) => Promise<void>,
+  ) => Promise<void> | void;
   onAssistantStatus?: (input: {
     phase: AssistantStreamPhase;
     statusText: string;
@@ -575,6 +584,7 @@ export async function runAgentResponse(
     conversationId,
     searchableKnowledge: input.searchableKnowledge ?? null,
   });
+  const abortController = new AbortController();
   const claudeAgentQueryOptions = {
     tools: [],
     includePartialMessages: true,
@@ -582,6 +592,7 @@ export async function runAgentResponse(
       [ASSISTANT_MCP_SERVER_NAME]: assistantServer,
     },
     allowedTools,
+    abortController,
     cwd: workdir,
     env: agentEnv,
     model: input.modelProfile.modelName,
@@ -716,63 +727,93 @@ export async function runAgentResponse(
   );
 
   try {
-    for await (const message of query({
+    const queryHandle = query({
       prompt,
       options: claudeAgentQueryOptions,
-    })) {
-      if ("session_id" in message && typeof message.session_id === "string") {
-        sessionId = message.session_id;
+    });
+    let queryClosed = false;
+    const closeQuery = () => {
+      if (queryClosed) {
+        return;
       }
 
-      const runtimeSignal = extractAssistantRuntimeSignal(message);
-      if (runtimeSignal?.kind === "assistant_status") {
-        await hooks.onAssistantStatus?.({
-          phase: runtimeSignal.phase,
-          statusText: runtimeSignal.statusText,
-          toolName: runtimeSignal.toolName ?? null,
-          toolUseId: runtimeSignal.toolUseId ?? null,
-          taskId: runtimeSignal.taskId ?? null,
-        });
+      queryClosed = true;
+      queryHandle.close();
+    };
+    const cancelQuery = async (reason: string) => {
+      if (!abortController.signal.aborted) {
+        abortController.abort(reason);
       }
 
-      if (runtimeSignal?.kind === "tool_progress") {
-        await hooks.onToolProgress?.({
-          toolName: runtimeSignal.toolName,
-          toolUseId: runtimeSignal.toolUseId,
-          elapsedSeconds: runtimeSignal.elapsedSeconds,
-          statusText: runtimeSignal.statusText,
-          taskId: runtimeSignal.taskId ?? null,
-        });
-      }
+      closeQuery();
+    };
 
-      const textDelta = extractAssistantTextDelta(message);
-      const thinkingDelta = extractAssistantThinkingDelta(message);
-      if (thinkingDelta) {
-        streamedThinking += thinkingDelta;
-        await hooks.onAssistantThinkingDelta?.({
-          thinkingDelta,
-          fullThinking: streamedThinking,
-        });
-      }
+    await hooks.onCancelReady?.(cancelQuery);
 
-      if (textDelta) {
-        streamedAnswer += textDelta;
-        await hooks.onAssistantStatus?.({
-          phase: "drafting",
-          statusText: "助手正在生成回答...",
-        });
-        await hooks.onAssistantDelta?.({
-          textDelta,
-          fullText: streamedAnswer,
-        });
-      }
+    try {
+      for await (const message of guardAgentQueryStream(queryHandle, {
+        firstEventTimeoutMs: CLAUDE_AGENT_FIRST_EVENT_TIMEOUT_MS,
+        idleTimeoutMs: CLAUDE_AGENT_IDLE_TIMEOUT_MS,
+        onTimeout: async () => {
+          await cancelQuery(CLAUDE_AGENT_QUERY_TIMEOUT_ERROR);
+        },
+      })) {
+        if ("session_id" in message && typeof message.session_id === "string") {
+          sessionId = message.session_id;
+        }
 
-      if (
-        message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
-        message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
-      ) {
-        finalResult = message.result || streamedAnswer;
+        const runtimeSignal = extractAssistantRuntimeSignal(message);
+        if (runtimeSignal?.kind === "assistant_status") {
+          await hooks.onAssistantStatus?.({
+            phase: runtimeSignal.phase,
+            statusText: runtimeSignal.statusText,
+            toolName: runtimeSignal.toolName ?? null,
+            toolUseId: runtimeSignal.toolUseId ?? null,
+            taskId: runtimeSignal.taskId ?? null,
+          });
+        }
+
+        if (runtimeSignal?.kind === "tool_progress") {
+          await hooks.onToolProgress?.({
+            toolName: runtimeSignal.toolName,
+            toolUseId: runtimeSignal.toolUseId,
+            elapsedSeconds: runtimeSignal.elapsedSeconds,
+            statusText: runtimeSignal.statusText,
+            taskId: runtimeSignal.taskId ?? null,
+          });
+        }
+
+        const textDelta = extractAssistantTextDelta(message);
+        const thinkingDelta = extractAssistantThinkingDelta(message);
+        if (thinkingDelta) {
+          streamedThinking += thinkingDelta;
+          await hooks.onAssistantThinkingDelta?.({
+            thinkingDelta,
+            fullThinking: streamedThinking,
+          });
+        }
+
+        if (textDelta) {
+          streamedAnswer += textDelta;
+          await hooks.onAssistantStatus?.({
+            phase: "drafting",
+            statusText: "助手正在生成回答...",
+          });
+          await hooks.onAssistantDelta?.({
+            textDelta,
+            fullText: streamedAnswer,
+          });
+        }
+
+        if (
+          message.type === CLAUDE_AGENT_MESSAGE_TYPE.RESULT &&
+          message.subtype === CLAUDE_AGENT_RESULT_SUBTYPE.SUCCESS
+        ) {
+          finalResult = message.result || streamedAnswer;
+        }
       }
+    } finally {
+      closeQuery();
     }
 
     requestLogger.info(
@@ -793,6 +834,10 @@ export async function runAgentResponse(
       "Claude Agent SDK query completed",
     );
   } catch (error) {
+    const normalizedError =
+      error instanceof AgentQueryTimeoutError
+        ? new Error(CLAUDE_AGENT_QUERY_TIMEOUT_ERROR)
+        : error;
     requestLogger.error(
       {
         conversationId,
@@ -802,11 +847,11 @@ export async function runAgentResponse(
         workdir,
         sessionId,
         ...runtimeLogContext,
-        error: serializeErrorForLog(error),
+        error: serializeErrorForLog(normalizedError),
       },
       "Claude Agent SDK query failed",
     );
-    throw error;
+    throw normalizedError;
   }
 
   const rawAnswerText =

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
   const updateReturningQueue: unknown[][] = [];
 
   const auth = vi.fn();
+  const cancelStreamingAssistantRun = vi.fn();
   const requireOwnedConversation = vi.fn();
   const loggerChild = {
     info: vi.fn(),
@@ -43,6 +44,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     auth,
+    cancelStreamingAssistantRun,
     db,
     latestStreamingAssistants,
     loggerChild,
@@ -55,6 +57,10 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/auth", () => ({
   auth: mocks.auth,
+}));
+
+vi.mock("@/lib/api/conversation-run-control", () => ({
+  cancelStreamingAssistantRun: mocks.cancelStreamingAssistantRun,
 }));
 
 vi.mock("@/lib/guards/resources", () => ({
@@ -86,6 +92,7 @@ beforeEach(() => {
   mocks.updateReturningQueue.length = 0;
   mocks.updates.length = 0;
   mocks.auth.mockReset();
+  mocks.cancelStreamingAssistantRun.mockReset();
   mocks.requireOwnedConversation.mockReset();
   mocks.loggerChild.info.mockReset();
   mocks.loggerChild.warn.mockReset();
@@ -152,6 +159,12 @@ describe("POST /api/conversations/[conversationId]/stop", () => {
       id: "assistant-1",
       status: MESSAGE_STATUS.COMPLETED,
       contentMarkdown: "已经生成的前半段",
+    });
+    expect(mocks.cancelStreamingAssistantRun).toHaveBeenCalledWith({
+      conversationId: "conversation-1",
+      assistantMessageId: "assistant-1",
+      runId: "run-1",
+      reason: "user_stop",
     });
     expect(mocks.updates).toEqual(
       expect.arrayContaining([

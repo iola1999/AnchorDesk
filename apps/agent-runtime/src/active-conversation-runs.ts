@@ -3,7 +3,9 @@ import type { ConversationResponseJobPayload } from "@anchordesk/queue";
 export type ActiveConversationRun = Pick<
   ConversationResponseJobPayload,
   "conversationId" | "assistantMessageId" | "runId"
->;
+> & {
+  cancel?: (reason: string) => Promise<void> | void;
+};
 
 const activeConversationRuns = new Map<string, ActiveConversationRun>();
 
@@ -28,4 +30,21 @@ export function registerActiveConversationRun(run: ActiveConversationRun) {
 
 export function listActiveConversationRuns() {
   return Array.from(activeConversationRuns.values());
+}
+
+export async function cancelActiveConversationRun(input: {
+  assistantMessageId: string;
+  runId: string;
+  reason: string;
+}) {
+  const run = activeConversationRuns.get(
+    `${input.assistantMessageId}:${input.runId}`,
+  );
+
+  if (!run?.cancel) {
+    return false;
+  }
+
+  await run.cancel(input.reason);
+  return true;
 }

@@ -443,11 +443,12 @@ async function processConversationResponseJobWithContext(
     "processing conversation response job",
   );
 
-  const unregisterActiveRun = registerActiveConversationRun({
+  const activeRun = {
     conversationId: payload.conversationId,
     assistantMessageId: payload.assistantMessageId,
     runId: payload.runId,
-  });
+  };
+  const unregisterActiveRun = registerActiveConversationRun(activeRun);
 
   try {
     async function assertAssistantMessageStillStreaming() {
@@ -839,6 +840,9 @@ async function processConversationResponseJobWithContext(
           searchableKnowledge,
         },
         {
+          onCancelReady: async (cancel) => {
+            activeRun.cancel = cancel;
+          },
           onAssistantStatus: async ({
             phase,
             statusText,

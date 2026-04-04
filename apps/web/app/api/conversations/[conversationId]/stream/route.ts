@@ -21,6 +21,7 @@ import {
   buildExpiredAssistantRunPayload,
   shouldExpireStreamingAssistantMessage,
 } from "@/lib/api/assistant-run-expiration";
+import { cancelStreamingAssistantRun } from "@/lib/api/conversation-run-control";
 import {
   buildAssistantStatusStreamEvent,
   buildAssistantThinkingStreamEvent,
@@ -312,6 +313,24 @@ export async function GET(
             },
             "conversation stream expired a stale streaming assistant run",
           );
+
+          try {
+            await cancelStreamingAssistantRun({
+              conversationId,
+              assistantMessageId: expiredRun.assistantMessage.id,
+              runId: effectiveRunState?.run_id ?? null,
+              reason: "stale_stream_expired",
+            });
+          } catch (error) {
+            requestLogger.warn(
+              {
+                workspaceId: conversation.workspaceId,
+                toolMessageCount: emittedMessageIds.size,
+                errorMessage: error instanceof Error ? error.message : String(error),
+              },
+              "failed to propagate stale streaming run cancellation",
+            );
+          }
         }
 
         if (expiredRun?.toolMessage && !emittedMessageIds.has(expiredRun.toolMessage.id)) {

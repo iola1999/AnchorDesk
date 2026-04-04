@@ -18,7 +18,10 @@ import { processConversationResponseJob } from "./process-conversation-job";
 import { runAgentResponse } from "./run-agent-response";
 import { buildClaudeAgentRuntimeLogContext } from "./runtime-log";
 import { resolveRespondWorkerConcurrency } from "./runtime-config";
-import { listActiveConversationRuns } from "./active-conversation-runs";
+import {
+  cancelActiveConversationRun,
+  listActiveConversationRuns,
+} from "./active-conversation-runs";
 import { failConversationResponseRun } from "./conversation-run-failure";
 
 const BULLMQ_WORKER_EVENT = {
@@ -58,6 +61,28 @@ async function main() {
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.post("/runs/cancel", async (req, res) => {
+    const assistantMessageId = String(req.body?.assistantMessageId ?? "").trim();
+    const runId = String(req.body?.runId ?? "").trim();
+    const reason =
+      String(req.body?.reason ?? "manual_cancel").trim() || "manual_cancel";
+
+    if (!assistantMessageId || !runId) {
+      res
+        .status(400)
+        .json({ ok: false, error: "assistantMessageId and runId are required" });
+      return;
+    }
+
+    const cancelled = await cancelActiveConversationRun({
+      assistantMessageId,
+      runId,
+      reason,
+    });
+
+    res.json({ ok: true, cancelled });
   });
 
   app.post("/respond", async (req, res) => {
@@ -216,14 +241,15 @@ async function main() {
       );
 
       await Promise.allSettled(
-        activeRuns.map((run) =>
-          failConversationResponseRun({
+        activeRuns.map(async (run) => {
+          await run.cancel?.(AGENT_RUNTIME_SHUTDOWN_ERROR);
+          return failConversationResponseRun({
             conversationId: run.conversationId,
             assistantMessageId: run.assistantMessageId,
             runId: run.runId,
             error: AGENT_RUNTIME_SHUTDOWN_ERROR,
-          }),
-        ),
+          });
+        }),
       );
 
       await Promise.allSettled([

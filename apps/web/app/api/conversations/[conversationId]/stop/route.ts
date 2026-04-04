@@ -4,10 +4,12 @@ import {
   finalizeStreamingAssistantRunState,
   MESSAGE_ROLE,
   MESSAGE_STATUS,
+  readStreamingAssistantRunState,
 } from "@anchordesk/contracts";
 import { conversations, getDb, messages } from "@anchordesk/db";
 
 import { auth } from "@/auth";
+import { cancelStreamingAssistantRun } from "@/lib/api/conversation-run-control";
 import { requireOwnedConversation } from "@/lib/guards/resources";
 import { buildRequestLogContext, logger, resolveRequestId } from "@/lib/server/logger";
 
@@ -103,6 +105,31 @@ export async function POST(
     .returning({
       id: conversations.id,
     });
+
+  try {
+    await cancelStreamingAssistantRun({
+      conversationId,
+      assistantMessageId: assistantMessage.id,
+      runId:
+        readStreamingAssistantRunState(
+          (streamingAssistant.structuredJson as
+            | Record<string, unknown>
+            | null
+            | undefined) ?? null,
+        )?.run_id ?? null,
+      reason: "user_stop",
+    });
+  } catch (error) {
+    requestLogger.warn(
+      {
+        workspaceId: conversation.workspaceId,
+        userId,
+        assistantMessageId: assistantMessage.id,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      "failed to propagate conversation assistant stop to agent runtime",
+    );
+  }
 
   requestLogger.info(
     {
