@@ -41,6 +41,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+    ports:
+      - "39000:9000"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -100,7 +102,7 @@ services:
         "node packages/db/scripts/run-upgrades.mjs --mode=check && node packages/db/scripts/start-web-server.mjs",
       ]
     ports:
-      - "3000:3000"
+      - "33000:3000"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
       interval: 10s
