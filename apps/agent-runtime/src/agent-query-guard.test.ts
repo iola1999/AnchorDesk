@@ -22,7 +22,9 @@ describe("guardAgentQueryStream", () => {
     vi.useFakeTimers();
 
     const onTimeout = vi.fn();
-    const returnSpy = vi.fn(async () => ({ done: true, value: undefined }));
+    const returnSpy = vi.fn<
+      (value?: unknown) => Promise<IteratorResult<{ type: string }>>
+    >(async () => ({ done: true as const, value: undefined }));
     const source: AsyncIterable<{ type: string }> = {
       [Symbol.asyncIterator]() {
         return {
@@ -56,7 +58,9 @@ describe("guardAgentQueryStream", () => {
     vi.useFakeTimers();
 
     const onTimeout = vi.fn();
-    const returnSpy = vi.fn(async () => ({ done: true, value: undefined }));
+    const returnSpy = vi.fn<
+      (value?: unknown) => Promise<IteratorResult<{ type: string; subtype?: string }>>
+    >(async () => ({ done: true as const, value: undefined }));
     const next = vi
       .fn<() => Promise<IteratorResult<{ type: string; subtype?: string }>>>()
       .mockResolvedValueOnce({

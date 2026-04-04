@@ -109,6 +109,7 @@ flowchart LR
 - `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
 - `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
+- `Agent Runtime` 现在会为 Claude Agent SDK `query()` 加上首包超时与空闲超时保护；当 provider 长时间不返回事件时，会主动 abort 当前查询并把回答收口为明确失败，而不是无限卡住 worker 并发槽位。
 - `web` / `worker` / `agent-runtime` 当前都会初始化 OpenTelemetry；当存在活动 span 时，结构化日志会自动附带 `trace_id` / `span_id` / `trace_flags`，继续保留业务侧 `requestId` / `runId` / `conversationId` 等字段。
 - `conversation.respond` 与 ingest flow 现在会把 W3C Trace Context（`traceparent` / `tracestate` / `baggage`）写入 BullMQ payload；`agent-runtime`、`worker` 与 `parser` 会继续同一条 trace，便于跨进程捞整条请求上下文日志。
 - `worker -> parser /parse` 当前会透传 trace headers；`Python Parser Service` 会按同一 trace 记日志，并在配置 OTLP exporter 后继续上报 span。
@@ -130,9 +131,10 @@ flowchart LR
 - citation 当前还会基于 `message_citations.source_scope + library_title_snapshot` 展示来源 badge，区分“工作空间资料”和“全局资料库 · <title>”。
 - 工具结果现在会附带运行期分配的 `citation_id` / `citation_token`；模型必须在正文相关段落后直接输出这些 `[[cite:N]]` token，应用层会在终态前校验 token、重排显示序号并规范化为 `[^n]`。
 - 正文内联角标与下方“参考资料”面板共用同一条 citation registry，不依赖 provider 原生 citation 渲染，因此同一条回答可同时混用网页链接和本地资料页码。
-- streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 会把当前 streaming assistant 收口为 completed 并保留已生成片段，`agent-runtime` 随后会在发现该 assistant 已不再处于 streaming 时停止后续持久化。
+- streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 会把当前 streaming assistant 收口为 completed 并保留已生成片段，同时在存在 `run_id` 时把 cancel 语义透传给 `agent-runtime` / provider，避免外部模型请求继续在后台悬挂。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 会在 live stream 超时补偿时把过期回答收敛成 `run_failed`，避免前端无限等待。
+- SSE route 现在通过独立的 safe writer 包装 `ReadableStreamDefaultController`；当客户端已断开或 stream 已关闭时，会停止后续写入，而不是再对已关闭 controller `enqueue()` 触发 `ERR_INVALID_STATE`。
 - assistant / tool 的失败态 message payload 已收口为共享 helper，消息发送、重试、过期收敛和 worker 失败路径复用同一套错误语义。
 - 当前阶段对非核心工具的要求是“先保持稳定契约和可观测事件流”；真实 provider 是否接齐不是阻塞主会话链路的前置条件。
 - `Python Parser Service` 已支持 PDF / DOCX / text 基础解析、结构块构建，以及无文本 PDF 的 DashScope OCR 降级解析。
@@ -146,7 +148,7 @@ flowchart LR
 当前已知缺口：
 
 - 当前主会话链路已切到 token 级 live transport：`agent-runtime` 发布 Redis Streams 会话事件，Web SSE 直接转发 assistant delta / progress / status；数据库退回为快照恢复、授权与终态真相源。
-- 当前“停止生成”是基于数据库状态的协作式收口，不是 provider-side cancel；外部模型请求可能仍在后台跑完，只是不再继续写回当前消息。
+- 当前 stop/stale 收口在存在 `run_id` 时会同步向 `agent-runtime` 发起 cancel，并进一步 abort provider 查询；若缺少 `run_id`，仍会退回为数据库侧的终态收口。
 - 当前 tracing 已覆盖 `web -> queue -> agent-runtime/worker -> parser` 主边界，但更细粒度的第三方 SDK 自动 instrumentation 仍未全面铺开；目前主要保证入口、队列和跨服务 HTTP 边界的 trace 关联。
 - 当前单次回答链路采用 fail-closed 语义：只要模型引用了未知 `citation_id`，或在已有证据时遗漏 `[[cite:N]]` marker，整轮回答都会显式进入 `run_failed` / assistant failed，而不是落成未校验成功态。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。

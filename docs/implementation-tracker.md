@@ -42,6 +42,7 @@
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> single answer stream -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
 - `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
+- `agent-runtime` 现在会为 Claude Agent SDK `query()` 加上首包超时和空闲超时保护；provider 长时间不响应时会主动 abort，并把当前回答收口为明确失败。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 工作空间对话页已提供 conversation-scoped 模型选择器；创建新会话时会把选中的 `model_profile_id` 持久化到 `conversations`，后续重试和报告工具沿用同一份模型配置解析逻辑。
 - 账号认证仍采用 `Auth.js` JWT session，但服务端现在会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时做 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都可走这层撤销机制。
@@ -64,7 +65,7 @@
 - user turn 左侧已补 hover copy action，便于快速复制原始提问文本且不打断当前线程。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
-- streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming，`agent-runtime` 会在发现该消息不再处于 streaming 时协作停止后续落库。
+- streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming；若当前 run 已有 `run_id`，Web 还会把 cancel 语义继续透传给 `agent-runtime` / provider，避免外部模型请求悬挂在后台。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
 - citation 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
@@ -119,7 +120,7 @@
   - thinking / tool / status 已合并为统一 process timeline；后续仍需继续收口 raw thinking 的噪音控制与展示边界
   - assistant placeholder 到 completed/failed 的本地状态切换已补齐；当前会话继续发送、首条消息创建新会话、主动停止生成与最新失败回答重试都已支持直接本地恢复或收口 streaming
   - 侧栏与页头的核心 conversation meta 已能跟随本地提交即时更新
-  - 当前“停止生成”仍是基于数据库状态的协作式 stop，不是 provider-side cancel；更完整的中断语义仍待后续收口
+  - 当前 stop 与 stale run 过期都会在存在 `run_id` 时向 `agent-runtime` / provider 传播 cancel；后续仍可继续补齐跨 provider 的中断一致性与更多观测字段
   - 仍需继续收口除重试外更完整的失败恢复体验，以及更少依赖服务端返回的收尾断层
   - 单次回答的正文、citations 和引用跳转已能在终态事件到达后直接切到本地最终态；后续仍需继续收口更完整的失败恢复和其余收尾断层
 - 工具契约与真实 provider 对齐
@@ -169,7 +170,7 @@
 - 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。
 - 当前最终 assistant answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
 - 当前单次回答链路保持显式失败语义；当引用缺失、引用 id 非法或 provider 失败时，不再静默回退为 completed draft。
-- 当前“停止生成”通过把 streaming assistant 收口为 completed 并让 `agent-runtime` 停止后续持久化实现，不是 provider-side cancel。
+- 当前“停止生成”和 stale run 过期会优先尝试 provider-side cancel；只有拿不到 `run_id` 或 runtime 不可达时，才退回为数据库侧的终态收口。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。
 - parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

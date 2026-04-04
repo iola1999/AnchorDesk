@@ -68,12 +68,63 @@ vi.mock("@/lib/api/conversation-run-control", () => ({
 }));
 
 vi.mock("@/lib/api/sse-writer", async () => {
-  const actual =
-    await vi.importActual<typeof import("./sse-writer")>("./sse-writer");
-
   return {
-    ...actual,
-    createSseWriter: mocks.createSseWriter.mockImplementation(actual.createSseWriter),
+    createSseWriter: mocks.createSseWriter.mockImplementation(
+      (
+        controller: ReadableStreamDefaultController<Uint8Array>,
+        encoder: TextEncoder,
+      ) => {
+        let closed = false;
+
+        const write = (chunk: string) => {
+          if (closed) {
+            return false;
+          }
+
+          try {
+            controller.enqueue(encoder.encode(chunk));
+            return true;
+          } catch (error) {
+            if (
+              error instanceof TypeError &&
+              (error as TypeError & { code?: string }).code === "ERR_INVALID_STATE"
+            ) {
+              closed = true;
+              return false;
+            }
+
+            throw error;
+          }
+        };
+
+        return {
+          isClosed: () => closed,
+          event: (name: string, payload: unknown, id?: string | null) =>
+            write(
+              `${id ? `id: ${id}\n` : ""}event: ${name}\ndata: ${JSON.stringify(payload)}\n\n`,
+            ),
+          comment: (text: string) => write(`: ${text}\n\n`),
+          close: () => {
+            if (closed) {
+              return false;
+            }
+
+            closed = true;
+            controller.close();
+            return true;
+          },
+          error: (error: unknown) => {
+            if (closed) {
+              return false;
+            }
+
+            closed = true;
+            controller.error(error);
+            return true;
+          },
+        };
+      },
+    ),
   };
 });
 
@@ -117,7 +168,7 @@ beforeEach(() => {
   mocks.selectResults.length = 0;
   mocks.auth.mockReset();
   mocks.cancelStreamingAssistantRun.mockReset();
-  mocks.createSseWriter.mockReset();
+  mocks.createSseWriter.mockClear();
   mocks.createRedisClient.mockClear();
   mocks.readConversationStreamEvents.mockReset();
   mocks.requireOwnedConversation.mockReset();
@@ -151,7 +202,11 @@ describe("GET /api/conversations/[conversationId]/stream", () => {
       },
     );
 
-    await response.body?.cancel();
+    const reader = response.body!.getReader();
+    void reader.read();
+    await Promise.resolve();
+    await Promise.resolve();
+    await reader.cancel();
     await Promise.resolve();
 
     expect(mocks.createSseWriter).toHaveBeenCalledTimes(1);
@@ -176,10 +231,12 @@ describe("GET /api/conversations/[conversationId]/stream", () => {
       },
     );
 
+    const reader = response.body!.getReader();
+    void reader.read();
     await Promise.resolve();
     await Promise.resolve();
 
-    await response.body?.cancel();
+    await reader.cancel();
     await vi.advanceTimersByTimeAsync(5000);
     await Promise.resolve();
 

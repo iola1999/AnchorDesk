@@ -55,7 +55,10 @@ import { logger } from "./logger";
 import { runAgentResponse } from "./run-agent-response";
 import { buildToolTimelineMessage } from "./timeline";
 import { failConversationResponseRun } from "./conversation-run-failure";
-import { registerActiveConversationRun } from "./active-conversation-runs";
+import {
+  type ActiveConversationRun,
+  registerActiveConversationRun,
+} from "./active-conversation-runs";
 
 const db = getDb();
 
@@ -443,7 +446,7 @@ async function processConversationResponseJobWithContext(
     "processing conversation response job",
   );
 
-  const activeRun = {
+  const activeRun: ActiveConversationRun = {
     conversationId: payload.conversationId,
     assistantMessageId: payload.assistantMessageId,
     runId: payload.runId,
