@@ -83,6 +83,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       AUTH_SECRET: ${AUTH_SECRET}
+      HOSTNAME: 0.0.0.0
     depends_on:
       postgres:
         condition: service_healthy
