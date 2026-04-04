@@ -20,7 +20,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install --store-dir=/pnpm/store --frozen-lockfile
 
 FROM deps AS web-build
-RUN pnpm --filter @anchordesk/web build
+RUN --mount=type=cache,id=pnpm-web-store,target=/pnpm/web-store \
+  pnpm config set registry https://registry.npmmirror.com && \
+  pnpm --filter @anchordesk/web build
 
 FROM deps AS worker-deploy
 RUN pnpm --filter @anchordesk/worker deploy --prod /deploy/worker
