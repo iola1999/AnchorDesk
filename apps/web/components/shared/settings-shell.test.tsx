@@ -40,6 +40,10 @@ describe("SettingsShell", () => {
     const frame = container.querySelector('[data-slot="settings-shell-frame"]');
     expect(frame).toBeTruthy();
     expect(frame?.className).toContain("xl:grid-cols-[264px_minmax(0,1fr)]");
+
+    const topRegion = container.querySelector('[data-slot="settings-shell-top"]');
+    expect(topRegion).toBeTruthy();
+    expect(topRegion?.className).toContain("sticky");
+    expect(topRegion?.className).toContain("backdrop-blur");
   });
 });
-

@@ -344,6 +344,7 @@ export function KnowledgeBaseExplorer({
   canManageTasks = true,
   mountedLibraries = [],
   readOnlyNotice = null,
+  showPageHeader = true,
   scopeLabel = "我的资料",
   backLink = null,
 }: {
@@ -362,6 +363,7 @@ export function KnowledgeBaseExplorer({
   canManageTasks?: boolean;
   mountedLibraries?: MountedLibraryRecord[];
   readOnlyNotice?: string | null;
+  showPageHeader?: boolean;
   scopeLabel?: string;
   backLink?: { href: string; label: string } | null;
 }) {
@@ -1120,12 +1122,14 @@ export function KnowledgeBaseExplorer({
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="grid gap-8">
-        <EditorialPageHeader
-          eyebrow="资料"
-          title="资料库"
-          description="组织研究资料、技术文档和上传内容，供检索与引用使用。"
-        />
+      <div className={cn("grid", showPageHeader ? "gap-8" : "gap-4")}>
+        {showPageHeader ? (
+          <EditorialPageHeader
+            eyebrow="资料"
+            title="资料库"
+            description="组织研究资料、技术文档和上传内容，供检索与引用使用。"
+          />
+        ) : null}
 
         <section className="grid gap-4 rounded-[16px] bg-app-surface-low px-4 py-4">
           <div className="flex flex-wrap items-start justify-between gap-3">

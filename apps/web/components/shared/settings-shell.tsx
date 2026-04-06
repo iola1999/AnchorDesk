@@ -4,10 +4,12 @@ import { cn } from "@/lib/ui";
 
 export function SettingsShell({
   sidebar,
+  top = null,
   children,
   mainClassName,
 }: {
   sidebar: ReactNode;
+  top?: ReactNode;
   children: ReactNode;
   mainClassName?: string;
 }) {
@@ -21,14 +23,23 @@ export function SettingsShell({
           {sidebar}
         </aside>
 
-        <main
-          className={cn(
-            "min-w-0 bg-app-bg px-6 py-8 md:px-8 md:py-10",
-            mainClassName,
-          )}
-        >
-          {children}
-        </main>
+        <section className="min-w-0">
+          <header
+            data-slot="settings-shell-top"
+            className="sticky top-0 z-20 border-b border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/72 px-6 py-3 backdrop-blur-xl md:px-8"
+          >
+            {top ? <div className="mx-auto flex w-full max-w-[1120px] items-center justify-between gap-3">{top}</div> : null}
+          </header>
+
+          <main
+            className={cn(
+              "min-w-0 bg-app-bg px-6 py-8 md:px-8 md:py-10",
+              mainClassName,
+            )}
+          >
+            {children}
+          </main>
+        </section>
       </div>
     </div>
   );

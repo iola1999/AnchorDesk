@@ -91,6 +91,7 @@ export default async function GlobalLibraryDetailPage({
           readOnlyNotice={
             library.status === "archived" ? "已归档 · 仅保留下载和浏览" : null
           }
+          showPageHeader={false}
           scopeLabel={`全局资料库 · ${library.title}`}
         />
       </div>
