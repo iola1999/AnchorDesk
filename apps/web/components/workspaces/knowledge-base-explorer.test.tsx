@@ -65,4 +65,100 @@ describe("KnowledgeBaseExplorer", () => {
       container.querySelector('a[href="/workspaces/workspace-1/knowledge-base"]')?.textContent,
     ).toContain("返回我的资料");
   });
+
+  test("filters documents by type query", async () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "/",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [
+            {
+              id: "doc-1",
+              title: "文档一",
+              sourceFilename: "资料甲",
+              logicalPath: "/资料甲",
+              directoryPath: "/",
+              mimeType: "application/pdf",
+              docType: "PDF",
+              tags: [],
+              status: "ready",
+              createdAt: "2026-04-07T00:00:00.000Z",
+              updatedAt: "2026-04-07T00:00:00.000Z",
+              latestVersion: {
+                id: "version-1",
+                parseStatus: "ready",
+                fileSizeBytes: 1200,
+              },
+              latestJob: null,
+            },
+            {
+              id: "doc-2",
+              title: "文档二",
+              sourceFilename: "资料乙",
+              logicalPath: "/资料乙",
+              directoryPath: "/",
+              mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              docType: "DOCX",
+              tags: [],
+              status: "ready",
+              createdAt: "2026-04-07T00:00:00.000Z",
+              updatedAt: "2026-04-07T00:00:00.000Z",
+              latestVersion: {
+                id: "version-2",
+                parseStatus: "ready",
+                fileSizeBytes: 1200,
+              },
+              latestJob: null,
+            },
+          ],
+          presignEndpoint: "/api/workspaces/workspace-1/uploads/presign",
+          downloadEndpoint: "/api/workspaces/workspace-1/knowledge-base/download",
+          documentsEndpoint: "/api/workspaces/workspace-1/documents",
+        }),
+      );
+    });
+
+    const searchInput = container.querySelector(
+      'input[placeholder="搜索目录、文件名或类型"]',
+    ) as HTMLInputElement;
+    expect(searchInput).toBeTruthy();
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(searchInput, "pdf");
+      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("资料甲");
+    expect(container.textContent).not.toContain("资料乙");
+  });
+
+  test("hides edit actions in read-only mode", () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "/",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [],
+          presignEndpoint: "/api/knowledge-libraries/library-1/uploads/presign",
+          downloadEndpoint: "/api/knowledge-libraries/library-1/knowledge-base/download",
+          documentsEndpoint: "/api/knowledge-libraries/library-1/documents",
+          editable: false,
+          canManageTasks: false,
+          mountedLibraries: [],
+        }),
+      );
+    });
+
+    expect(container.textContent).not.toContain("上传资料");
+    expect(container.textContent).not.toContain("新建目录");
+    expect(container.textContent).not.toContain("处理中任务");
+  });
 });

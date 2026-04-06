@@ -491,7 +491,7 @@ export function KnowledgeBaseExplorer({
         typeLabel: "目录",
         sizeLabel: "—",
         statusLabel: "—",
-        searchText: `${directory.name} ${directory.path}`.toLowerCase(),
+        searchText: `${directory.name} ${directory.path} 目录`.toLowerCase(),
       })),
       ...currentDocuments.map<ExplorerEntry>((document) => ({
         kind: "document",
@@ -509,7 +509,7 @@ export function KnowledgeBaseExplorer({
         statusLabel: getDocumentStatusLabel(document),
         latestJob: document.latestJob,
         latestVersion: document.latestVersion,
-        searchText: `${document.sourceFilename} ${document.logicalPath}`.toLowerCase(),
+        searchText: `${document.sourceFilename} ${document.logicalPath} ${getDocumentTypeLabel(document)} ${document.docType} ${document.mimeType}`.toLowerCase(),
       })),
     ];
     const normalizedQuery = deferredSearchQuery.trim().toLowerCase();
