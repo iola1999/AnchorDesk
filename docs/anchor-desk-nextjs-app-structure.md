@@ -1,7 +1,7 @@
 # AnchorDesk Next.js App Router 结构
 
-版本：v0.9
-日期：2026-04-06
+版本：v0.10
+日期：2026-04-07
 
 > 文档角色说明：
 >
@@ -136,6 +136,24 @@ Client Components：
 - 不允许因为页面局部视觉差异就复制一套近似控件；若确实存在新模式，应先抽成共享原语，再在页面里接入。
 - 当同一种 UI 模式出现到第二处时，应默认进入“抽取共享组件/共享样式”评估，而不是继续散写 className。
 - 页面组件尽量保留为“业务编排 + 数据接线”，把可复用的呈现层和轻交互层下沉到共享组件，避免相同按钮/菜单/列表在多个页面各自维护。
+
+### 5.1 Shared Shell Family
+
+页面外壳应优先复用 shared shell（而不是每个 page 自己拼布局）：
+
+- `apps/web/components/workspaces/workspace-shell-frame.tsx`
+  - workspace family 统一框架：侧栏 + sticky top bar + content scroll + mobile drawer
+- `apps/web/components/shared/settings-shell.tsx`
+  - management family 统一框架：系统管理侧栏 + sticky frosted top bar
+- `apps/web/components/shared/auth-shell.tsx`
+  - auth family 统一框架：`/login`、`/register`
+- `apps/web/components/shared/public-page-shell.tsx`
+  - public family 统一框架：公开只读页面（`/share/[shareToken]`）
+
+与 shell 配套的统一页头：
+
+- `apps/web/components/shared/editorial-page-header.tsx`
+  - 统一 workspace 与 management family 的页头排版与动作区
 
 ## 6. 前端文案约束
 
