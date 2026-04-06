@@ -10,7 +10,7 @@ import {
 } from "@anchordesk/contracts";
 
 import { useMessage } from "@/components/shared/message-provider";
-import { buttonStyles, ui } from "@/lib/ui";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function GlobalLibraryMetadataForm({
   library,
@@ -96,12 +96,12 @@ export function GlobalLibraryMetadataForm({
   }
 
   return (
-    <form onSubmit={save} className={ui.sectionPanel}>
+    <form onSubmit={save} className={cn(ui.panelLarge, "grid gap-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-0.5">
-          <h2 className="text-[1rem] font-semibold text-app-text">资料库设置</h2>
-          <p className="text-[13px] leading-5 text-app-muted-strong">
-            管理资料库名称、slug、订阅状态，以及清空后删除
+          <h2 className="text-[1.08rem] font-semibold text-app-text">资料库设置</h2>
+          <p className={ui.mutedStrong}>
+            管理资料库名称、标识、订阅状态，以及清空后删除。
           </p>
         </div>
         <Link
@@ -112,7 +112,7 @@ export function GlobalLibraryMetadataForm({
         </Link>
       </div>
 
-      <div className="mt-3.5 grid gap-3.5 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className={ui.label}>
           资料库名称
           <input
@@ -123,7 +123,7 @@ export function GlobalLibraryMetadataForm({
           />
         </label>
         <label className={ui.label}>
-          slug
+          标识
           <input
             className={ui.input}
             value={slug}
@@ -132,7 +132,7 @@ export function GlobalLibraryMetadataForm({
         </label>
       </div>
 
-      <div className="mt-3.5 grid gap-3.5">
+      <div className="grid gap-4">
         <label className={ui.label}>
           说明
           <textarea
@@ -156,12 +156,12 @@ export function GlobalLibraryMetadataForm({
         </label>
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center gap-3.5 text-[12px] text-app-muted">
-        <span>{library.documentCount} 份资料</span>
-        <span>{library.subscriptionCount} 个订阅</span>
+      <div className="flex flex-wrap items-center gap-2 text-[12px] text-app-muted">
+        <span className={ui.chipSoft}>{library.documentCount} 份资料</span>
+        <span className={ui.chipSoft}>{library.subscriptionCount} 个订阅</span>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         <button className={buttonStyles()} disabled={isSaving} type="submit">
           {isSaving ? "保存中..." : "保存设置"}
         </button>

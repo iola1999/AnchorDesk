@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
 import { SettingsShell } from "@/components/shared/settings-shell";
 import {
@@ -114,9 +115,11 @@ function RuntimeMetricCard({
   const tone = resolveRateTone(rate ?? null);
 
   return (
-    <section className="grid gap-2.5 rounded-[20px] border border-app-border bg-white/86 p-3.5 shadow-soft">
+    <section className={cn(ui.subcard, "grid gap-2.5")}>
       <div className="grid gap-1">
-        <span className={ui.eyebrow}>{eyebrow}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
+          {eyebrow}
+        </span>
         <span className="text-[13px] font-medium text-app-muted-strong">{label}</span>
       </div>
       <div className="grid gap-1.5">
@@ -147,7 +150,7 @@ function RuntimeKeyValueRow({
   detail?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl border border-app-border/80 bg-app-surface-soft/44 px-2.5 py-2">
+    <div className="flex items-start justify-between gap-3 rounded-xl bg-app-surface-lowest/52 px-3 py-2.5 shadow-soft">
       <div className="grid gap-0.5">
         <span className="text-[12px] font-medium text-app-text">{label}</span>
         {detail ? <span className="text-[11px] text-app-muted">{detail}</span> : null}
@@ -290,20 +293,13 @@ export function SystemRuntimeOverviewPanel({
 
   return (
     <SettingsShell sidebar={<SystemManagementSidebar activeSection="runtime" />}>
-      <div className="flex w-full min-w-0 flex-col gap-3.5">
-        <section className={cn(ui.sectionPanel, "grid gap-5")}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="grid gap-1.5">
-              <span className={ui.eyebrow}>System Runtime</span>
-              <div className="grid gap-1">
-                <h1 className="text-[1.48rem] font-semibold text-app-text">系统运行状况</h1>
-                <p className="text-[13px] leading-5 text-app-muted-strong">
-                  面向超管的实时运营面板，集中查看使用活跃度、回答链路、资料入库和配置就绪度。
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+        <EditorialPageHeader
+          eyebrow="系统管理"
+          title="运行概览"
+          description="面向超管的实时运营面板，集中查看使用活跃度、回答链路、资料入库和配置就绪度。"
+          actions={
+            <div className="grid justify-items-end gap-2">
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {SYSTEM_RUNTIME_WINDOWS.map((window) => (
                   <button
@@ -319,14 +315,19 @@ export function SystemRuntimeOverviewPanel({
                 ))}
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2 text-[12px] text-app-muted">
-                <span className={ui.chipSoft}>刷新于 {timestampFormatter.format(generatedAt)}</span>
+                <span className={ui.chipSoft}>
+                  刷新于 {timestampFormatter.format(generatedAt)}
+                </span>
                 <span className={ui.chip}>
-                  当前查看 {SYSTEM_RUNTIME_WINDOWS.find((item) => item.id === activeWindowId)?.label}
+                  当前查看{" "}
+                  {SYSTEM_RUNTIME_WINDOWS.find((item) => item.id === activeWindowId)?.label}
                 </span>
               </div>
             </div>
-          </div>
+          }
+        />
 
+        <section className={cn(ui.panelLarge, "grid gap-4")}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <RuntimeKeyValueRow
               label="在线会话"
@@ -341,7 +342,7 @@ export function SystemRuntimeOverviewPanel({
             <RuntimeKeyValueRow
               label="升级状态"
               value={`${formatCount(overview.readiness.runningUpgrades)} 运行中 / ${formatCount(overview.readiness.failedUpgrades)} 失败`}
-              detail="来自 app_upgrades"
+              detail="来自升级任务记录"
             />
             <RuntimeKeyValueRow
               label="关键设置"
@@ -353,40 +354,40 @@ export function SystemRuntimeOverviewPanel({
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <RuntimeMetricCard
-            eyebrow="Usage"
+            eyebrow="使用"
             label="活跃用户"
             value={formatCount(activeWindow.activeUsers)}
             detail={`活跃空间 ${formatCount(activeWindow.activeWorkspaces)} · 用户消息 ${formatCount(activeWindow.userMessages)}`}
           />
           <RuntimeMetricCard
-            eyebrow="Conversations"
+            eyebrow="会话"
             label="新会话"
             value={formatCount(activeWindow.newConversations)}
             detail={`最近 ${SYSTEM_RUNTIME_WINDOWS.find((item) => item.id === activeWindowId)?.label ?? ""} 内创建`}
           />
           <RuntimeMetricCard
-            eyebrow="Answers"
+            eyebrow="回答"
             label="回答成功率"
             value={formatRate(activeWindow.assistantSuccessRate)}
             detail={`完成 ${formatCount(activeWindow.assistantCompleted)} · 失败 ${formatCount(activeWindow.assistantFailed)}`}
             rate={activeWindow.assistantSuccessRate}
           />
           <RuntimeMetricCard
-            eyebrow="Evidence"
+            eyebrow="引用"
             label="引用覆盖率"
             value={formatRate(activeWindow.citationCoverageRate)}
             detail={`带引用回答 ${formatCount(activeWindow.assistantWithCitations)} / ${formatCount(activeWindow.assistantCompleted)}`}
             rate={activeWindow.citationCoverageRate}
           />
           <RuntimeMetricCard
-            eyebrow="Ingest"
+            eyebrow="入库"
             label="入库成功率"
             value={formatRate(activeWindow.ingestSuccessRate)}
             detail={`成功 ${formatCount(activeWindow.documentJobsCompleted)} · 失败 ${formatCount(activeWindow.documentJobsFailed)} · 取消 ${formatCount(activeWindow.documentJobsCancelled)}`}
             rate={activeWindow.ingestSuccessRate}
           />
           <RuntimeMetricCard
-            eyebrow="Retrieval"
+            eyebrow="检索"
             label="检索命中率"
             value={formatRate(activeWindow.retrievalHitRate)}
             detail={`命中 ${formatCount(activeWindow.retrievalRunsWithHits)} / ${formatCount(activeWindow.retrievalRuns)} · 平均 ${activeWindow.averageRetrievalResultsPerRun ?? "—"} 条`}
@@ -395,7 +396,7 @@ export function SystemRuntimeOverviewPanel({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
-          <section className={cn(ui.sectionPanel, "grid gap-4")}>
+          <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
                 <h2 className="text-[1rem] font-semibold text-app-text">时间窗对照</h2>
@@ -453,7 +454,7 @@ export function SystemRuntimeOverviewPanel({
             </div>
           </section>
 
-          <section className={cn(ui.sectionPanel, "grid gap-4")}>
+          <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="grid gap-0.5">
               <h2 className="text-[1rem] font-semibold text-app-text">系统账本</h2>
               <p className="text-[13px] leading-5 text-app-muted-strong">
@@ -537,7 +538,7 @@ export function SystemRuntimeOverviewPanel({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <section className={cn(ui.sectionPanel, "grid gap-4")}>
+          <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
                 <h2 className="text-[1rem] font-semibold text-app-text">问答与引用</h2>
@@ -597,12 +598,12 @@ export function SystemRuntimeOverviewPanel({
             />
           </section>
 
-          <section className={cn(ui.sectionPanel, "grid gap-4")}>
+          <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
                 <h2 className="text-[1rem] font-semibold text-app-text">资料链路</h2>
                 <p className="text-[13px] leading-5 text-app-muted-strong">
-                  聚焦文档新增、入库终态和当前队列积压，方便判断 parser / worker 是否顺畅。
+                  聚焦文档新增、入库终态和当前队列积压，方便判断解析与任务进程是否顺畅。
                 </p>
               </div>
               <span className={resolveRateTone(activeWindow.ingestSuccessRate).badgeClass}>

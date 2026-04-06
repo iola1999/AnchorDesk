@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 
 import { useMessage } from "@/components/shared/message-provider";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
 import { SettingsShell } from "@/components/shared/settings-shell";
 import {
@@ -91,45 +92,56 @@ export function SystemSettingsForm({
       <SettingsShell
         sidebar={<SystemManagementSidebar activeSection="settings" />}
       >
-        <div className="flex w-full min-w-0 flex-col gap-3.5">
-          <div className="sticky top-3 z-20 -mx-1 flex flex-wrap items-center justify-between gap-2.5 rounded-[20px] border border-app-border/70 bg-white/90 px-3.5 py-2.5 shadow-soft backdrop-blur-sm">
-            <h2 className="text-[1.12rem] font-semibold text-app-text">运行时参数</h2>
+        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+          <EditorialPageHeader
+            eyebrow="系统管理"
+            title="系统参数"
+            description="维护提供方、检索、基础设施与运行时开关。"
+            actions={
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <label className="w-full sm:w-[320px]">
+                  <span className="sr-only">搜索系统参数</span>
+                  <input
+                    autoComplete="off"
+                    className={inputStyles({ size: "compact" })}
+                    placeholder="搜参数名、说明或提供方"
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </label>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-              <label className="w-full sm:w-[280px]">
-                <span className="sr-only">搜索系统参数</span>
-                <input
-                  autoComplete="off"
-                  className={inputStyles({ size: "compact" })}
-                  placeholder="搜 key、说明、provider"
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-
-              <button className={buttonStyles({ size: "sm" })} disabled={isPending} type="submit">
-                {isPending ? "刷新中..." : "保存系统参数"}
-              </button>
-            </div>
-          </div>
+                <button
+                  className={buttonStyles({ size: "sm" })}
+                  disabled={isPending}
+                  type="submit"
+                >
+                  {isPending ? "保存中..." : "保存系统参数"}
+                </button>
+              </div>
+            }
+          />
 
           {!hasSettings ? (
-            <section className={cn(ui.panel, "grid gap-2")}>
-              <h2 className="text-[1.12rem] font-semibold text-app-text">系统参数尚未初始化</h2>
-              <p className={ui.muted}>先运行一次 `pnpm dev`，再回来维护数据库配置。</p>
+            <section className={cn(ui.panelLarge, "grid gap-2")}>
+              <h2 className="text-[1.08rem] font-semibold text-app-text">
+                系统参数尚未初始化
+              </h2>
+              <p className={ui.muted}>先完成一次初始化启动，再回来维护系统参数。</p>
             </section>
           ) : visibleSections.length === 0 ? (
-            <section className={cn(ui.panel, "grid gap-2")}>
-              <h2 className="text-[1.12rem] font-semibold text-app-text">没有匹配的系统参数</h2>
-              <p className={ui.muted}>换个参数名、说明词或 provider 名再试。</p>
+            <section className={cn(ui.panelLarge, "grid gap-2")}>
+              <h2 className="text-[1.08rem] font-semibold text-app-text">
+                没有匹配的系统参数
+              </h2>
+              <p className={ui.muted}>换个参数名、说明词或提供方再试。</p>
             </section>
           ) : (
             visibleSections.map((section) => (
               <section
                 id={section.id}
                 key={section.id}
-                className={cn(ui.sectionPanel, "scroll-mt-8")}
+                className={cn(ui.panelLarge, "scroll-mt-8")}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid gap-0.5">
@@ -141,11 +153,14 @@ export function SystemSettingsForm({
                   </span>
                 </div>
 
-                <div className="mt-3.5 grid gap-3.5">
+                <div className="mt-4 grid gap-3">
                   {section.items.map((setting) => (
                     <div
                       key={setting.settingKey}
-                      className="grid gap-3 border-t border-app-border pt-3.5 md:grid-cols-[240px_minmax(0,1fr)] md:gap-3.5"
+                      className={cn(
+                        ui.subcard,
+                        "grid gap-3 md:grid-cols-[240px_minmax(0,1fr)] md:gap-4",
+                      )}
                     >
                       <div className="grid content-start gap-1.5">
                         <code className={ui.codeChip}>{setting.settingKey}</code>

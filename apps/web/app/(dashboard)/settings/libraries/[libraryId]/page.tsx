@@ -4,6 +4,7 @@ import { getDb } from "@anchordesk/db";
 
 import { GlobalLibraryMetadataForm } from "@/components/settings/global-library-metadata-form";
 import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { SettingsShell } from "@/components/shared/settings-shell";
 import { KnowledgeBaseExplorer } from "@/components/workspaces/knowledge-base-explorer";
 import {
@@ -13,6 +14,7 @@ import {
 import { loadKnowledgeLibraryExplorerData } from "@/lib/api/knowledge-library-explorer";
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
+import { ui } from "@/lib/ui";
 
 export default async function GlobalLibraryDetailPage({
   params,
@@ -46,7 +48,19 @@ export default async function GlobalLibraryDetailPage({
     <SettingsShell
       sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="flex w-full min-w-0 flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+        <EditorialPageHeader
+          eyebrow="系统管理"
+          title={library.title}
+          description="维护资料库信息、目录与文件，控制可订阅状态。"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={ui.chipSoft}>{librarySummary.documentCount} 份资料</span>
+              <span className={ui.chipSoft}>{librarySummary.subscriptionCount} 个订阅</span>
+            </div>
+          }
+        />
+
         <GlobalLibraryMetadataForm
           library={{
             id: library.id,
@@ -77,7 +91,7 @@ export default async function GlobalLibraryDetailPage({
           readOnlyNotice={
             library.status === "archived" ? "已归档 · 仅保留下载和浏览" : null
           }
-          scopeLabel="全局资料库"
+          scopeLabel={`全局资料库 · ${library.title}`}
         />
       </div>
     </SettingsShell>

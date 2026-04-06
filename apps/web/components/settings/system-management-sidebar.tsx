@@ -10,7 +10,7 @@ import {
   resolveSystemManagementReturnHref,
   type SystemManagementSectionId,
 } from "@/lib/system-management";
-import { cn, navItemStyles } from "@/lib/ui";
+import { buttonStyles, cn, navItemStyles } from "@/lib/ui";
 
 export function SystemManagementSidebar({
   activeSection,
@@ -27,20 +27,28 @@ export function SystemManagementSidebar({
     <SettingsShellSidebar>
       <Link
         href={returnHref}
-        className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
+        className={cn(
+          buttonStyles({ variant: "ghost", size: "sm" }),
+          "self-start gap-1.5",
+        )}
       >
         <ArrowLeftIcon />
         返回工作台
       </Link>
 
-      <div className="rounded-[20px] border border-app-border bg-app-sidebar/50 p-1.5">
-        <nav className="grid gap-0.5" aria-label="系统管理导航">
+      <div className="grid gap-2">
+        <div className="px-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-secondary">
+            系统管理
+          </span>
+        </div>
+        <nav className="grid gap-1 rounded-2xl bg-app-surface-lowest/60 p-1 shadow-soft backdrop-blur-sm" aria-label="系统管理导航">
           {navItems.map((item) => (
             <Link
               key={item.id}
               href={item.href}
               className={cn(
-                "rounded-xl px-2.5 py-1.5 text-[13px] font-medium transition",
+                "relative rounded-[12px] px-4 py-3 text-[13px] font-medium transition",
                 navItemStyles({ selected: item.selected }),
               )}
               aria-current={item.selected ? "page" : undefined}

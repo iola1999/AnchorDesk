@@ -10,6 +10,7 @@ import { AccountPasswordForm } from "@/components/account/account-password-form"
 import { AccountSettingsNav } from "@/components/account/account-settings-nav";
 import { ArrowLeftIcon } from "@/components/icons";
 import { LogoutButton } from "@/components/account/logout-button";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import {
   SettingsShell,
   SettingsShellSidebar,
@@ -20,7 +21,7 @@ import {
   resolveDefaultAccountSettingsSectionId,
   type AccountSettingsSectionId,
 } from "@/lib/account-settings";
-import { ui } from "@/lib/ui";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 import { resolveWorkspaceUserAvatarLabel } from "@/lib/workspace-user-panel";
 
 type AccountSettingsWorkbenchProps = {
@@ -72,7 +73,10 @@ export function AccountSettingsWorkbench({
         <SettingsShellSidebar>
           <Link
             href={returnHref}
-            className="inline-flex items-center gap-1.5 self-start rounded-full px-1.5 py-1 text-[13px] text-app-muted-strong transition hover:bg-white/82 hover:text-app-text"
+            className={cn(
+              buttonStyles({ variant: "ghost", size: "sm" }),
+              "self-start gap-1.5",
+            )}
           >
             <ArrowLeftIcon />
             返回工作台
@@ -93,7 +97,7 @@ export function AccountSettingsWorkbench({
               </div>
             </div>
 
-            <div className="rounded-[20px] border border-app-border bg-app-sidebar/50 p-1.5">
+            <div className="rounded-2xl bg-app-surface-lowest/60 p-1 shadow-soft backdrop-blur-sm">
               <AccountSettingsNav
                 groups={navGroups}
                 activeSectionId={activeSectionId}
@@ -105,11 +109,7 @@ export function AccountSettingsWorkbench({
       }
     >
       <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
-        <header className="grid gap-1 px-1 pb-0.5">
-          <h2 className="text-[1.3rem] font-semibold text-app-text">
-            个人设置
-          </h2>
-        </header>
+        <EditorialPageHeader eyebrow="账号" title="个人设置" />
 
         {activeSectionId === "profile" ? (
           <AccountSettingsSection title="个人资料">
@@ -143,9 +143,9 @@ function AccountSettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className={ui.sectionPanel}>
-      <h3 className="text-[1rem] font-semibold text-app-text">{title}</h3>
-      <div className="mt-3.5 grid gap-3.5">{children}</div>
+    <section className={cn(ui.panelLarge, "grid gap-4")}>
+      <h3 className="text-[1.08rem] font-semibold text-app-text">{title}</h3>
+      <div className="grid gap-3">{children}</div>
     </section>
   );
 }
@@ -158,7 +158,7 @@ function AccountSettingsRow({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-3 border-t border-app-border pt-3.5 md:grid-cols-[172px_minmax(0,1fr)] md:gap-3.5">
+    <div className={cn(ui.subcard, "grid gap-3 md:grid-cols-[172px_minmax(0,1fr)] md:gap-4")}>
       <div className="grid content-start gap-1">
         <h3 className="text-[14px] font-semibold text-app-text">{title}</h3>
       </div>

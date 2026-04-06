@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { SystemManagementSidebar } from "@/components/settings/system-management-sidebar";
 import { GlobalLibraryCreateForm } from "@/components/settings/global-library-create-form";
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { SettingsShell } from "@/components/shared/settings-shell";
 import { listManagedKnowledgeLibrariesWithStats } from "@/lib/api/admin-knowledge-libraries";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/lib/api/knowledge-libraries";
 import { requireSessionUser } from "@/lib/auth/require-user";
 import { isSuperAdmin } from "@/lib/auth/super-admin";
-import { ui } from "@/lib/ui";
+import { cn, ui } from "@/lib/ui";
 
 export default async function GlobalLibrariesPage() {
   const user = await requireSessionUser();
@@ -24,29 +25,41 @@ export default async function GlobalLibrariesPage() {
     <SettingsShell
       sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="flex w-full min-w-0 flex-col gap-3.5">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+        <EditorialPageHeader
+          eyebrow="系统管理"
+          title="全局资料库"
+          description="创建和维护可供空间订阅的全局资料库。"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={ui.chipSoft}>{libraries.length} 个资料库</span>
+            </div>
+          }
+        />
+
         <GlobalLibraryCreateForm />
 
-        <section className={ui.sectionPanel}>
+        <section className={cn(ui.panelLarge, "grid gap-4")}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-0.5">
-              <h2 className="text-[1rem] font-semibold text-app-text">现有资料库</h2>
-              <p className="text-[13px] leading-5 text-app-muted-strong">
+              <h2 className="text-[1.08rem] font-semibold text-app-text">现有资料库</h2>
+              <p className={ui.mutedStrong}>
                 进入详情页后可上传文件、整理目录和调整可订阅状态
               </p>
             </div>
-            <span className="rounded-full border border-app-border bg-app-surface-soft px-2.5 py-0.5 text-[12px] text-app-muted">
-              {libraries.length} 个资料库
-            </span>
+            <span className={ui.chipSoft}>{libraries.length} 个资料库</span>
           </div>
 
-          <div className="mt-3.5 grid gap-3">
+          <div className="grid gap-3">
             {libraries.length > 0 ? (
               libraries.map((library) => (
                 <Link
                   key={library.id}
                   href={`/settings/libraries/${library.id}`}
-                  className="grid gap-2.5 rounded-[18px] border border-app-border bg-white/86 p-3.5 transition hover:border-app-border-strong hover:bg-white"
+                  className={cn(
+                    ui.subcard,
+                    "grid gap-2.5 transition hover:bg-white/90",
+                  )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="grid gap-1">
@@ -71,7 +84,7 @@ export default async function GlobalLibrariesPage() {
                 </Link>
               ))
             ) : (
-              <div className="rounded-[18px] border border-app-border bg-app-surface-soft/55 p-3.5 text-[13px] text-app-muted-strong">
+              <div className={cn(ui.subpanel, "text-[13px] text-app-muted-strong")}>
                 还没有全局资料库。先创建一个，然后进入详情页上传资料。
               </div>
             )}

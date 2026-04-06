@@ -9,7 +9,7 @@ import {
 } from "@anchordesk/contracts";
 
 import { useMessage } from "@/components/shared/message-provider";
-import { buttonStyles, ui } from "@/lib/ui";
+import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export function GlobalLibraryCreateForm() {
   const router = useRouter();
@@ -59,17 +59,13 @@ export function GlobalLibraryCreateForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className={ui.sectionPanel}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid gap-0.5">
-          <h2 className="text-[1rem] font-semibold text-app-text">新建全局资料库</h2>
-          <p className="text-[13px] leading-5 text-app-muted-strong">
-            创建后会直接进入该资料库的上传和整理页
-          </p>
-        </div>
+    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4")}>
+      <div className="grid gap-1">
+        <h2 className="text-[1.08rem] font-semibold text-app-text">新建全局资料库</h2>
+        <p className={ui.mutedStrong}>创建后会直接进入该资料库的上传和整理页。</p>
       </div>
 
-      <div className="mt-3.5 grid gap-3.5 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className={ui.label}>
           资料库名称
           <input
@@ -81,7 +77,7 @@ export function GlobalLibraryCreateForm() {
           />
         </label>
         <label className={ui.label}>
-          slug
+          标识
           <input
             className={ui.input}
             value={slug}
@@ -91,7 +87,7 @@ export function GlobalLibraryCreateForm() {
         </label>
       </div>
 
-      <div className="mt-3.5 grid gap-3.5">
+      <div className="grid gap-4">
         <label className={ui.label}>
           说明
           <textarea
@@ -116,7 +112,7 @@ export function GlobalLibraryCreateForm() {
         </label>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         <button
           className={buttonStyles({ size: "sm" })}
           disabled={submitting}
