@@ -1,7 +1,7 @@
 # 实施跟踪
 
-版本：v0.13
-日期：2026-04-03
+版本：v0.14
+日期：2026-04-06
 
 > 本文件是项目的执行跟踪文档。
 >
@@ -31,9 +31,11 @@
 - `pnpm dev` 现在会在 parser 的 `requirements.txt` 变化时自动刷新 `.venv`，避免旧 Python 依赖残留导致 parser 无法启动。
 - 数据库与应用升级开始从 ad-hoc bootstrap 收敛到 versioned SQL migrations + tracked app upgrades。
 - 已新增生产单机 Docker 多容器部署资产与基础健康检查。
+- super admin 侧已补齐 `/admin/runtime` 运行概览，用于快速查看运行参数完备性、近期消息/资料活动、失败分布和基础健康度；更深的日志聚合与运维动作仍暂缓。
 - 运行时配置已收口为"bootstrap env + DB system_settings"模型：web / worker / agent-runtime 启动时从 DB 加载配置；steady state 的 Node runtime 只保留极少量 bootstrap env（`DATABASE_URL`，以及 Web 侧的 `AUTH_SECRET`）。若希望 fresh deployment 自动 seed 可用默认模型，仍应在 `upgrade` 阶段提供初始 Anthropic 模型参数。
 - Claude-compatible 模型已从 `system_settings` 迁到 `llm_model_profiles`；管理员通过 `/admin/models` 维护模型，用户按 conversation 维度选择模型，切换模型时当前版本不主动重置 `Agent Session`。
 - 当 workspace 已有可检索本地资料，或当前聊天里已有会话附件时，agent 编排现在会优先走本地检索，再决定是否调用 `search_statutes` / `search_web_general`。
+- 资料库上传体验已补齐逐文件进度、失败项重试和更长 presign 时窗；解析任务重跑也已补上 queue run 隔离、completed job `forceReparse` 和 stale parse cache 失效策略。
 - 当前最缺的不是更多 agent 花样，而是先把 P0 承诺和实际实现对齐，把主会话链路、SSE、完成态刷新和 citation 展示彻底走顺。
 - 产品整体已切换为通用知识库助手定位，但保留 `search_statutes` 专项工具。
 - 全局资料库第一版已补齐管理员维护、workspace 订阅、资料页只读挂载和 citation 来源展示；后续以回归和细化为主，不单独上调优先级。
@@ -41,7 +43,7 @@
 当前实现快照：
 
 - `web -> BullMQ conversation.respond -> agent-runtime -> single answer stream -> citations` 主问答链路已通；发送消息后会先落 user message + assistant placeholder，再异步生成最终回答。
-- `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发，允许多条会话在同一进程内并行处理。
+- `agent-runtime` 当前支持通过 `agent_runtime_respond_worker_concurrency` 配置 `conversation.respond` worker 并发；默认值现已上调到 5，允许多条会话在同一进程内并行处理。
 - `agent-runtime` 现在会为 Claude Agent SDK `query()` 加上首包超时和空闲超时保护；provider 长时间不响应时会主动 abort，并把当前回答收口为明确失败。
 - 问答策略已固定为“本地资料优先 + 联网查询补充”；不再保留 `kb_only / kb_plus_web` 模式切换与相关设置入口。
 - 工作空间对话页已提供 conversation-scoped 模型选择器；创建新会话时会把选中的 `model_profile_id` 持久化到 `conversations`，后续重试和报告工具沿用同一份模型配置解析逻辑。
@@ -65,7 +67,7 @@
 - user turn 左侧已补 hover copy action，便于快速复制原始提问文本且不打断当前线程。
 - `answer_done` / `run_failed` 事件现在会附带最终 assistant 内容、structured state 和当前 message citations；前端会直接切到本地最终态，并同步更新当前会话页头与侧栏活动时间，不再依赖这一步的整页刷新。
 - 如果终态 `run_failed` 事件没有带回 `message_id`，前端也会把当前本地 streaming assistant 收口为 failed，避免界面停在“仍在生成”。
-- streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，前端会保留已生成片段并结束当前 assistant streaming；若当前 run 已有 `run_id`，Web 还会把 cancel 语义继续透传给 `agent-runtime` / provider，避免外部模型请求悬挂在后台。
+- streaming 期间输入区主动作会切换为“停止生成”；调用 `/api/conversations/[conversationId]/stop` 后，Web 当前仍会先把 assistant 本地/持久化状态收口为 `completed` 并保留已生成片段；若当前 run 已有 `run_id`，还会把 cancel 语义继续透传给 `agent-runtime` / provider，避免外部模型请求悬挂在后台。
 - 会话页和共享页的 citation 卡片现在会直接展示持久化的引用摘录 `quote_text`，不再只显示标签计数与跳转入口。
 - 会话页和共享页的 citation 卡片现在还会展示来源 badge，区分 `工作空间资料` 与 `全局资料库 · <title>`。
 - citation 证据链现在已收口成统一模型：内部资料/附件引用和外部网页引用都会先进入验证过的 evidence 集合，再统一落到 `message_citations`。
@@ -82,6 +84,7 @@
 - 本地缺少 `ANTHROPIC_API_KEY` 或关键 provider 时，主会话链路会直接进入失败态，并继续通过既有 SSE / message failed 链路暴露给前端。
 - 会话页现在已提供“重新生成”入口；当最新 assistant 消息处于 failed 状态时，可复用上一条 user prompt 直接重试当前回答，前端会先本地重置该轮的回答/citation/工具时间线，再交给 SSE 持续接管。
 - `presign -> documents/document_versions/document_jobs -> BullMQ parse/chunk/embed/index` 上传消化链路已通，解析结果会落到 `document_pages / document_blocks / document_chunks / citation_anchors`，并同步进入 Qdrant。
+- 资料库上传弹窗已支持逐文件显示“指纹计算 / presign / PUT / 创建任务”阶段、实时进度和失败项重试；document upload presign 默认有效期已延长到 60 分钟。
 - 管理员侧已补齐 `/settings/libraries` 全局资料库 CRUD、上传、目录整理、任务重试与下载入口；workspace owner 可在工作空间设置页直接订阅、暂停或移除全局资料库。
 - workspace 资料库页会在根层挂出已订阅全局资料库；切入后使用只读挂载视图，workspace 侧不能修改共享资料目录和文件。
 - 会话级临时资料走独立的 `attachments/presign -> conversation_attachments -> parse/chunk/index(parse-only finalize)` 链路；它会生成 `document_pages / document_blocks / document_chunks / citation_anchors`，但不会写入 Qdrant。
@@ -95,11 +98,22 @@
 - 报告链路已具备“创建 -> 默认大纲 -> 章节生成 -> DOCX 导出”的基础版；当前阶段只要求它不阻断主会话链路，不把研究/写作能力深化作为优先项。
 - parser 已接入阿里云百炼 DashScope OCR provider：worker 会透传结构化 parser 错误，`document_jobs.error_code` / `error_message` 与 `document_versions.ocr_required` 会反映 OCR 需求和失败原因。
 - OCR 当前默认 provider 为 `dashscope`，并且只会在 PDF 原生文本抽取失败且页面含图时触发；原始图片上传继续禁用。
+- parse artifact cache 现已携带 parser version；worker 只会复用当前版本的解析产物（当前为 `parser-service-v2`），stale cached artifact 会自动失效。completed parse job 也可通过 `forceReparse` 重新入队，ingest rerun 会生成独立 `queueRunId` 避免旧 stage jobId 冲突。
+- 公开分享链接现在会优先使用 `APP_URL` 构造对外 URL，避免容器内 request origin 泄漏到分享地址。
+- super admin 现已可通过 `/admin/runtime` 查看近期会话/资料/检索/失败概览；当前仍不是完整日志台。
 - retrieval 已具备 dense + BM25 候选窗口混合打分 + 可选 DashScope rerank 的基础版；后续深化在当前阶段降级为非阻塞项。
 - 去法律化重定位已完成大部分命名与主流程调整，但仍需继续做回归清理，避免通用定位被后续改动带偏。
 
 ## 2. 最近完成
 
+- `a466506` agent runtime 请求日志现已兼容 string system prompt 的序列化与摘要记录。
+- `8381b9c` 单机 Docker 部署脚本现已自动 `git pull --ff-only`，并在缺少 `.env.production` 时自动从模板创建。
+- `9d46251` Composer 发送消息时新增明确的 loading/disabled feedback，并阻止重复提交。
+- `efa6074` super admin 已新增 `/admin/runtime` 运行概览页。
+- `fb76848` / `4d66053` / `4ba5332` 解析链路已补 stale parse cache 失效、completed job `forceReparse`、ingest rerun queueRunId 隔离与更细的 parser 结构化日志。
+- `336a59f` 资料库上传体验已补齐逐文件进度、失败项重试和更长 presign 时窗。
+- `7c65e49` 会话分享链接现优先使用 `APP_URL` 生成公开 URL。
+- `5547fc3` `conversation.respond` 默认 worker 并发已从 1 提升到 5。
 - `e017bf9` 为 user turn 增加 hover copy action，复制原始提问时给出轻量确认态。
 - `723a0de` 公开分享页在禁用本地文档跳转时，继续允许外部网页 citation 打开 `source_url`。
 - `d1466f3` 会话支持从 assistant 回复中框选文本发起引用式 follow-up；quote-only 追问与失败回答重试都可沿用该上下文。
@@ -162,6 +176,7 @@
 - `AUTH_SECRET` 不进入 `system_settings`。
 - JWT 登录态现在依赖 Redis allowlist；如果 Redis 不可用，服务端应按会话失效处理，而不是继续无状态放行旧 token。
 - `/settings` 与 `/admin/models` 的改动都不会热更新到已运行进程；涉及运行时 provider 的变更仍需重启相关服务。
+- `/admin/runtime` 当前是观测概览，不提供实时日志流、重试操作台或在线诊断执行能力。
 - OTLP exporter 仍是进程启动时读取的 env-only 配置；修改 collector endpoint 或 headers 后同样需要重启对应服务。
 - OCR 当前默认 provider 为 `dashscope`，但仍只对无原生文本且含图的 PDF 页触发；未配置可用 DashScope API Key / endpoint 时应显式失败，不得伪造成功。
 - 原始图片上传当前仍保持禁用。
@@ -170,7 +185,8 @@
 - 当前 SSE 主通道已切到 Redis Streams live event；数据库只负责恢复快照、过期收敛与终态真相源，不再承担主 token transport。
 - 当前最终 assistant answer、structured state 和 citations 仍在完成态统一落库；前端已可在终态事件到达时切到本地最终态，但刷新后仍以落库结果为准。
 - 当前单次回答链路保持显式失败语义；当引用缺失、引用 id 非法或 provider 失败时，不再静默回退为 completed draft。
-- 当前“停止生成”和 stale run 过期会优先尝试 provider-side cancel；只有拿不到 `run_id` 或 runtime 不可达时，才退回为数据库侧的终态收口。
+- 当前“停止生成”和 stale run 过期会优先尝试 provider-side cancel；但用户主动 stop 仍会先把 assistant 持久化为 `completed`，尚未引入一等 `stopped` 终态。只有拿不到 `run_id` 或 runtime 不可达时，才退回为数据库侧的终态收口。
 - 当前阶段不再提供本地 mock 会话回退；联调应以真实 provider 或明确失败为准，且不能伪造 workspace 证据、citation 或外部来源。
 - 全局资料库当前只支持 super admin 维护、workspace owner 订阅；不含审批流、细粒度 ACL、本地覆盖层或挂载别名。
+- parse artifact cache 当前按 parser version 严格复用；切 parser 版本后旧缓存不会继续命中，必要时可通过 `forceReparse` 触发全链路重算。
 - parser、chunking、OCR 和 retrieval 深化当前都不是默认插队项；只有在它们直接阻断对话链路时才提前处理。

@@ -1,7 +1,7 @@
 # AnchorDesk技术设计（Node.js / Next.js / Claude Agent SDK）
 
-版本：v0.13
-日期：2026-04-03
+版本：v0.14
+日期：2026-04-06
 
 > 文档角色说明：
 >
@@ -55,7 +55,7 @@
 - embedding / rerank 优先 DashScope，未配置时回退本地方案
 - 工具 provider 未就绪时，应保持稳定契约并返回明确失败，不再提供本地 mock fallback
 - `fetch_source` / `fetch_sources` 通过 `markdown.new` 获取 `text/markdown`，优先返回结构化 Markdown，而不是在本地直接解析原始 HTML
-- OCR 默认关闭，只有扫描件、图片型 PDF 或无文本层材料才启用
+- OCR 默认不对普通文本 PDF 触发；只有扫描件、图片型 PDF 或无文本层材料才进入 OCR 降级链路
 - 扫描 / 无文本 PDF 页的 OCR 已接入阿里云百炼 DashScope HTTP API（`qwen-vl-ocr-*`）；默认 provider 为 `dashscope`
 - 当前不支持直接上传原始图片；若是扫描件，统一要求先转成 PDF，再走 parser 的 OCR 降级链路
 
@@ -98,17 +98,20 @@ flowchart LR
 - `Next.js BFF` 已经承接注册登录、工作空间、上传签名、文档管理、会话消息落库、报告基础操作和文档阅读页。
 - 账号认证仍使用 `Auth.js` 的 JWT session，但服务端会把有效 session 的稳定 `sessionId` claim 记录到 Redis，并在每次读取 session 时执行 allowlist 校验与 TTL 续期；登出、改密和后续管理员强制下线都依赖这层撤销能力。
 - 第一个注册成功的用户会被持久化为 super admin（`users.is_super_admin = true`）；`/settings` 与全局资料库管理入口统一读取该标记授权，不再依赖用户名 env 白名单。
-- `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页。
+- `Next.js BFF` 已补齐会话分享管理，可为单个会话生成 bearer-style 公开链接，并提供匿名只读分享页；当存在 `APP_URL` 时，公开分享地址会优先使用它作为 origin。
 - 工作空间当前不再提供归档入口；删除改为软删除，已删除空间会从默认列表和资源访问链路中隐藏。
 - 资料边界已提升为 `knowledge_libraries`：每个 workspace 会自动拥有一个 `workspace_private` 资料库；super admin 可维护 `global_managed` 资料库；workspace 通过 `workspace_library_subscriptions` 决定可挂载、可阅读和可检索的全局资料范围。
 - 管理员侧已补齐全局资料库 CRUD、上传、目录整理、任务管理和下载入口；workspace owner 可在设置页直接订阅、暂停或移除全局资料库。
+- super admin 当前还可通过 `/admin/runtime` 查看运行参数完备性、基础健康度以及近期会话/资料/失败摘要；该页目前仍是 overview，不是完整运维控制台。
 - `BullMQ Worker` 已经跑通 `parse -> chunk -> embed -> index` 流程，解析产物会同时落 PostgreSQL 与 Qdrant。
+- parse artifact cache 当前带有 parser version；worker 只会复用当前版本的解析产物（当前为 `parser-service-v2`），stale cache 不再继续命中。completed document job 也支持 `forceReparse` 重新走 parse/chunk/embed/index。
 - 工作空间与会话附件上传当前由前端先计算文件 SHA256，再由 Web 下发 `blobs/<sha256>` 的 presigned PUT；若已有已验证 blob 则直接复用，不再按工作空间或目录前缀组织对象。
+- 资料库上传 UI 已支持逐文件显示指纹计算、presign、PUT 和 document job 创建进度；document upload presign 默认有效期已延长到 60 分钟，并支持仅重试失败项。
 - `Agent Runtime` 已经能协调工作空间检索、联网检索与工具调用证据回收，并在应用层完成 citation token 校验、正文规范化与 citation 落库。
 - 回答策略当前固定为“工作空间资料优先 + 联网补充检索”，不再提供 `kb_only / kb_plus_web` 模式分支。
 - `search_workspace_knowledge` 现在会先解析当前 workspace 的 `searchableLibraryIds`，默认召回“私有资料库 + 已激活且开启检索的全局资料库订阅”。
 - `conversation.respond` 队列已接入 `Agent Runtime` Worker；用户发消息后会先落 user message + assistant placeholder，再异步执行 Claude Agent SDK。
-- `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答。
+- `conversation.respond` 当前支持通过 `agent_runtime_respond_worker_concurrency` 调整 BullMQ worker 并发，便于在同一进程内并行处理多条会话回答；当前默认值已上调到 5。
 - `Agent Runtime` 现在会为 Claude Agent SDK `query()` 加上首包超时与空闲超时保护；当 provider 长时间不返回事件时，会主动 abort 当前查询并把回答收口为明确失败，而不是无限卡住 worker 并发槽位。
 - `web` / `worker` / `agent-runtime` 当前都会初始化 OpenTelemetry；当存在活动 span 时，结构化日志会自动附带 `trace_id` / `span_id` / `trace_flags`，继续保留业务侧 `requestId` / `runId` / `conversationId` 等字段。
 - `conversation.respond` 与 ingest flow 现在会把 W3C Trace Context（`traceparent` / `tracestate` / `baggage`）写入 BullMQ payload；`agent-runtime`、`worker` 与 `parser` 会继续同一条 trace，便于跨进程捞整条请求上下文日志。
@@ -131,7 +134,7 @@ flowchart LR
 - citation 当前还会基于 `message_citations.source_scope + library_title_snapshot` 展示来源 badge，区分“工作空间资料”和“全局资料库 · <title>”。
 - 工具结果现在会附带运行期分配的 `citation_id` / `citation_token`；模型必须在正文相关段落后直接输出这些 `[[cite:N]]` token，应用层会在终态前校验 token、重排显示序号并规范化为 `[^n]`。
 - 正文内联角标与下方“参考资料”面板共用同一条 citation registry，不依赖 provider 原生 citation 渲染，因此同一条回答可同时混用网页链接和本地资料页码。
-- streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 会把当前 streaming assistant 收口为 completed 并保留已生成片段，同时在存在 `run_id` 时把 cancel 语义透传给 `agent-runtime` / provider，避免外部模型请求继续在后台悬挂。
+- streaming 期间 composer 主动作当前会切换为“停止生成”；`POST /api/conversations/[conversationId]/stop` 目前仍会先把当前 streaming assistant 收口为 completed 并保留已生成片段，同时在存在 `run_id` 时把 cancel 语义透传给 `agent-runtime` / provider，避免外部模型请求继续在后台悬挂。
 - 当最新 assistant 消息失败时，会话页现在支持直接复用上一条 user prompt 重新入队当前回答，前端会先本地清空旧回答/citation/工具时间线并恢复 streaming，再由 SSE 接管后续状态。
 - streaming assistant placeholder 现在会写入运行 lease，`agent-runtime` 处理期间持续 heartbeat；如果 worker 崩溃或长时间失联，SSE 会在 live stream 超时补偿时把过期回答收敛成 `run_failed`，避免前端无限等待。
 - SSE route 现在通过独立的 safe writer 包装 `ReadableStreamDefaultController`；当客户端已断开或 stream 已关闭时，会停止后续写入，而不是再对已关闭 controller `enqueue()` 触发 `ERR_INVALID_STATE`。
@@ -149,6 +152,7 @@ flowchart LR
 
 - 当前主会话链路已切到 token 级 live transport：`agent-runtime` 发布 Redis Streams 会话事件，Web SSE 直接转发 assistant delta / progress / status；数据库退回为快照恢复、授权与终态真相源。
 - 当前 stop/stale 收口在存在 `run_id` 时会同步向 `agent-runtime` 发起 cancel，并进一步 abort provider 查询；若缺少 `run_id`，仍会退回为数据库侧的终态收口。
+- 当前 stop 仍未引入一等 `stopped` 持久化终态；用户主动停止时，消息会先落成 `completed + partial content`，provider-side cancel 作为尽力补充而不是真相源替代。
 - 当前 tracing 已覆盖 `web -> queue -> agent-runtime/worker -> parser` 主边界，但更细粒度的第三方 SDK 自动 instrumentation 仍未全面铺开；目前主要保证入口、队列和跨服务 HTTP 边界的 trace 关联。
 - 当前单次回答链路采用 fail-closed 语义：只要模型引用了未知 `citation_id`，或在已有证据时遗漏 `[[cite:N]]` marker，整轮回答都会显式进入 `run_failed` / assistant failed，而不是落成未校验成功态。
 - 主会话链路的 completed/failed 收尾体验已补到“终态事件先切本地最终态 + 当前会话继续发送/首条消息创建新会话/最新失败回答重试都可本地恢复 streaming”，侧栏与页头的核心 meta 也能跟随提交和终态事件同步本地状态；更完整的失败恢复路径仍需要继续收口。
@@ -206,6 +210,8 @@ Claude-compatible 对话模型不再放在 `system_settings`；它们存储在 `
 
 `parser`（Python）当前仍直接读取环境变量，不经过 `system_settings`；但在本地 `pnpm dev` 和生产启动脚本中，会先把解析后的 `system_settings` 注入 parser 进程环境，因此 `parser_ocr_*` 可以统一从系统参数页管理。
 OpenTelemetry exporter 参数同样保持 env-only，由各进程在启动时自行读取。
+
+生产 Docker 中的 `web` 进程通过 `packages/db/scripts/start-web-server.mjs` 启动：它会在导入 Next standalone server 前先尝试从数据库加载运行时配置，并在 env 未显式提供时把 `APP_URL` 映射到 `AUTH_URL` / `NEXTAUTH_URL`，避免容器内 host 与公开访问 origin 漂移。
 
 ### 4.3 单机 Docker 生产部署
 

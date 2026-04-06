@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Core scope implemented on 2026-04-05 via `5547fc3`, `88c6c93`, and `adb7f2a` (query timeout guard, cancel propagation, safe SSE writer, and resilience coverage). The checklist below is preserved as historical planning context and is no longer maintained item-by-item.
+
 **Goal:** Prevent a single stuck provider call from starving `conversation.respond`, make stop/stale flows actually terminate in-flight Claude Agent SDK work, and harden SSE against writes after the stream is already closed.
 
 **Architecture:** Keep the current `web -> BullMQ -> agent-runtime -> Redis Streams/SSE -> completed/failed` flow and fail-closed semantics. Add a bounded provider execution layer in `agent-runtime`, expose a narrow internal cancel path for active runs, and move raw SSE controller writes behind a tiny safe writer so terminal/abort races stop throwing `ERR_INVALID_STATE`.

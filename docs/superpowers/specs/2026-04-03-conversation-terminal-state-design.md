@@ -1,7 +1,13 @@
 # 主会话链路终态/失败态收口设计
 
 日期：2026-04-03
-状态：已在对话中确认，待用户审阅
+状态：历史设计稿；2026-04-05 的实际实现未采用一等 `stopped` 终态，当前文档保留作方案归档
+
+> 实际落地结果摘要（截至 2026-04-06）：
+>
+> - `88c6c93` / `adb7f2a` 已把 stop/stale 场景的 runtime cancel 传播、provider abort 和 SSE resilience 补齐。
+> - 当前实现仍未引入 `MESSAGE_STATUS.STOPPED` 或 `run_stopped`；`/api/conversations/[conversationId]/stop` 会先把 assistant 收口为 `completed` 并保留已生成片段，再尽力向 `agent-runtime` / provider 传播 cancel。
+> - 因此本稿中关于一等 `stopped` 状态、`run_stopped` 事件和“runtime 才是唯一终态真相源”的设计，均未成为当前事实来源。
 
 ## 1. 背景
 

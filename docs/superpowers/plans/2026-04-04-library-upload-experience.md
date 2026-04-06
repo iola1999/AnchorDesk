@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Implemented on 2026-04-05 via `336a59f` (upload progress/retry UI) plus related helper/storage tests. The unchecked checklist below is retained as historical planning context and is no longer the active source of truth.
+
 **Goal:** Add visible upload progress, longer document-upload presign windows, and actionable retry/error states for knowledge-base uploads.
 
 **Architecture:** Keep the existing presign -> object storage PUT -> document job creation flow. Extract upload progress and retryable batch state into small client-side helpers, then wire the knowledge-base explorer modal to those helpers without changing the document-job contract.

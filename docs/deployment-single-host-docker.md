@@ -1,7 +1,7 @@
 # 单机 Docker 多容器部署说明
 
-版本：v0.2
-日期：2026-04-01
+版本：v0.3
+日期：2026-04-06
 
 ## 1. 部署原则
 
@@ -48,6 +48,12 @@ cp .env.production.example .env.production
 
 - 所有 Node 运行时服务：`DATABASE_URL`
 - `web`：额外需要 `AUTH_SECRET`
+
+补充：
+
+- 生产 compose 中的 `web` 容器不会直接执行 `apps/web/server.js`，而是先通过 `packages/db/scripts/start-web-server.mjs` 启动。
+- 这个启动器会先尝试从数据库加载 `system_settings`，然后在 env 未显式提供时把 `APP_URL` 映射到 `AUTH_URL` / `NEXTAUTH_URL`。
+- 因此生产环境里 `APP_URL` 不只影响前端显示，也会影响 Auth.js host 解析和公开分享链接 origin。
 
 以下变量由 `upgrade` 服务在首次启动时写入 `system_settings`，后续可通过 `/settings` 管理；
 `parser`（Python）仍直接读取 S3 相关环境变量：
@@ -126,6 +132,14 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d web w
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml ps
 ```
+
+当前默认宿主机端口映射：
+
+- Web: `http://localhost:33000`
+- Agent Runtime health: `http://localhost:34001/health`
+- Worker health: `http://localhost:34002/health`
+- Parser health: `http://localhost:38001/health`
+- MinIO API: `http://localhost:39000`
 
 健康检查目标：
 

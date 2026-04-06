@@ -1,7 +1,7 @@
 # AnchorDesk Next.js App Router 结构
 
-版本：v0.8
-日期：2026-04-03
+版本：v0.9
+日期：2026-04-06
 
 > 文档角色说明：
 >
@@ -25,6 +25,8 @@
   - 系统参数维护页
 - `/admin/models`
   - super admin Claude-compatible 模型管理页
+- `/admin/runtime`
+  - super admin 运行概览页，展示系统参数完备性、运行时健康度和近期消息/资料活动摘要
 - `/settings/libraries`
   - super admin 全局资料库列表与创建入口
 - `/settings/libraries/[libraryId]`
@@ -89,11 +91,12 @@
 - `/api/conversations/[conversationId]/retry`
   - 当最新 assistant 消息为 failed 时，复用上一条 user prompt 与 follow-up quote snapshot 重新入队当前回答
 - `/api/conversations/[conversationId]/stop`
-  - 将当前 streaming assistant 收口为 completed，并保留已生成片段
-  - `agent-runtime` 会在发现该 assistant 不再处于 streaming 时协作停止后续持久化
+  - 先将当前 streaming assistant 收口为 completed，并保留已生成片段
+  - 若当前 run 带有 `run_id`，Web 会继续向 `agent-runtime` 传播 cancel，请 runtime / provider 尽快停止后续执行
 - `/api/conversations/[conversationId]/share`
   - 查询当前会话分享状态
   - 创建或撤销公开分享链接
+  - 公开分享 URL 优先使用 `APP_URL` 作为 origin；未配置时才回退到当前请求 origin
 - `/api/workspaces/[workspaceId]/reports`
 - `/api/reports/[reportId]/outline`
 - `/api/reports/[reportId]/sections/[sectionId]/generate`
@@ -104,6 +107,7 @@
 Server Components：
 
 - 工作空间列表首屏
+- 运行概览页首屏
 - 全局资料库管理页首屏
 - 工作空间主舞台首屏
 - 文档详情首屏
@@ -112,13 +116,13 @@ Server Components：
 Client Components：
 
 - AccountPasswordForm
-- Composer（含 conversation-scoped model picker、stop action 与 quoted follow-up state）
+- Composer（含 conversation-scoped model picker、submit loading feedback、stop action 与 quoted follow-up state）
 - ConversationSession（含 unified process timeline、assistant excerpt follow-up 与 user-message copy）
 - ConversationTimeline
 - ConversationSharePopover
 - ModelProfilesAdmin
 - WorkspaceLibrarySubscriptions
-- KnowledgeBaseExplorer
+- KnowledgeBaseExplorer（含逐文件上传进度、失败重试与资料任务反馈）
 - PDF Viewer
 - 临时附件上传与轮询状态
 - 上传表单
