@@ -58,7 +58,9 @@ describe("buildClaudeAgentSdkRequestLogPayload", () => {
         tools: [],
         includePartialMessages: true,
         mcpServers: {
-          anchorDeskAssistant: {},
+          anchorDeskAssistant: {
+            command: "assistant-mcp",
+          },
         },
         allowedTools: ["search_workspace_knowledge", "fetch_source"],
         cwd: "/tmp/agent-session",
@@ -78,9 +80,16 @@ describe("buildClaudeAgentSdkRequestLogPayload", () => {
           append: "Always cite sources.",
         },
         hooks: {
-          PreToolUse: [{ hooks: [() => undefined] }],
-          PostToolUse: [{ hooks: [() => undefined, () => undefined] }],
-          PostToolUseFailure: [{ hooks: [() => undefined] }],
+          PreToolUse: [{ hooks: [async () => ({ continue: true })] }],
+          PostToolUse: [
+            {
+              hooks: [
+                async () => ({ continue: true }),
+                async () => ({ continue: true }),
+              ],
+            },
+          ],
+          PostToolUseFailure: [{ hooks: [async () => ({ continue: true })] }],
         },
       },
     });
@@ -121,6 +130,23 @@ describe("buildClaudeAgentSdkRequestLogPayload", () => {
       },
     });
     expect(JSON.stringify(payload)).not.toContain("sk-ant-secret");
+  });
+
+  test("supports inline string system prompts", () => {
+    const payload = buildClaudeAgentSdkRequestLogPayload({
+      prompt: "帮我总结这批资料",
+      options: {
+        tools: [],
+        systemPrompt: "Always cite sources.",
+      },
+    });
+
+    expect(payload.options.systemPrompt).toEqual({
+      type: null,
+      preset: null,
+      append: "Always cite sources.",
+      appendLength: 20,
+    });
   });
 });
 

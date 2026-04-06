@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { Options, query } from "@anthropic-ai/claude-agent-sdk";
 
 import { createAssistantMcpServer } from "@anchordesk/agent-tools";
 import {
@@ -585,7 +585,7 @@ export async function runAgentResponse(
     searchableKnowledge: input.searchableKnowledge ?? null,
   });
   const abortController = new AbortController();
-  const claudeAgentQueryOptions = {
+  const claudeAgentQueryOptions: Options = {
     tools: [],
     includePartialMessages: true,
     mcpServers: {

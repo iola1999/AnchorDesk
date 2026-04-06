@@ -1,3 +1,5 @@
+import { Options } from "@anthropic-ai/claude-agent-sdk";
+
 export { serializeErrorForLog } from "@anchordesk/logging";
 
 type RuntimeEnv = Record<string, string | undefined>;
@@ -5,6 +7,7 @@ type ClaudeAgentSdkHookRegistrations =
   | Record<string, Array<{ hooks?: unknown[] }> | undefined>
   | null
   | undefined;
+type ClaudeAgentSdkSystemPrompt = Options["systemPrompt"];
 
 function normalizeRuntimeValue(value: string | undefined) {
   const normalized = value?.trim();
@@ -64,35 +67,35 @@ function buildHookCountSummary(hooks: ClaudeAgentSdkHookRegistrations) {
   return summary;
 }
 
+function buildSystemPromptSummary(systemPrompt: ClaudeAgentSdkSystemPrompt) {
+  if (!systemPrompt) {
+    return null;
+  }
+
+  if (typeof systemPrompt === "string") {
+    return {
+      type: null,
+      preset: null,
+      append: systemPrompt,
+      appendLength: systemPrompt.length,
+    };
+  }
+
+  const systemPromptAppend =
+    typeof systemPrompt.append === "string" ? systemPrompt.append : "";
+
+  return {
+    type: normalizeRuntimeValue(systemPrompt.type) ?? null,
+    preset: normalizeRuntimeValue(systemPrompt.preset) ?? null,
+    append: systemPromptAppend,
+    appendLength: systemPromptAppend.length,
+  };
+}
+
 export function buildClaudeAgentSdkRequestLogPayload(input: {
   prompt: string;
-  options: {
-    tools?: unknown;
-    includePartialMessages?: boolean;
-    mcpServers?: Record<string, unknown> | null | undefined;
-    allowedTools?: unknown;
-    cwd?: string | undefined;
-    env?: RuntimeEnv | undefined;
-    model?: string | undefined;
-    debug?: boolean | undefined;
-    stderr?: unknown;
-    resume?: string | undefined;
-    maxTurns?: number | undefined;
-    systemPrompt?:
-      | {
-          type?: string | undefined;
-          preset?: string | undefined;
-          append?: string | undefined;
-        }
-      | null
-      | undefined;
-    hooks?: ClaudeAgentSdkHookRegistrations;
-  };
+  options: Options;
 }) {
-  const systemPromptAppend =
-    typeof input.options.systemPrompt?.append === "string"
-      ? input.options.systemPrompt.append
-      : "";
   const mcpServerNames = Object.keys(input.options.mcpServers ?? {}).sort();
 
   return {
@@ -117,14 +120,7 @@ export function buildClaudeAgentSdkRequestLogPayload(input: {
         Number.isFinite(input.options.maxTurns)
           ? input.options.maxTurns
           : null,
-      systemPrompt: input.options.systemPrompt
-        ? {
-            type: normalizeRuntimeValue(input.options.systemPrompt.type) ?? null,
-            preset: normalizeRuntimeValue(input.options.systemPrompt.preset) ?? null,
-            append: systemPromptAppend,
-            appendLength: systemPromptAppend.length,
-          }
-        : null,
+      systemPrompt: buildSystemPromptSummary(input.options.systemPrompt),
       hooks: buildHookCountSummary(input.options.hooks),
     },
   };
