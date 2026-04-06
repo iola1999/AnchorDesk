@@ -75,7 +75,7 @@ export function WorkspaceSettingsForm({
         <label className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
           <div className="grid content-start gap-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-              Space Name
+              空间信息
             </span>
             <span className="text-[14px] font-semibold text-app-text">空间名称</span>
           </div>
@@ -90,7 +90,7 @@ export function WorkspaceSettingsForm({
         <label className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
           <div className="grid content-start gap-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-              Space Prompt
+              提示词
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[14px] font-semibold text-app-text">预置提示词</span>

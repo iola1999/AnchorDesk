@@ -88,9 +88,9 @@ export function WorkspaceLibrarySubscriptions({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-border pb-3">
         <div className="grid gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
-            Library Scope
+            全局资料
           </span>
-          <h2 className="text-[1rem] font-semibold text-app-text">资料库订阅</h2>
+          <h2 className="text-[1rem] font-semibold text-app-text">全局资料库订阅</h2>
         </div>
         <span className={ui.chip}>{libraries.length} 个可见资料库</span>
       </div>
