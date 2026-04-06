@@ -80,20 +80,20 @@ export function AccountSettingsWorkbench({
 
           <div className="grid gap-4">
             <div className="flex items-center gap-3 px-1">
-              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-app-surface-strong text-sm font-semibold text-app-accent">
+              <div className="grid size-9 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[13px] font-semibold text-app-accent">
                 {resolveWorkspaceUserAvatarLabel(displayName)}
               </div>
               <div className="min-w-0 flex-1">
-                <strong className="block truncate text-[14px] font-semibold text-app-text">
+                <strong className="block truncate text-[13px] font-semibold text-app-text">
                   {displayName}
                 </strong>
-                <span className="block truncate text-[12.5px] text-app-muted">
+                <span className="block truncate text-[11px] text-app-muted">
                   @{currentUser.username}
                 </span>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-app-border bg-app-sidebar/50 p-2">
+            <div className="rounded-[20px] border border-app-border bg-app-sidebar/50 p-1.5">
               <AccountSettingsNav
                 groups={navGroups}
                 activeSectionId={activeSectionId}
@@ -106,7 +106,7 @@ export function AccountSettingsWorkbench({
     >
       <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
         <header className="grid gap-1 px-1 pb-0.5">
-          <h2 className="text-[1.5rem] font-semibold text-app-text">
+          <h2 className="text-[1.3rem] font-semibold text-app-text">
             个人设置
           </h2>
         </header>
@@ -144,8 +144,8 @@ function AccountSettingsSection({
 }) {
   return (
     <section className={ui.sectionPanel}>
-      <h3 className="text-[1.1rem] font-semibold text-app-text">{title}</h3>
-      <div className="mt-4 grid gap-4">{children}</div>
+      <h3 className="text-[1rem] font-semibold text-app-text">{title}</h3>
+      <div className="mt-3.5 grid gap-3.5">{children}</div>
     </section>
   );
 }
@@ -158,9 +158,9 @@ function AccountSettingsRow({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-3 border-t border-app-border pt-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
+    <div className="grid gap-3 border-t border-app-border pt-3.5 md:grid-cols-[172px_minmax(0,1fr)] md:gap-3.5">
       <div className="grid content-start gap-1">
-        <h3 className="text-[15px] font-semibold text-app-text">{title}</h3>
+        <h3 className="text-[14px] font-semibold text-app-text">{title}</h3>
       </div>
       <div className="min-w-0">{children}</div>
     </div>

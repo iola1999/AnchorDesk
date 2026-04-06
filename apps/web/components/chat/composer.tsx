@@ -182,7 +182,7 @@ function ModelProfileSelector({
             aria-expanded={open}
             aria-haspopup="menu"
             className={cn(
-              "inline-flex h-9 min-w-0 max-w-full items-center gap-2 rounded-full border border-app-border/90 bg-app-surface-soft/92 pl-2.5 pr-3 text-[13px] font-medium text-app-muted-strong transition-[background-color,border-color,color,box-shadow] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:border-app-border-strong hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10",
+              "inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-full border border-app-border/90 bg-app-surface-soft/92 pl-2 pr-2.5 text-[12px] font-medium text-app-muted-strong transition-[background-color,border-color,color,box-shadow] duration-200 [transition-timing-function:var(--ease-out-quart)] hover:border-app-border-strong hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10",
               open && "border-app-border-strong bg-white text-app-text shadow-sm",
             )}
           >
@@ -210,7 +210,7 @@ function ModelProfileSelector({
         >
           <div className="px-3 pb-1 pt-2.5">
             <p className={ui.eyebrow}>Model</p>
-            <h2 className="mt-1 text-[15px] font-semibold text-app-text">选择模型</h2>
+            <h2 className="mt-0.5 text-[14px] font-semibold text-app-text">选择模型</h2>
           </div>
 
           <div className="mx-2 my-1.5 h-px bg-app-border/70" />
@@ -226,7 +226,7 @@ function ModelProfileSelector({
                   role="menuitemradio"
                   aria-checked={isSelected}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
+                    "flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left transition",
                     menuItemStyles({ selected: isSelected }),
                   )}
                   onClick={() => {
@@ -238,7 +238,7 @@ function ModelProfileSelector({
                 >
                   <span
                     className={cn(
-                      "grid size-7 shrink-0 place-items-center rounded-full border transition",
+                      "grid size-[26px] shrink-0 place-items-center rounded-full border transition",
                       isSelected
                         ? "border-app-border-strong bg-app-surface-strong text-app-text"
                         : "border-app-border/80 bg-white text-app-muted",
@@ -254,7 +254,7 @@ function ModelProfileSelector({
                       <span className="size-1.5 rounded-full bg-current/50" />
                     )}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                     {formatUserFacingModelProfileLabel(profile)}
                   </span>
                   {profile.isDefault ? (
@@ -876,16 +876,16 @@ export function Composer({
     }
 
     return (
-      <div className="flex items-start gap-2 rounded-[18px] border border-app-border/80 bg-app-surface-soft/92 px-3 py-2.5 text-[13px] text-app-muted-strong">
+      <div className="flex items-start gap-2 rounded-[16px] border border-app-border/80 bg-app-surface-soft/92 px-2.5 py-2 text-[12px] text-app-muted-strong">
         <span className="inline-flex shrink-0 rounded-full border border-app-border bg-white/90 px-2 py-0.5 text-[11px] font-medium text-app-muted-strong">
           引用
         </span>
-        <p className="min-w-0 flex-1 line-clamp-3 leading-6 text-app-muted-strong">
+        <p className="min-w-0 flex-1 line-clamp-3 leading-5 text-app-muted-strong">
           {selectedQuote.text}
         </p>
         <button
           type="button"
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-app-muted transition hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10"
+          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-app-muted transition hover:bg-white hover:text-app-text focus:outline-none focus:ring-4 focus:ring-app-accent/10"
           aria-label="移除引用"
           onClick={onClearSelectedQuote}
         >
@@ -937,7 +937,7 @@ export function Composer({
               )}
             />
             <div className="flex items-center justify-between gap-2.5 pt-0.5">
-              <div className="flex min-h-9 min-w-0 flex-1 flex-wrap items-center gap-2">
+              <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-1.5">
                 {workspaceId ? (
                   <button
                     type="button"
@@ -948,7 +948,7 @@ export function Composer({
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="上传临时文件"
                   >
-                    <PlusIcon className="size-5" aria-hidden="true" />
+                    <PlusIcon className="size-[18px]" aria-hidden="true" />
                   </button>
                 ) : null}
                 {renderModelSelector("min-w-0 max-w-full flex-1")}
@@ -979,9 +979,9 @@ export function Composer({
                 {primaryAction.mode === COMPOSER_PRIMARY_ACTION.STOP ? (
                   <StopIcon className="size-[18px]" aria-hidden="true" />
                 ) : primaryButtonState.showLoadingIndicator ? (
-                  <ComposerSubmitLoadingIndicator className="size-5 text-app-primary-contrast" />
+                  <ComposerSubmitLoadingIndicator className="size-[18px] text-app-primary-contrast" />
                 ) : (
-                  <ArrowUpIcon className="size-5" aria-hidden="true" />
+                  <ArrowUpIcon className="size-[18px]" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -1000,7 +1000,7 @@ export function Composer({
                 const content = (
                   <span
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium",
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] font-medium",
                       tone,
                     )}
                   >

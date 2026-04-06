@@ -33,15 +33,15 @@ export function WorkspaceUserMenuContent({
 }: WorkspaceUserMenuContentProps) {
   return (
     <>
-      <div className="flex items-center gap-3 px-3 pb-2 pt-2.5">
-        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-app-surface-strong text-sm font-semibold text-app-accent">
+      <div className="flex items-center gap-2.5 px-3 pb-1.5 pt-2">
+        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[13px] font-semibold text-app-accent">
           {avatarLabel}
         </div>
         <div className="min-w-0 flex-1">
-          <strong className="block truncate text-[14px] font-semibold text-app-text">
+          <strong className="block truncate text-[13px] font-semibold text-app-text">
             {displayName}
           </strong>
-          <span className="block truncate text-[12.5px] text-app-muted">@{username}</span>
+          <span className="block truncate text-[11px] text-app-muted">@{username}</span>
         </div>
       </div>
 
@@ -56,14 +56,14 @@ export function WorkspaceUserMenuContent({
                 href={action.href ?? "/"}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-xl px-3 py-2 transition",
+                  "flex items-center gap-2 rounded-xl px-3 py-1.5 transition",
                   menuItemStyles(),
                 )}
               >
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
+                <span className="grid size-[26px] shrink-0 place-items-center rounded-lg text-app-muted-strong">
                   {resolveWorkspaceUserMenuActionIcon(action.key)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                   {action.label}
                 </span>
               </Link>
@@ -79,16 +79,16 @@ export function WorkspaceUserMenuContent({
             <button
               type="button"
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition",
+                "flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-left transition",
                 menuItemStyles({ tone: "danger" }),
               )}
               disabled={isSigningOut}
               onClick={onSignOut}
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-lg text-red-500">
+              <span className="grid size-[26px] shrink-0 place-items-center rounded-lg text-red-500">
                 <LogoutIcon />
               </span>
-              <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                 {isSigningOut ? "退出中..." : logoutLabel}
               </span>
             </button>

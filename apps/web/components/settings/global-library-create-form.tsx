@@ -62,14 +62,14 @@ export function GlobalLibraryCreateForm() {
     <form onSubmit={onSubmit} className={ui.sectionPanel}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-0.5">
-          <h2 className="text-[1.1rem] font-semibold text-app-text">新建全局资料库</h2>
-          <p className="text-[13px] leading-6 text-app-muted-strong">
+          <h2 className="text-[1rem] font-semibold text-app-text">新建全局资料库</h2>
+          <p className="text-[13px] leading-5 text-app-muted-strong">
             创建后会直接进入该资料库的上传和整理页
           </p>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-3.5 grid gap-3.5 md:grid-cols-2">
         <label className={ui.label}>
           资料库名称
           <input
@@ -91,7 +91,7 @@ export function GlobalLibraryCreateForm() {
         </label>
       </div>
 
-      <div className="mt-4 grid gap-4">
+      <div className="mt-3.5 grid gap-3.5">
         <label className={ui.label}>
           说明
           <textarea
@@ -116,7 +116,7 @@ export function GlobalLibraryCreateForm() {
         </label>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-2.5">
         <button className={buttonStyles()} disabled={submitting} type="submit">
           {submitting ? "创建中..." : "创建并进入管理"}
         </button>

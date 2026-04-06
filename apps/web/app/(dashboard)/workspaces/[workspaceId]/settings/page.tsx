@@ -38,12 +38,12 @@ export default async function WorkspaceSettingsPage({
         { label: "设置" },
       ]}
     >
-      <div className="flex w-full min-w-0 flex-col gap-4">
-        <header className="grid gap-3 px-1 pb-0.5">
+      <div className="flex w-full min-w-0 flex-col gap-3.5">
+        <header className="grid gap-2.5 px-1 pb-0.5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid gap-1">
-              <h1 className="text-[1.5rem] font-semibold text-app-text">空间设置</h1>
-              <p className="text-sm text-app-muted-strong">{workspace.title}</p>
+              <h1 className="text-[1.3rem] font-semibold text-app-text">空间设置</h1>
+              <p className="text-[13px] text-app-muted-strong">{workspace.title}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

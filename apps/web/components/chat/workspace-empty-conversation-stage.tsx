@@ -80,11 +80,11 @@ export function WorkspaceEmptyConversationStage({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-6 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-6 min-[720px]:py-8">
-      <div className="grid w-full max-w-[860px] gap-6 text-center">
-        <div className="grid justify-items-center gap-3">
+    <div className="grid min-h-[calc(100dvh-156px)] place-items-center px-1 py-5 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-5 min-[720px]:py-6">
+      <div className="grid w-full max-w-[860px] gap-5 text-center">
+        <div className="grid justify-items-center gap-2.5">
           <p className={ui.eyebrow}>New Question</p>
-          <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-app-text md:text-[40px]">
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-app-text md:text-[34px]">
             {workspaceTitle}
           </h1>
         </div>

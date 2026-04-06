@@ -5,7 +5,7 @@ import { conversationDensityClassNames } from "./conversation-density";
 describe("conversationDensityClassNames", () => {
   it("keeps the conversation stack tighter than the default sparse layout", () => {
     expect(conversationDensityClassNames.sessionStack).toContain("min-w-0");
-    expect(conversationDensityClassNames.sessionStack).toContain("gap-5");
+    expect(conversationDensityClassNames.sessionStack).toContain("gap-4");
     expect(conversationDensityClassNames.sessionStack).not.toContain("gap-10");
     expect(conversationDensityClassNames.sessionStack).not.toContain("gap-12");
   });
@@ -14,13 +14,13 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.userWrap).toContain("min-w-0");
     expect(conversationDensityClassNames.userWrap).toContain("max-w-[860px]");
     expect(conversationDensityClassNames.userStack).toContain("justify-items-end");
-    expect(conversationDensityClassNames.userText).toContain("text-[14px]");
-    expect(conversationDensityClassNames.userText).toContain("leading-7");
+    expect(conversationDensityClassNames.userText).toContain("text-[13px]");
+    expect(conversationDensityClassNames.userText).toContain("leading-6");
     expect(conversationDensityClassNames.userAttachmentList).toContain("justify-end");
     expect(conversationDensityClassNames.userAttachmentChip).toContain("rounded-full");
     expect(conversationDensityClassNames.resultPanel).toContain("min-w-0");
-    expect(conversationDensityClassNames.answerText).toContain("text-[14px]");
-    expect(conversationDensityClassNames.answerText).toContain("leading-7");
+    expect(conversationDensityClassNames.answerText).toContain("text-[13px]");
+    expect(conversationDensityClassNames.answerText).toContain("leading-6");
   });
 
   it("uses a stepped timeline layout with a vertical rail and borderless task rows", () => {
@@ -30,13 +30,13 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.timelineEntrySummary).toContain(
       "grid-cols-[1.5rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineList).toContain("gap-4");
+    expect(conversationDensityClassNames.timelineList).toContain("gap-3");
     expect(conversationDensityClassNames.timelineEntryCard).not.toContain("border");
     expect(conversationDensityClassNames.timelineEntryDetails).toContain(
       "grid-cols-[1.5rem_minmax(0,1fr)]",
     );
-    expect(conversationDensityClassNames.timelineArgument).toContain("text-[11px]");
-    expect(conversationDensityClassNames.timelinePreviewList).toContain("gap-1.5");
+    expect(conversationDensityClassNames.timelineArgument).toContain("text-[10.5px]");
+    expect(conversationDensityClassNames.timelinePreviewList).toContain("gap-1");
     expect(conversationDensityClassNames.timelinePreviewItem).toContain("items-center");
     expect(conversationDensityClassNames.payloadDisclosure).not.toContain("border");
     expect(conversationDensityClassNames.payloadPre).toContain("max-w-full");
@@ -51,12 +51,12 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.composerShell).toContain("bottom-0");
     expect(conversationDensityClassNames.composerShell).not.toContain("backdrop-blur");
     expect(conversationDensityClassNames.composerShell).not.toContain("linear-gradient");
-    expect(conversationDensityClassNames.composerCard).toContain("rounded-[24px]");
+    expect(conversationDensityClassNames.composerCard).toContain("rounded-[20px]");
     expect(conversationDensityClassNames.composerCard).toContain("border");
-    expect(conversationDensityClassNames.composerCard).toContain("px-4");
-    expect(conversationDensityClassNames.composerCard).toContain("py-3");
-    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_16px_28px");
-    expect(conversationDensityClassNames.composerText).toContain("text-[14px]");
-    expect(conversationDensityClassNames.composerAttachments).toContain("gap-1.5");
+    expect(conversationDensityClassNames.composerCard).toContain("px-3.5");
+    expect(conversationDensityClassNames.composerCard).toContain("py-2.5");
+    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_14px_24px");
+    expect(conversationDensityClassNames.composerText).toContain("text-[13px]");
+    expect(conversationDensityClassNames.composerAttachments).toContain("gap-1");
   });
 });

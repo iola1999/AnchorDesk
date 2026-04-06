@@ -99,15 +99,15 @@ export default async function WorkspacesPage() {
   }
 
   return (
-    <div className={cn(ui.page, "gap-8 py-10")}>
+    <div className={cn(ui.page, "gap-6 py-8")}>
       {/* Branded header row */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
-            <AnchorDeskLogo className="size-[18px] text-app-primary-contrast" />
+      <div className="flex flex-wrap items-end justify-between gap-3.5">
+        <div className="flex items-center gap-2.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
+            <AnchorDeskLogo className="size-[17px] text-app-primary-contrast" />
           </span>
           <div className="grid gap-0.5">
-            <strong className="font-serif text-[17px] leading-tight text-app-text">
+            <strong className="font-serif text-[16px] leading-tight text-app-text">
               {workspaceBranding.productName}
             </strong>
             <span className="text-[12px] text-app-muted">
@@ -144,15 +144,15 @@ export default async function WorkspacesPage() {
               className={workspaceTileStyles()}
             >
               <div>
-                <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
+                <span className="grid size-10 place-items-center rounded-[18px] bg-app-surface-strong text-[18px] font-semibold text-app-accent">
                   {badgeLabel}
                 </span>
               </div>
               <div className="space-y-2">
                 <strong>{workspace.title}</strong>
               </div>
-              <div className="grid gap-3 border-t border-app-border pt-4 text-sm text-app-muted">
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="grid gap-2 border-t border-app-border pt-3 text-[13px] text-app-muted">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <span>{conversationCount} 条会话</span>
                   <span>{documentCount} 份资料</span>
                 </div>
@@ -169,7 +169,7 @@ export default async function WorkspacesPage() {
           className={workspaceTileStyles({ variant: "create" })}
         >
           <div>
-            <span className="grid size-12 place-items-center rounded-2xl bg-app-surface-strong text-xl font-semibold text-app-accent">
+            <span className="grid size-10 place-items-center rounded-[18px] bg-app-surface-strong text-[18px] font-semibold text-app-accent">
               +
             </span>
           </div>

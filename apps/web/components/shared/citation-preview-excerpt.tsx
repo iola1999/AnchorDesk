@@ -21,7 +21,7 @@ export function CitationPreviewExcerpt({
     return createElement(XMarkdown, {
       content: preview.excerpt,
       className: cn(
-        "x-markdown-light app-markdown citation-preview-markdown max-h-[9.5rem] overflow-hidden [mask-image:linear-gradient(180deg,#000_0%,#000_82%,transparent_100%)] text-[13px] leading-6 text-app-muted-strong",
+        "x-markdown-light app-markdown citation-preview-markdown max-h-[9.5rem] overflow-hidden [mask-image:linear-gradient(180deg,#000_0%,#000_82%,transparent_100%)] text-[12px] leading-5 text-app-muted-strong",
         textSelectionStyles.content,
         className,
       ),
@@ -43,7 +43,7 @@ export function CitationPreviewExcerpt({
     <span
       className={cn(
         textSelectionStyles.content,
-        "line-clamp-4 text-[13px] leading-6 text-app-muted-strong",
+        "line-clamp-4 text-[12px] leading-5 text-app-muted-strong",
         className,
       )}
     >

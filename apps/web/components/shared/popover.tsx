@@ -81,7 +81,7 @@ export function Popover({
   defaultOpen = false,
   onOpenChange,
   placement = "bottom-end",
-  sideOffset = 10,
+  sideOffset = 8,
   collisionPadding = 12,
   maxHeight,
 }: {

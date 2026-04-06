@@ -30,12 +30,12 @@ export function DocumentJobPanel({
   }
 
   return (
-    <div className="grid gap-4 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
+    <div className="grid gap-3.5 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
       <div className="flex items-center justify-between pb-1 border-b border-app-border/40">
         <h3 className="text-[14px] font-semibold text-app-text">任务详情</h3>
         <ManualRefreshButton />
       </div>
-      <div className="grid gap-2 text-[13px]">
+      <div className="grid gap-1.5 text-[12px]">
         <div className="flex justify-between items-center text-app-muted-strong">
           <span className="text-app-muted">状态</span>
           <span className="font-medium text-app-text">{job.stage} · {job.status} · {job.progress}%</span>
@@ -58,7 +58,7 @@ export function DocumentJobPanel({
         ) : null}
         
         {job.status === RUN_STATUS.FAILED ? (
-          <div className="mt-2 rounded-xl border border-red-200/60 bg-red-50/50 p-3 text-red-600/90 shadow-sm">
+          <div className="mt-1.5 rounded-xl border border-red-200/60 bg-red-50/50 p-2.5 text-red-600/90 shadow-sm">
             <div className="max-h-32 overflow-y-auto pr-2 text-[12px] font-mono leading-relaxed custom-scrollbar">
               {describeDocumentJobFailure({
                 stage: job.stage,
@@ -70,7 +70,7 @@ export function DocumentJobPanel({
         ) : null}
       </div>
       {canRetryDocumentJob(job) || (showForceReparse && canForceReparseDocumentJob(job)) ? (
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex flex-wrap gap-2 pt-1.5">
            {canRetryDocumentJob(job) ? <RetryDocumentJobButton jobId={job.id} /> : null}
            {showForceReparse && canForceReparseDocumentJob(job) ? (
              <RetryDocumentJobButton

@@ -87,8 +87,8 @@ export function WorkspaceLibrarySubscriptions({
     <section className={ui.sectionPanel}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid gap-0.5">
-          <h2 className="text-[1.1rem] font-semibold text-app-text">全局资料库订阅</h2>
-          <p className="text-[13px] leading-6 text-app-muted-strong">
+          <h2 className="text-[1rem] font-semibold text-app-text">全局资料库订阅</h2>
+          <p className="text-[13px] leading-5 text-app-muted-strong">
             启用后会参与对话检索
           </p>
         </div>
@@ -97,7 +97,7 @@ export function WorkspaceLibrarySubscriptions({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-3.5 grid gap-3">
         {libraries.length > 0 ? (
           libraries.map((library) => {
             const isBusy = pendingLibraryId !== null || isPending;
@@ -107,12 +107,12 @@ export function WorkspaceLibrarySubscriptions({
             return (
               <article
                 key={library.id}
-                className="grid gap-4 rounded-[24px] border border-app-border bg-app-surface-soft/58 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-5"
+                className="grid gap-3 rounded-[20px] border border-app-border bg-app-surface-soft/58 p-3.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-4"
               >
                 <div className="grid gap-3">
                   <div className="grid gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[15px] font-semibold text-app-text">{library.title}</h3>
+                      <h3 className="text-[14px] font-semibold text-app-text">{library.title}</h3>
                       <span className={ui.chipSoft}>
                         {formatKnowledgeLibraryStatus(library.status)}
                       </span>
@@ -128,7 +128,7 @@ export function WorkspaceLibrarySubscriptions({
                       ) : null}
                     </div>
                     {library.description ? (
-                      <p className="text-[13px] leading-6 text-app-muted-strong">
+                      <p className="text-[13px] leading-5 text-app-muted-strong">
                         {library.description}
                       </p>
                     ) : null}

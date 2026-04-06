@@ -189,15 +189,15 @@ export default async function DocumentPage({
       }))}
     />
   ) : (
-    <div className="grid gap-2 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
+    <div className="grid gap-2 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
       <h3 className="text-[14px] font-semibold text-app-text">共享资料</h3>
-      <p className="text-[13px] leading-6 text-app-muted-strong">
+      <p className="text-[13px] leading-5 text-app-muted-strong">
         该文档来自已订阅的全局资料库，当前工作空间内只读。
       </p>
     </div>
   );
   const versionHistoryPanel = (
-    <div className="grid content-start gap-3 rounded-2xl border border-app-border/60 bg-white/50 p-4 shadow-sm backdrop-blur-md">
+    <div className="grid content-start gap-3 rounded-[20px] border border-app-border/60 bg-white/50 p-3.5 shadow-sm backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-app-border/40 pb-1">
         <h3 className="text-[14px] font-semibold text-app-text">版本历史</h3>
       </div>
@@ -268,7 +268,7 @@ export default async function DocumentPage({
 
       <div className="grid gap-4">
         <div className="flex items-center justify-between pb-1">
-          <h3 className="text-[15px] font-semibold text-app-text">解析内容区块</h3>
+          <h3 className="text-[14px] font-semibold text-app-text">解析内容区块</h3>
           <span className="text-[13px] text-app-muted">
             {viewerPages.length > 0
               ? `共 ${viewerPages.length} 页`
@@ -401,7 +401,7 @@ export default async function DocumentPage({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="grid gap-1.5">
             <h1 className="text-2xl font-semibold tracking-tight text-app-text">{doc.title}</h1>
-            <div className="flex flex-wrap items-center gap-2.5 text-[15px] text-app-muted-strong">
+            <div className="flex flex-wrap items-center gap-2 text-[14px] text-app-muted-strong">
               <span>{doc.logicalPath}</span>
               <span className="text-app-border-strong px-0.5">•</span>
               <span className="inline-flex items-center rounded-full bg-app-surface-strong px-2.5 py-0.5 text-xs font-medium text-app-text">

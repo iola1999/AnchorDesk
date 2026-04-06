@@ -40,7 +40,7 @@ export function CreateWorkspaceForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-5 p-6 md:p-7")}>
+    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4 p-5 md:p-6")}>
       <label className={ui.label}>
         空间名称
         <input
@@ -71,7 +71,7 @@ export function CreateWorkspaceForm() {
         </span>
       </label>
       {error ? <p className={ui.error}>{error}</p> : null}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <button
           className={cn(buttonStyles(), "justify-self-start")}
           disabled={isSubmitting}

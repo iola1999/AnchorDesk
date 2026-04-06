@@ -24,14 +24,14 @@ export default async function GlobalLibrariesPage() {
     <SettingsShell
       sidebar={<SystemManagementSidebar activeSection="libraries" />}
     >
-      <div className="flex w-full min-w-0 flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-3.5">
         <GlobalLibraryCreateForm />
 
         <section className={ui.sectionPanel}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid gap-0.5">
-              <h2 className="text-[1.1rem] font-semibold text-app-text">现有资料库</h2>
-              <p className="text-[13px] leading-6 text-app-muted-strong">
+              <h2 className="text-[1rem] font-semibold text-app-text">现有资料库</h2>
+              <p className="text-[13px] leading-5 text-app-muted-strong">
                 进入详情页后可上传文件、整理目录和调整可订阅状态
               </p>
             </div>
@@ -40,13 +40,13 @@ export default async function GlobalLibrariesPage() {
             </span>
           </div>
 
-          <div className="mt-4 grid gap-3">
+          <div className="mt-3.5 grid gap-3">
             {libraries.length > 0 ? (
               libraries.map((library) => (
                 <Link
                   key={library.id}
                   href={`/settings/libraries/${library.id}`}
-                  className="grid gap-3 rounded-[22px] border border-app-border bg-white/86 p-4 transition hover:border-app-border-strong hover:bg-white"
+                  className="grid gap-2.5 rounded-[18px] border border-app-border bg-white/86 p-3.5 transition hover:border-app-border-strong hover:bg-white"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="grid gap-1">
@@ -58,7 +58,7 @@ export default async function GlobalLibrariesPage() {
                         <code className={ui.codeChip}>{library.slug}</code>
                       </div>
                       {library.description ? (
-                        <p className="text-[13px] leading-6 text-app-muted-strong">
+                        <p className="text-[13px] leading-5 text-app-muted-strong">
                           {library.description}
                         </p>
                       ) : null}
@@ -71,7 +71,7 @@ export default async function GlobalLibrariesPage() {
                 </Link>
               ))
             ) : (
-              <div className="rounded-[22px] border border-app-border bg-app-surface-soft/55 p-4 text-[13px] text-app-muted-strong">
+              <div className="rounded-[18px] border border-app-border bg-app-surface-soft/55 p-3.5 text-[13px] text-app-muted-strong">
                 还没有全局资料库。先创建一个，然后进入详情页上传资料。
               </div>
             )}

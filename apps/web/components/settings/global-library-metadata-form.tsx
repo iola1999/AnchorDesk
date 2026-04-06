@@ -99,8 +99,8 @@ export function GlobalLibraryMetadataForm({
     <form onSubmit={save} className={ui.sectionPanel}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-0.5">
-          <h2 className="text-[1.1rem] font-semibold text-app-text">资料库设置</h2>
-          <p className="text-[13px] leading-6 text-app-muted-strong">
+          <h2 className="text-[1rem] font-semibold text-app-text">资料库设置</h2>
+          <p className="text-[13px] leading-5 text-app-muted-strong">
             管理资料库名称、slug、订阅状态，以及清空后删除
           </p>
         </div>
@@ -112,7 +112,7 @@ export function GlobalLibraryMetadataForm({
         </Link>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-3.5 grid gap-3.5 md:grid-cols-2">
         <label className={ui.label}>
           资料库名称
           <input
@@ -132,7 +132,7 @@ export function GlobalLibraryMetadataForm({
         </label>
       </div>
 
-      <div className="mt-4 grid gap-4">
+      <div className="mt-3.5 grid gap-3.5">
         <label className={ui.label}>
           说明
           <textarea
@@ -156,12 +156,12 @@ export function GlobalLibraryMetadataForm({
         </label>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-app-muted">
+      <div className="mt-3.5 flex flex-wrap items-center gap-3.5 text-[12px] text-app-muted">
         <span>{library.documentCount} 份资料</span>
         <span>{library.subscriptionCount} 个订阅</span>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-2.5">
         <button className={buttonStyles()} disabled={isSaving} type="submit">
           {isSaving ? "保存中..." : "保存设置"}
         </button>
@@ -178,7 +178,7 @@ export function GlobalLibraryMetadataForm({
       </div>
 
       {library.documentCount > 0 || library.subscriptionCount > 0 ? (
-        <p className="mt-3 text-[13px] leading-6 text-app-muted">
+        <p className="mt-2.5 text-[13px] leading-5 text-app-muted">
           非空资料库请改为“已归档”；只有空资料库才能直接删除
         </p>
       ) : null}

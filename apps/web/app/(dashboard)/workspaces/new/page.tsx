@@ -5,7 +5,7 @@ import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export default function NewWorkspacePage() {
   return (
-    <div className={cn(ui.pageNarrow, "min-h-screen max-w-[920px] gap-5 py-10")}>
+    <div className={cn(ui.pageNarrow, "min-h-screen max-w-[920px] gap-5 py-8")}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-[64ch] space-y-2">
           <p className={ui.eyebrow}>Create Space</p>

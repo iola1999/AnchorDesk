@@ -170,13 +170,13 @@ export function ModelProfilesAdmin({
       <SettingsShell
         sidebar={<SystemManagementSidebar activeSection="models" />}
       >
-        <div className="flex w-full min-w-0 flex-col gap-4">
-          <div className="grid w-full min-w-0 gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="flex w-full min-w-0 flex-col gap-3.5">
+          <div className="grid w-full min-w-0 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
             <section className={cn(ui.sectionPanel, "grid content-start gap-3")}>
               <div className="grid gap-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid gap-0.5">
-                    <h2 className="text-[1.1rem] font-semibold text-app-text">模型列表</h2>
+                    <h2 className="text-[1rem] font-semibold text-app-text">模型列表</h2>
                     <p className={ui.mutedStrong}>默认模型会用于新会话和报告生成。</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -216,7 +216,7 @@ export function ModelProfilesAdmin({
                       key={profile.id}
                       type="button"
                       className={cn(
-                        "grid gap-2 rounded-2xl border px-4 py-3 text-left transition",
+                        "grid gap-1.5 rounded-[18px] border px-3.5 py-2.5 text-left transition",
                         selected
                           ? "border-app-border-strong bg-white shadow-soft"
                           : "border-app-border bg-app-surface-soft/76 hover:border-app-border-strong hover:bg-white",
@@ -225,7 +225,7 @@ export function ModelProfilesAdmin({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 grid gap-1">
-                          <strong className="truncate text-[14px] font-semibold text-app-text">
+                          <strong className="truncate text-[13px] font-semibold text-app-text">
                             {formatEnabledModelProfileLabel(profile)}
                           </strong>
                           <span className="truncate text-[12px] text-app-muted">
@@ -251,7 +251,7 @@ export function ModelProfilesAdmin({
             <section className={cn(ui.sectionPanel, "grid gap-5")}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="grid gap-1">
-                  <h2 className="text-[1.2rem] font-semibold text-app-text">
+                  <h2 className="text-[1.08rem] font-semibold text-app-text">
                     {selectedProfile ? "编辑模型" : "新建模型"}
                   </h2>
                   <p className={ui.mutedStrong}>

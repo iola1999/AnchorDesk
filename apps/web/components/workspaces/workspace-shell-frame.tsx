@@ -180,12 +180,12 @@ export function WorkspaceShellFrame({
             isDrawerOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
-          <div className="flex items-center justify-between border-b border-app-border/70 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-app-border/70 px-3.5 py-2.5">
             <div className="grid gap-0.5">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-muted">
                 Workspace
               </span>
-              <strong className="max-w-[18rem] truncate text-[15px] font-semibold text-app-text">
+              <strong className="max-w-[18rem] truncate text-[14px] font-semibold text-app-text">
                 {workspace.title}
               </strong>
             </div>
@@ -194,7 +194,7 @@ export function WorkspaceShellFrame({
               aria-label="收起导航面板"
               className={cn(
                 buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
-                "size-9 text-app-muted-strong",
+                "size-8 text-app-muted-strong",
               )}
               onClick={() => setIsDrawerOpen(false)}
             >
@@ -225,9 +225,9 @@ export function WorkspaceShellFrame({
         />
       </aside>
 
-      <section className="grid min-h-[100dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-3 px-4 py-4 min-[720px]:min-h-0 min-[720px]:px-6 min-[720px]:py-5 min-[720px]:overflow-hidden md:px-8">
-        <header className="border-b border-app-border px-0.5 pb-3">
-          <div className="grid gap-3 min-[720px]:hidden">
+      <section className="grid min-h-[100dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 px-3 py-3 min-[720px]:min-h-0 min-[720px]:px-5 min-[720px]:py-4 min-[720px]:overflow-hidden md:px-6">
+        <header className="border-b border-app-border px-0.5 pb-2.5">
+          <div className="grid gap-2.5 min-[720px]:hidden">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -236,7 +236,7 @@ export function WorkspaceShellFrame({
                 aria-label={isDrawerOpen ? "收起导航面板" : "展开导航面板"}
                 className={cn(
                   buttonStyles({ variant: "secondary", size: "sm", shape: "icon" }),
-                  "size-10 rounded-2xl border-app-border bg-white/88 shadow-soft",
+                  "size-9 rounded-[18px] border-app-border bg-white/88 shadow-soft",
                 )}
                 onClick={() => setIsDrawerOpen((current) => !current)}
               >
@@ -245,24 +245,24 @@ export function WorkspaceShellFrame({
 
               <Link
                 href="/workspaces"
-                className="flex min-w-0 items-center gap-3"
+                className="flex min-w-0 items-center gap-2.5"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
-                  <AnchorDeskLogo className="size-[18px] text-app-primary-contrast" />
+                <span className="grid size-[36px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
+                  <AnchorDeskLogo className="size-[17px] text-app-primary-contrast" />
                 </span>
                 <span className="grid min-w-0 gap-0.5">
-                  <strong className="truncate font-serif text-[15px] leading-tight text-app-text">
+                  <strong className="truncate font-serif text-[14px] leading-tight text-app-text">
                     {workspaceBranding.productName}
                   </strong>
-                  <span className="truncate text-[12px] text-app-muted-strong">
+                  <span className="truncate text-[11px] text-app-muted-strong">
                     {workspace.title}
                   </span>
                 </span>
               </Link>
             </div>
 
-            <div className="flex min-w-0 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center justify-between gap-2.5">
               <div className="min-w-0 flex-1">
                 <BreadcrumbTrail
                   workspace={workspace}
@@ -275,14 +275,14 @@ export function WorkspaceShellFrame({
               </div>
 
               {topActions ? (
-                <div className="flex shrink-0 items-center justify-end gap-1.5">
+                <div className="flex shrink-0 items-center justify-end gap-1">
                   {topActions}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div className="hidden min-[720px]:flex min-[720px]:min-w-0 min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-4">
+          <div className="hidden min-[720px]:flex min-[720px]:min-w-0 min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-3">
             <div className="min-w-0 flex-1">
               <BreadcrumbTrail
                 workspace={workspace}
@@ -294,7 +294,7 @@ export function WorkspaceShellFrame({
               />
             </div>
 
-            {topActions ? <div className="flex shrink-0 items-center gap-2">{topActions}</div> : null}
+            {topActions ? <div className="flex shrink-0 items-center gap-1.5">{topActions}</div> : null}
           </div>
         </header>
 
@@ -327,7 +327,7 @@ function WorkspaceSidebarContent({
   const isCreateConversationActive = activeView === "chat" && !activeConversationId;
   const workspaceNavLink = (selected: boolean) =>
     cn(
-      "group flex min-h-[36px] w-full items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] font-medium transition-colors",
+      "group flex min-h-[34px] w-full items-center gap-2 rounded-[10px] px-2.5 text-[12px] font-medium transition-colors",
       selected
         ? navItemStyles({ selected: true })
         : "text-app-muted-strong hover:bg-black/5 hover:text-app-text",
@@ -335,20 +335,20 @@ function WorkspaceSidebarContent({
 
   return (
     <div className={WORKSPACE_SHELL_SIDEBAR_CONTENT_CLASS}>
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         <Link
           href="/workspaces"
-          className="group flex items-center gap-3 px-1.5 py-1 transition-opacity hover:opacity-80"
+          className="group flex items-center gap-2.5 px-1 py-0.5 transition-opacity hover:opacity-80"
           onClick={onNavigate}
         >
-          <span className="grid size-[38px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
-            <AnchorDeskLogo className="size-[18px] text-app-primary-contrast" />
+          <span className="grid size-[36px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
+            <AnchorDeskLogo className="size-[17px] text-app-primary-contrast" />
           </span>
           <span className="grid gap-0.5">
-            <strong className="font-serif text-[15px] leading-tight text-app-text">
+            <strong className="font-serif text-[14px] leading-tight text-app-text">
               {workspaceBranding.productName}
             </strong>
-            <span className="text-[11px] font-medium tracking-wide text-app-muted-strong">
+            <span className="text-[10px] font-medium tracking-wide text-app-muted-strong">
               {workspaceBranding.productTagline}
             </span>
           </span>
@@ -361,15 +361,15 @@ function WorkspaceSidebarContent({
               active: isCreateConversationActive,
             })}
           >
-            <PlusIcon className="size-3.5 transition-transform group-hover:scale-110" strokeWidth={2.5} />
+            <PlusIcon className="size-3 transition-transform group-hover:scale-110" strokeWidth={2.5} />
             新建会话
           </Link>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 border-t border-app-border/60 pt-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 border-t border-app-border/60 pt-3">
         <div className="flex items-center justify-between px-1.5">
-          <span className="text-[12px] font-medium text-app-muted-strong">历史会话</span>
+          <span className="text-[11px] font-medium text-app-muted-strong">历史会话</span>
           <span className="grid min-w-5 place-items-center rounded-[5px] bg-white/80 px-1 py-0.5 text-[10px] font-semibold text-app-muted shadow-sm">
             {activeConversations.length}
           </span>
@@ -386,14 +386,14 @@ function WorkspaceSidebarContent({
             />
           ))}
           {activeConversations.length === 0 ? (
-            <div className="px-1.5 text-sm leading-6 text-app-muted">
+            <div className="px-1.5 text-[13px] leading-5 text-app-muted">
               当前还没有历史会话。
             </div>
           ) : null}
         </div>
       </div>
 
-      <div className="grid gap-1 border-t border-app-border/60 pt-4 px-1.5 pb-2">
+      <div className="grid gap-1 border-t border-app-border/60 px-1.5 pb-1.5 pt-3">
         <nav className="grid gap-0.5">
           <Link
             href={`/workspaces/${workspace.id}/settings`}
@@ -413,7 +413,7 @@ function WorkspaceSidebarContent({
           </Link>
         </nav>
         {archivedConversations.length > 0 ? (
-          <div className="px-2.5 pt-1 text-[11px] text-app-muted">
+          <div className="px-2.5 pt-0.5 text-[10px] text-app-muted">
             已归档 {archivedConversations.length}
           </div>
         ) : null}
@@ -437,7 +437,7 @@ function BreadcrumbTrail({
 }: BreadcrumbTrailProps) {
   return (
     <div
-      className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[13px] text-app-muted"
+      className="flex min-w-0 items-center gap-1 whitespace-nowrap text-[12px] text-app-muted"
       aria-label="Breadcrumb"
     >
       {breadcrumbs.map((item, index) => {
@@ -451,7 +451,7 @@ function BreadcrumbTrail({
           <span
             key={`${item.label}-${index}`}
             className={cn(
-              "flex min-w-0 items-center gap-1.5",
+              "flex min-w-0 items-center gap-1",
               isWorkspaceRootCrumb && "hidden min-[720px]:flex",
             )}
           >

@@ -17,8 +17,8 @@
   --primary-contrast: #fffaf3;
   --border: #e7e1d6;
   --border-strong: #ddd5c8;
-  --shadow-soft: 0 12px 28px rgba(23, 22, 18, 0.04);
-  --shadow-card: 0 20px 44px rgba(23, 22, 18, 0.06);
+  --shadow-soft: 0 10px 24px rgba(23, 22, 18, 0.035);
+  --shadow-card: 0 16px 34px rgba(23, 22, 18, 0.055);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 

@@ -49,7 +49,7 @@ export function ModalShell({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-3 py-4">
       <button
         type="button"
         aria-label="关闭弹窗"
@@ -71,16 +71,16 @@ export function ModalShell({
               : "max-w-[1040px]",
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-app-border px-6 py-5">
-          <div className="grid gap-1">
+        <div className="flex items-start justify-between gap-3 border-b border-app-border px-5 py-4">
+          <div className="grid gap-0.5">
             <h2
               id={titleId}
-              className="text-[20px] font-semibold tracking-[-0.03em] text-app-text"
+              className="text-[18px] font-semibold tracking-[-0.03em] text-app-text"
             >
               {title}
             </h2>
             {description ? (
-              <p id={descriptionId} className="text-sm leading-6 text-app-muted">
+              <p id={descriptionId} className="text-[13px] leading-5 text-app-muted">
                 {description}
               </p>
             ) : null}
@@ -89,14 +89,14 @@ export function ModalShell({
             type="button"
             className={cn(
               buttonStyles({ variant: "ghost", size: "sm", shape: "icon" }),
-              "size-9 text-app-muted-strong",
+              "size-8 text-app-muted-strong",
             )}
             onClick={onClose}
           >
             ×
           </button>
         </div>
-        <div className="max-h-[calc(88vh-88px)] overflow-y-auto px-6 py-5">{children}</div>
+        <div className="max-h-[calc(88vh-80px)] overflow-y-auto px-5 py-4">{children}</div>
       </div>
     </div>
   );

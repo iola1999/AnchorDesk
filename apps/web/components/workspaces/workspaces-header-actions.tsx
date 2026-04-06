@@ -77,7 +77,7 @@ export function WorkspacesHeaderActions({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
       {adminActions.length > 0 ? (
         <Popover
           open={openMenu === "admin"}
@@ -90,11 +90,11 @@ export function WorkspacesHeaderActions({
         >
           <PopoverContent
             id={adminMenuId}
-            className="z-30 w-[260px]"
+            className="z-30 w-[240px]"
           >
               <div className="px-3 pb-1 pt-2.5">
                 <p className={ui.eyebrow}>管理</p>
-                <h2 className="text-[15px] font-semibold text-app-text">管理入口</h2>
+                <h2 className="text-[14px] font-semibold text-app-text">管理入口</h2>
               </div>
 
               <div className="mx-2 my-1.5 h-px bg-app-border/70" />
@@ -106,14 +106,14 @@ export function WorkspacesHeaderActions({
                     href={action.href ?? "/"}
                     onClick={() => setOpenMenu(null)}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-xl px-3 py-2 transition",
+                      "flex items-center gap-2 rounded-xl px-3 py-1.5 transition",
                       menuItemStyles(),
                     )}
                   >
-                    <span className="grid size-7 shrink-0 place-items-center rounded-lg text-app-muted-strong">
+                    <span className="grid size-[26px] shrink-0 place-items-center rounded-lg text-app-muted-strong">
                       {resolveAdminActionIcon(action.key)}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                       {action.label}
                     </span>
                   </Link>
@@ -126,13 +126,13 @@ export function WorkspacesHeaderActions({
               type="button"
               aria-expanded={openMenu === "admin"}
               aria-controls={adminMenuId}
-              aria-label={openMenu === "admin" ? "收起管理菜单" : "展开管理菜单"}
-              className={headerMenuTriggerStyles(openMenu === "admin")}
-            >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-app-surface-strong text-app-accent">
-                <SlidersIcon className="size-[15px]" />
+            aria-label={openMenu === "admin" ? "收起管理菜单" : "展开管理菜单"}
+            className={headerMenuTriggerStyles(openMenu === "admin")}
+          >
+              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-app-surface-strong text-app-accent">
+                <SlidersIcon className="size-[14px]" />
               </span>
-              <span className="text-[13px] font-medium text-app-text">管理</span>
+              <span className="text-[12px] font-medium text-app-text">管理</span>
               <ChevronDownIcon
                 className={cn(
                   "size-3 text-app-muted transition",
@@ -155,7 +155,7 @@ export function WorkspacesHeaderActions({
       >
         <PopoverContent
           id={accountMenuId}
-          className="z-30 w-[min(280px,calc(100vw-24px))]"
+          className="z-30 w-[min(264px,calc(100vw-24px))]"
         >
             <WorkspaceUserMenuContent
               displayName={displayName}
@@ -177,10 +177,10 @@ export function WorkspacesHeaderActions({
             aria-label={openMenu === "account" ? "收起账号菜单" : "展开账号菜单"}
             className={headerMenuTriggerStyles(openMenu === "account")}
           >
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[13px] font-semibold text-app-accent">
+            <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-app-surface-strong text-[12px] font-semibold text-app-accent">
               {avatarLabel}
             </span>
-            <span className="max-w-[8.5rem] truncate text-[13px] font-medium text-app-text">
+            <span className="max-w-[8rem] truncate text-[12px] font-medium text-app-text">
               {displayName}
             </span>
             <ChevronDownIcon
@@ -199,7 +199,7 @@ export function WorkspacesHeaderActions({
 function headerMenuTriggerStyles(open: boolean) {
   return cn(
     buttonStyles({ variant: "secondary", size: "sm", shape: "pill" }),
-    "gap-2 border-app-border/80 bg-white/78 pl-1.5 pr-2.5 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
+    "gap-1.5 border-app-border/80 bg-white/78 pl-1.5 pr-2 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
     open && "border-app-border-strong bg-white text-app-text",
   );
 }

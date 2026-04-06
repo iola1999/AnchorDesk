@@ -114,13 +114,13 @@ function RuntimeMetricCard({
   const tone = resolveRateTone(rate ?? null);
 
   return (
-    <section className="grid gap-3 rounded-[24px] border border-app-border bg-white/86 p-4 shadow-soft">
+    <section className="grid gap-2.5 rounded-[20px] border border-app-border bg-white/86 p-3.5 shadow-soft">
       <div className="grid gap-1">
         <span className={ui.eyebrow}>{eyebrow}</span>
         <span className="text-[13px] font-medium text-app-muted-strong">{label}</span>
       </div>
-      <div className="grid gap-2">
-        <strong className={cn("text-[1.65rem] font-semibold", tone.valueClass)}>{value}</strong>
+      <div className="grid gap-1.5">
+        <strong className={cn("text-[1.45rem] font-semibold", tone.valueClass)}>{value}</strong>
         {rate != null ? (
           <div className="h-1.5 overflow-hidden rounded-full bg-app-surface-soft">
             <div
@@ -132,7 +132,7 @@ function RuntimeMetricCard({
           </div>
         ) : null}
       </div>
-      <p className="text-[12px] leading-5 text-app-muted">{detail}</p>
+      <p className="text-[11px] leading-4.5 text-app-muted">{detail}</p>
     </section>
   );
 }
@@ -147,12 +147,12 @@ function RuntimeKeyValueRow({
   detail?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-xl border border-app-border/80 bg-app-surface-soft/44 px-3 py-2.5">
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-app-border/80 bg-app-surface-soft/44 px-2.5 py-2">
       <div className="grid gap-0.5">
-        <span className="text-[13px] font-medium text-app-text">{label}</span>
-        {detail ? <span className="text-[12px] text-app-muted">{detail}</span> : null}
+        <span className="text-[12px] font-medium text-app-text">{label}</span>
+        {detail ? <span className="text-[11px] text-app-muted">{detail}</span> : null}
       </div>
-      <span className="text-[13px] font-medium text-app-muted-strong">{value}</span>
+      <span className="text-[12px] font-medium text-app-muted-strong">{value}</span>
     </div>
   );
 }
@@ -169,7 +169,7 @@ function RuntimeFailureList({
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[14px] font-semibold text-app-text">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-app-text">{title}</h3>
         <span className={ui.chipSoft}>{items.length} 项</span>
       </div>
       {items.length > 0 ? (
@@ -177,19 +177,19 @@ function RuntimeFailureList({
           {items.map((item) => (
             <div
               key={item.label}
-              className="flex items-start justify-between gap-3 rounded-xl border border-app-border/80 bg-white/82 px-3 py-2"
+              className="flex items-start justify-between gap-3 rounded-xl border border-app-border/80 bg-white/82 px-2.5 py-1.5"
             >
-              <span className="min-w-0 text-[12px] leading-5 text-app-muted-strong">
+              <span className="min-w-0 text-[11px] leading-4.5 text-app-muted-strong">
                 {item.label}
               </span>
-              <span className="shrink-0 text-[12px] font-medium text-app-text">
+              <span className="shrink-0 text-[11px] font-medium text-app-text">
                 {formatCount(item.count)}
               </span>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-app-border/80 bg-app-surface-soft/44 px-3 py-3 text-[12px] text-app-muted">
+        <div className="rounded-xl border border-app-border/80 bg-app-surface-soft/44 px-2.5 py-2.5 text-[11px] text-app-muted">
           {emptyText}
         </div>
       )}
@@ -209,8 +209,8 @@ function RuntimeScopeBar({
   const width = total > 0 ? Math.max(6, Math.round((count / total) * 100)) : 0;
 
   return (
-    <div className="grid gap-1.5">
-      <div className="flex items-center justify-between gap-3 text-[12px]">
+    <div className="grid gap-1">
+      <div className="flex items-center justify-between gap-3 text-[11px]">
         <span className="text-app-muted-strong">{label}</span>
         <span className="font-medium text-app-text">{formatCount(count)}</span>
       </div>
@@ -290,14 +290,14 @@ export function SystemRuntimeOverviewPanel({
 
   return (
     <SettingsShell sidebar={<SystemManagementSidebar activeSection="runtime" />}>
-      <div className="flex w-full min-w-0 flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-3.5">
         <section className={cn(ui.sectionPanel, "grid gap-5")}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="grid gap-1.5">
               <span className={ui.eyebrow}>System Runtime</span>
               <div className="grid gap-1">
-                <h1 className="text-[1.72rem] font-semibold text-app-text">系统运行状况</h1>
-                <p className="text-[13px] leading-6 text-app-muted-strong">
+                <h1 className="text-[1.48rem] font-semibold text-app-text">系统运行状况</h1>
+                <p className="text-[13px] leading-5 text-app-muted-strong">
                   面向超管的实时运营面板，集中查看使用活跃度、回答链路、资料入库和配置就绪度。
                 </p>
               </div>
@@ -398,8 +398,8 @@ export function SystemRuntimeOverviewPanel({
           <section className={cn(ui.sectionPanel, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
-                <h2 className="text-[1.08rem] font-semibold text-app-text">时间窗对照</h2>
-                <p className="text-[13px] leading-6 text-app-muted-strong">
+                <h2 className="text-[1rem] font-semibold text-app-text">时间窗对照</h2>
+                <p className="text-[13px] leading-5 text-app-muted-strong">
                   所有关键运营指标按 24 小时、7 天、30 天并排对照，便于判断近期波动。
                 </p>
               </div>
@@ -455,8 +455,8 @@ export function SystemRuntimeOverviewPanel({
 
           <section className={cn(ui.sectionPanel, "grid gap-4")}>
             <div className="grid gap-0.5">
-              <h2 className="text-[1.08rem] font-semibold text-app-text">系统账本</h2>
-              <p className="text-[13px] leading-6 text-app-muted-strong">
+              <h2 className="text-[1rem] font-semibold text-app-text">系统账本</h2>
+              <p className="text-[13px] leading-5 text-app-muted-strong">
                 当前数据库快照和配置就绪度，用于判断系统是否可持续处理请求。
               </p>
             </div>
@@ -540,8 +540,8 @@ export function SystemRuntimeOverviewPanel({
           <section className={cn(ui.sectionPanel, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
-                <h2 className="text-[1.08rem] font-semibold text-app-text">问答与引用</h2>
-                <p className="text-[13px] leading-6 text-app-muted-strong">
+                <h2 className="text-[1rem] font-semibold text-app-text">问答与引用</h2>
+                <p className="text-[13px] leading-5 text-app-muted-strong">
                   当前时间窗内的回答终态、工具回执和引用来源拆分。
                 </p>
               </div>
@@ -568,7 +568,7 @@ export function SystemRuntimeOverviewPanel({
               />
             </div>
 
-            <div className="grid gap-3 rounded-[22px] border border-app-border bg-app-surface-soft/38 p-4">
+            <div className="grid gap-2.5 rounded-[18px] border border-app-border bg-app-surface-soft/38 p-3.5">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-[14px] font-semibold text-app-text">引用来源拆分</h3>
                 <span className={ui.chipSoft}>{formatCount(activeWindow.citationCount)} 条</span>
@@ -600,8 +600,8 @@ export function SystemRuntimeOverviewPanel({
           <section className={cn(ui.sectionPanel, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="grid gap-0.5">
-                <h2 className="text-[1.08rem] font-semibold text-app-text">资料链路</h2>
-                <p className="text-[13px] leading-6 text-app-muted-strong">
+                <h2 className="text-[1rem] font-semibold text-app-text">资料链路</h2>
+                <p className="text-[13px] leading-5 text-app-muted-strong">
                   聚焦文档新增、入库终态和当前队列积压，方便判断 parser / worker 是否顺畅。
                 </p>
               </div>
@@ -628,7 +628,7 @@ export function SystemRuntimeOverviewPanel({
               />
             </div>
 
-            <div className="grid gap-3 rounded-[22px] border border-app-border bg-app-surface-soft/38 p-4">
+            <div className="grid gap-2.5 rounded-[18px] border border-app-border bg-app-surface-soft/38 p-3.5">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-[14px] font-semibold text-app-text">当前积压阶段</h3>
                 <span className={ui.chipSoft}>

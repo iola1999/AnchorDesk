@@ -10,7 +10,7 @@ export default async function LoginPage() {
   const registrationEnabled = await readRegistrationEnabled();
 
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-[1320px] place-items-center px-6 py-10 md:px-8">
+    <main className="mx-auto grid min-h-screen w-full max-w-[1320px] place-items-center px-4 py-8 md:px-6">
       <div className="grid w-full max-w-[560px] gap-4">
         <AuthForm mode="login" registrationEnabled={registrationEnabled} />
         {registrationEnabled ? (

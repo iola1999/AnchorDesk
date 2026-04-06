@@ -59,7 +59,7 @@ export function WorkspaceSettingsForm({
     <form id={sectionId} onSubmit={onSubmit} className={ui.sectionPanel}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-0.5">
-          <h2 className="text-[1.1rem] font-semibold text-app-text">基础信息</h2>
+          <h2 className="text-[1rem] font-semibold text-app-text">基础信息</h2>
         </div>
 
         <button
@@ -71,11 +71,11 @@ export function WorkspaceSettingsForm({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-4">
-        <label className="grid gap-3 border-t border-app-border pt-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
+      <div className="mt-3.5 grid gap-3.5">
+        <label className="grid gap-3 border-t border-app-border pt-3.5 md:grid-cols-[172px_minmax(0,1fr)] md:gap-4">
           <div className="grid content-start gap-1">
-            <span className="text-[15px] font-semibold text-app-text">空间名称</span>
-            <span className="text-[13px] leading-6 text-app-muted">侧栏和标题区使用</span>
+            <span className="text-[14px] font-semibold text-app-text">空间名称</span>
+            <span className="text-[13px] leading-5 text-app-muted">侧栏和标题区使用</span>
           </div>
           <input
             required
@@ -85,15 +85,15 @@ export function WorkspaceSettingsForm({
           />
         </label>
 
-        <label className="grid gap-3 border-t border-app-border pt-4 md:grid-cols-[180px_minmax(0,1fr)] md:gap-5">
+        <label className="grid gap-3 border-t border-app-border pt-3.5 md:grid-cols-[172px_minmax(0,1fr)] md:gap-4">
           <div className="grid content-start gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-semibold text-app-text">预置提示词</span>
+              <span className="text-[14px] font-semibold text-app-text">预置提示词</span>
               <span className={ui.chipSoft}>
                 {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
               </span>
             </div>
-            <span className="text-[13px] leading-6 text-app-muted">为空则不追加空间级指令</span>
+            <span className="text-[13px] leading-5 text-app-muted">为空则不追加空间级指令</span>
           </div>
 
           <textarea

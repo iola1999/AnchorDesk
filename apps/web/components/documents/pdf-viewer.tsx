@@ -213,9 +213,9 @@ export function PdfViewer({
   const currentPageTextMaxHeight = highlightedText ? "max-h-[280px]" : "max-h-[220px]";
 
   return (
-    <div className="grid w-full gap-6 lg:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)_420px]">
+    <div className="grid w-full gap-5 lg:grid-cols-[304px_minmax(0,1fr)] 2xl:grid-cols-[344px_minmax(0,1fr)_396px]">
       <div className="min-w-0 self-start lg:col-start-1 lg:row-start-1 xl:sticky xl:top-6">
-        <div className="grid gap-4 rounded-[24px] border border-app-border/60 bg-white/40 p-4 shadow-soft backdrop-blur-sm md:p-5">
+        <div className="grid gap-3.5 rounded-[20px] border border-app-border/60 bg-white/40 p-3.5 shadow-soft backdrop-blur-sm md:p-4">
           <label className="flex flex-col gap-1.5">
             <span className="px-1 text-[13px] font-medium text-app-muted-strong">页内搜索</span>
             <input
@@ -231,7 +231,7 @@ export function PdfViewer({
               {searchResults.map((result) => (
                 <button
                   key={`${result.pageNo}-${result.snippet}`}
-                  className="w-full min-w-0 rounded-2xl border border-app-border/60 bg-white/55 px-4 py-3 text-left text-sm transition hover:border-app-border-strong hover:bg-white"
+                  className="w-full min-w-0 rounded-[18px] border border-app-border/60 bg-white/55 px-3.5 py-2.5 text-left text-[13px] transition hover:border-app-border-strong hover:bg-white"
                   onClick={() => jumpToPage(result.pageNo)}
                   type="button"
                 >
@@ -249,10 +249,10 @@ export function PdfViewer({
       </div>
 
       <div className="min-w-0 lg:col-start-1 lg:row-start-2 2xl:col-start-2 2xl:row-start-1 2xl:row-span-2">
-        <div className="grid gap-5 rounded-[24px] border border-app-border/60 bg-white/40 p-4 shadow-soft backdrop-blur-sm md:p-5">
-          <div className="flex flex-col gap-3 border-b border-app-border/40 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid gap-4 rounded-[20px] border border-app-border/60 bg-white/40 p-3.5 shadow-soft backdrop-blur-sm md:p-4">
+          <div className="flex flex-col gap-2.5 border-b border-app-border/40 pb-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="grid gap-1">
-              <h3 className="text-[15px] font-semibold text-app-text">PDF 阅读器</h3>
+              <h3 className="text-[14px] font-semibold text-app-text">PDF 阅读器</h3>
               <p className="max-w-[320px] truncate text-[12px] text-app-muted" title={title}>
                 {title}
                 {pageCount > 0 ? ` · 共 ${pageCount} 页` : ""}
@@ -268,7 +268,7 @@ export function PdfViewer({
                 上一页
               </button>
               <input
-                className="h-8 w-[60px] rounded-lg border border-app-border/60 bg-white px-2 py-0 text-center text-[13px] outline-none focus:border-app-border-strong focus:ring-2 focus:ring-app-accent/10"
+                className="h-7 w-[56px] rounded-lg border border-app-border/60 bg-white px-2 py-0 text-center text-[12px] outline-none focus:border-app-border-strong focus:ring-2 focus:ring-app-accent/10"
                 inputMode="numeric"
                 value={currentPageInput}
                 onChange={(event) => setCurrentPageInput(event.target.value)}
@@ -310,11 +310,11 @@ export function PdfViewer({
       </div>
 
       <div className="min-w-0 self-start lg:col-span-2 lg:row-start-3 2xl:sticky 2xl:top-6 2xl:col-span-1 2xl:col-start-3 2xl:row-start-1 2xl:row-span-2">
-        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden rounded-[24px] border border-app-border/60 bg-white/46 p-4 shadow-soft backdrop-blur-sm md:p-5 lg:max-h-[calc(100vh-3rem)]">
-          <div className="grid gap-1.5 border-b border-app-border/40 pb-4">
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3.5 overflow-hidden rounded-[20px] border border-app-border/60 bg-white/46 p-3.5 shadow-soft backdrop-blur-sm md:p-4 lg:max-h-[calc(100vh-3rem)]">
+          <div className="grid gap-1.5 border-b border-app-border/40 pb-3.5">
             <div className="flex items-start justify-between gap-3">
               <div className="grid gap-1">
-                <h3 className="text-[15px] font-semibold text-app-text">高亮与解析</h3>
+                <h3 className="text-[14px] font-semibold text-app-text">高亮与解析</h3>
                 <p className="text-[12px] text-app-muted">第 {currentPage} 页</p>
               </div>
               {highlightedText ? (
@@ -324,8 +324,8 @@ export function PdfViewer({
           </div>
 
           <div className="min-h-0 overflow-y-auto overflow-x-hidden pr-1">
-            <div className="grid gap-4">
-              <div className="grid gap-2.5">
+            <div className="grid gap-3.5">
+              <div className="grid gap-2">
                 <div className="flex items-center justify-between px-1">
                   <strong className="text-[13px] font-medium text-app-text">
                     第 {currentPage} 页文本
@@ -343,7 +343,7 @@ export function PdfViewer({
                   <div
                     className={cn(
                       textSelectionStyles.content,
-                      "h-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all [overflow-wrap:anywhere] p-4 text-[14px] leading-[1.8] text-app-text",
+                      "h-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all [overflow-wrap:anywhere] p-3.5 text-[13px] leading-[1.75] text-app-text",
                     )}
                   >
                     {highlightedSegments.map((segment, index) =>
@@ -363,7 +363,7 @@ export function PdfViewer({
               </div>
 
               {children ? (
-                <div className="grid gap-3 border-t border-app-border/40 pt-4">
+                <div className="grid gap-2.5 border-t border-app-border/40 pt-3.5">
                   <div className="flex items-center justify-between gap-3 px-1">
                     <strong className="text-[13px] font-medium text-app-text">全部解析页</strong>
                     <span className="text-right text-[12px] text-app-muted">可继续滚动查看全部页面</span>

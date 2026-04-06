@@ -215,7 +215,7 @@ export function ConversationSharePopover({
       open={open}
       onOpenChange={handleOpenChange}
       placement="bottom-end"
-      sideOffset={10}
+      sideOffset={8}
       collisionPadding={12}
     >
       <PopoverTrigger asChild>
@@ -225,7 +225,7 @@ export function ConversationSharePopover({
           aria-haspopup="dialog"
           className={cn(
             buttonStyles({ size: "sm" }),
-            "gap-2 rounded-[18px] px-3.5 shadow-sm hover:bg-[#25211c] min-[720px]:gap-2.5 min-[720px]:px-4",
+            "gap-1.5 rounded-[16px] px-3 shadow-sm hover:bg-[#25211c] min-[720px]:gap-2 min-[720px]:px-3.5",
           )}
           disabled={isSubmitting}
           type="button"
@@ -238,7 +238,7 @@ export function ConversationSharePopover({
       <PopoverContent
         id={panelId}
         aria-label="会话分享"
-        className="z-20 w-[min(320px,calc(100vw-24px))] overflow-hidden"
+        className="z-20 w-[min(300px,calc(100vw-24px))] overflow-hidden"
       >
           {/* Header */}
           <div className="flex items-center justify-between gap-3 px-3 pb-1 pt-2.5">
@@ -246,7 +246,7 @@ export function ConversationSharePopover({
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
                 公开分享
               </p>
-              <strong className="text-[13px] text-app-text">{shareStateLabel}</strong>
+              <strong className="text-[12px] text-app-text">{shareStateLabel}</strong>
             </div>
             <span
               className={cn(

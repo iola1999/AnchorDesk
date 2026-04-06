@@ -62,10 +62,10 @@ export function AuthForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-4")}>
-      <div className="space-y-2">
+    <form onSubmit={onSubmit} className={cn(ui.panelLarge, "grid gap-3.5")}>
+      <div className="space-y-1.5">
         <p className={ui.eyebrow}>{mode === "login" ? "Login" : "Register"}</p>
-        <h1>{mode === "login" ? "登录" : "注册"}</h1>
+        <h1 className="text-[1.7rem] leading-[1.05]">{mode === "login" ? "登录" : "注册"}</h1>
       </div>
       {mode === "register" ? (
         <label className={ui.label}>

@@ -14,27 +14,27 @@ import {
 
 describe("inputStyles", () => {
   it("keeps the default field scale for standard forms", () => {
-    expect(inputStyles()).toContain("h-12");
-    expect(inputStyles()).toContain("rounded-2xl");
+    expect(inputStyles()).toContain("h-11");
+    expect(inputStyles()).toContain("rounded-[20px]");
   });
 
   it("supports a compact field scale for dense workbench layouts", () => {
-    expect(inputStyles({ size: "compact" })).toContain("h-10");
-    expect(inputStyles({ size: "compact" })).toContain("rounded-[18px]");
+    expect(inputStyles({ size: "compact" })).toContain("h-9");
+    expect(inputStyles({ size: "compact" })).toContain("rounded-[16px]");
     expect(inputStyles({ size: "compact" })).toContain("focus:ring-[3px]");
   });
 });
 
 describe("buttonStyles", () => {
   it("supports an extra-small button size without custom one-off classes", () => {
-    expect(buttonStyles({ size: "xs" })).toContain("min-h-8");
-    expect(buttonStyles({ size: "xs" })).toContain("text-[13px]");
+    expect(buttonStyles({ size: "xs" })).toContain("min-h-7");
+    expect(buttonStyles({ size: "xs" })).toContain("text-[12px]");
   });
 
   it("supports icon buttons through the shared button primitive", () => {
     const classes = buttonStyles({ shape: "icon", size: "sm", variant: "ghost" });
 
-    expect(classes).toContain("size-9");
+    expect(classes).toContain("size-8");
     expect(classes).toContain("p-0");
     expect(classes).toContain("rounded-xl");
   });
@@ -108,9 +108,9 @@ describe("conversation action helpers", () => {
   it("supports a compact chip density for dense conversation toolbars", () => {
     const classes = chipButtonStyles({ size: "compact" });
 
-    expect(classes).toContain("px-2.5");
-    expect(classes).toContain("py-1");
-    expect(classes).toContain("text-[12px]");
+    expect(classes).toContain("px-2");
+    expect(classes).toContain("py-0.5");
+    expect(classes).toContain("text-[11px]");
   });
 
   it("keeps inactive tabs understated", () => {
@@ -123,9 +123,9 @@ describe("conversation action helpers", () => {
   it("supports compact tabs for tighter answer/source switching", () => {
     const classes = tabButtonStyles({ active: true, size: "compact" });
 
-    expect(classes).toContain("gap-1.5");
-    expect(classes).toContain("pb-1.5");
-    expect(classes).toContain("text-[12px]");
+    expect(classes).toContain("gap-1");
+    expect(classes).toContain("pb-1");
+    expect(classes).toContain("text-[11px]");
   });
 });
 
@@ -134,7 +134,7 @@ describe("workspaceTileStyles", () => {
     const classes = workspaceTileStyles();
 
     expect(classes).toContain("grid-rows-[auto_1fr_auto]");
-    expect(classes).toContain("min-h-[220px]");
+    expect(classes).toContain("min-h-[200px]");
   });
 
   it("centers the create-workspace card content within the tile", () => {

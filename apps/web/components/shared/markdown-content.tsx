@@ -40,13 +40,13 @@ function InlineCitationPreviewEntry({
   });
   const preview = buildCitationPreviewModel(citation);
   const body = (
-    <span
-      className={cn(
-        textSelectionStyles.content,
-        "grid gap-2 rounded-xl px-3 py-2.5 text-left transition",
-        target ? "hover:bg-app-surface-soft/82" : "",
-      )}
-    >
+      <span
+        className={cn(
+          textSelectionStyles.content,
+          "grid gap-1.5 rounded-xl px-3 py-2 text-left transition",
+          target ? "hover:bg-app-surface-soft/82" : "",
+        )}
+      >
       <span className="flex flex-wrap items-center gap-2">
         <span
           className={cn(
@@ -75,7 +75,7 @@ function InlineCitationPreviewEntry({
         )}
       </span>
 
-      <span className="text-[15px] font-semibold leading-6 text-app-text">
+      <span className="text-[14px] font-semibold leading-5 text-app-text">
         {preview.title}
       </span>
 

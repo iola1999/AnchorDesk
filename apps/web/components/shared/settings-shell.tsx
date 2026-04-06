@@ -20,7 +20,7 @@ export function SettingsShell({
 
         <main
           className={cn(
-            "min-w-0 px-4 py-4 md:px-5 md:py-5 xl:px-6 xl:py-6",
+            "min-w-0 px-3 py-3 md:px-4 md:py-4 xl:px-5 xl:py-5",
             mainClassName,
           )}
         >
@@ -33,7 +33,7 @@ export function SettingsShell({
 
 export function SettingsShellSidebar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full flex-col gap-4 px-4 py-4 md:px-5 md:py-5 xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto">
+    <div className="flex h-full flex-col gap-3 px-3 py-3 md:px-4 md:py-4 xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto">
       {children}
     </div>
   );

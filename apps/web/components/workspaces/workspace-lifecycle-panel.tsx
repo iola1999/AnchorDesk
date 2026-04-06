@@ -59,15 +59,15 @@ export function WorkspaceLifecyclePanel({
 
   return (
     <>
-      <section className="rounded-2xl border border-red-200 bg-red-50/65 p-5 shadow-soft md:p-6">
+      <section className="rounded-[20px] border border-red-200 bg-red-50/65 p-4 shadow-soft md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="grid gap-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-600">
               危险操作
             </p>
             <div className="grid gap-1">
-              <h2 className="text-[1.1rem] font-semibold text-app-text">删除工作空间</h2>
-              <p className="max-w-[42ch] text-[13px] leading-6 text-app-muted-strong">
+              <h2 className="text-[1rem] font-semibold text-app-text">删除工作空间</h2>
+              <p className="max-w-[42ch] text-[13px] leading-5 text-app-muted-strong">
                 删除后会从工作台隐藏，现有资料和会话不再开放访问
               </p>
             </div>

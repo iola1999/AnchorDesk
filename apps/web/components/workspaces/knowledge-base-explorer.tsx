@@ -318,7 +318,7 @@ function TableRow({
         }
 
         return (
-          <td key={cell.id} className="px-4 py-3 align-middle text-sm text-app-muted-strong">
+          <td key={cell.id} className="px-3.5 py-2.5 align-middle text-[13px] text-app-muted-strong">
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
         );
@@ -1118,11 +1118,11 @@ export function KnowledgeBaseExplorer({
     "shrink-0 whitespace-nowrap",
   );
   const headerFieldClass =
-    "h-10 rounded-[18px] border border-app-border bg-app-surface-soft/72 px-3.5 text-[14px]";
+    "h-9 rounded-[16px] border border-app-border bg-app-surface-soft/72 px-3 text-[13px]";
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={cn(ui.panelLarge, "grid gap-5 px-5 py-5 md:px-6")}>
+      <div className={cn(ui.panelLarge, "grid gap-4 px-4 py-4 md:px-5")}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="grid gap-1">
             <span className={ui.eyebrow}>{scopeLabel}</span>
@@ -1255,10 +1255,10 @@ export function KnowledgeBaseExplorer({
         {operationError ? <p className={ui.error}>{operationError}</p> : null}
 
         {mountedLibraries.length > 0 && currentPath === "资料库" ? (
-          <section className="grid gap-3 rounded-[24px] border border-app-border bg-app-surface-soft/48 p-4">
+          <section className="grid gap-2.5 rounded-[20px] border border-app-border bg-app-surface-soft/48 p-3.5">
             <div className="flex items-center justify-between gap-3">
               <div className="grid gap-0.5">
-                <h3 className="text-[15px] font-semibold text-app-text">已挂载全局资料库</h3>
+                <h3 className="text-[14px] font-semibold text-app-text">已挂载全局资料库</h3>
                 <p className="text-[13px] text-app-muted-strong">
                   在当前工作空间内只读浏览，默认参与对话检索
                 </p>
@@ -1272,16 +1272,16 @@ export function KnowledgeBaseExplorer({
                 <Link
                   key={library.id}
                   href={library.href}
-                  className="grid gap-2 rounded-[20px] border border-app-border bg-white/88 px-4 py-3 transition hover:border-app-border-strong hover:bg-white"
+                  className="grid gap-1.5 rounded-[18px] border border-app-border bg-white/88 px-3.5 py-2.5 transition hover:border-app-border-strong hover:bg-white"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <strong className="truncate text-[14px] text-app-text">{library.title}</strong>
+                    <strong className="truncate text-[13px] text-app-text">{library.title}</strong>
                     <span className="shrink-0 text-[12px] text-app-muted">
                       {library.documentCount} 份资料
                     </span>
                   </div>
                   {library.description ? (
-                    <p className="line-clamp-2 text-[13px] leading-6 text-app-muted-strong">
+                    <p className="line-clamp-2 text-[13px] leading-5 text-app-muted-strong">
                       {library.description}
                     </p>
                   ) : null}
@@ -1294,7 +1294,7 @@ export function KnowledgeBaseExplorer({
           </section>
         ) : null}
 
-        <div className="overflow-hidden rounded-[24px] border border-app-border bg-white">
+        <div className="overflow-hidden rounded-[20px] border border-app-border bg-white">
           <table className="w-full border-collapse text-left">
             <thead className="border-b border-app-border bg-app-surface-soft/70">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -1302,7 +1302,7 @@ export function KnowledgeBaseExplorer({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-app-muted-strong"
+                      className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-app-muted-strong"
                     >
                       {header.isPlaceholder
                         ? null
@@ -1346,7 +1346,7 @@ export function KnowledgeBaseExplorer({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-app-muted">
+                  <td colSpan={columns.length} className="px-3.5 py-8 text-center text-[13px] text-app-muted">
                     当前目录没有资料。
                   </td>
                 </tr>
@@ -1355,7 +1355,7 @@ export function KnowledgeBaseExplorer({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-app-muted">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-app-muted">
           <span>
             当前目录 {entries.length} 项
             {selectedEntries.length > 0 ? ` · 已选 ${selectedEntries.length} 项` : ""}
@@ -1375,18 +1375,18 @@ export function KnowledgeBaseExplorer({
           <button
             type="button"
             {...dropzone.getRootProps()}
-            className="grid min-h-[180px] place-items-center rounded-[24px] border border-dashed border-app-border bg-app-surface-soft/55 px-6 py-8 text-center"
+            className="grid min-h-[168px] place-items-center rounded-[20px] border border-dashed border-app-border bg-app-surface-soft/55 px-5 py-6 text-center"
           >
             <input {...dropzone.getInputProps({ accept: SUPPORTED_UPLOAD_ACCEPT })} />
-            <div className="grid gap-2">
-              <strong className="text-base">拖入文件，或点击选择文件</strong>
+            <div className="grid gap-1.5">
+              <strong className="text-[14px]">拖入文件，或点击选择文件</strong>
               <span className={ui.muted}>
                 支持 {SUPPORTED_UPLOAD_TYPES_LABEL}。图片和扫描件暂不开放上传。
               </span>
             </div>
           </button>
           {validUploadItems.length > 0 ? (
-            <div className="grid gap-2 rounded-[22px] border border-app-border bg-white p-4">
+            <div className="grid gap-2 rounded-[18px] border border-app-border bg-white p-3.5">
               {validUploadItems.map((item) => {
                 const isFailed = item.step === DOCUMENT_UPLOAD_STEP.FAILED;
                 const isSucceeded = item.step === DOCUMENT_UPLOAD_STEP.SUCCEEDED;
@@ -1400,7 +1400,7 @@ export function KnowledgeBaseExplorer({
                   <div
                     key={item.id}
                     className={cn(
-                      "grid gap-2 rounded-[18px] border px-3 py-3",
+                      "grid gap-1.5 rounded-[16px] border px-3 py-2.5",
                       isFailed
                         ? "border-red-200 bg-red-50/60"
                         : isSucceeded
@@ -1446,7 +1446,7 @@ export function KnowledgeBaseExplorer({
             </div>
           ) : null}
           {invalidUploadFiles.length > 0 ? (
-            <div className="grid gap-2 rounded-[22px] border border-red-200 bg-red-50/70 p-4">
+            <div className="grid gap-2 rounded-[18px] border border-red-200 bg-red-50/70 p-3.5">
               {invalidUploadFiles.map(({ file, message }) => (
                 <div
                   key={`${file.name}-${file.lastModified}`}
@@ -1601,7 +1601,7 @@ export function KnowledgeBaseExplorer({
             processingDocuments.map((document) => (
               <div
                 key={document.id}
-                className="grid gap-3 rounded-[22px] border border-app-border bg-app-surface-soft/55 p-4"
+                className="grid gap-2.5 rounded-[18px] border border-app-border bg-app-surface-soft/55 p-3.5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="grid gap-1">
