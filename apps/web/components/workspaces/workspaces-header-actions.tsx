@@ -88,37 +88,34 @@ export function WorkspacesHeaderActions({
           sideOffset={8}
           collisionPadding={12}
         >
-          <PopoverContent
-            id={adminMenuId}
-            className="z-30 w-[240px]"
-          >
-              <div className="px-3 pb-1 pt-2.5">
-                <p className={ui.eyebrow}>管理</p>
-                <h2 className="text-[14px] font-semibold text-app-text">管理入口</h2>
-              </div>
+          <PopoverContent id={adminMenuId} className="z-30 w-[240px]">
+            <div className="px-3 pb-1 pt-2.5">
+              <p className={ui.eyebrow}>管理</p>
+              <h2 className="text-[14px] font-semibold text-app-text">管理入口</h2>
+            </div>
 
-              <div className="mx-2 my-1.5 h-px bg-app-border/70" />
+            <div className="mx-2 my-1.5 h-px bg-app-border/70" />
 
-              <nav className="grid gap-0.5 py-0.5">
-                {adminActions.map((action) => (
-                  <Link
-                    key={action.key}
-                    href={action.href ?? "/"}
-                    onClick={() => setOpenMenu(null)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-xl px-3 py-1.5 transition",
-                      menuItemStyles(),
-                    )}
-                  >
-                    <span className="grid size-[26px] shrink-0 place-items-center rounded-lg text-app-muted-strong">
-                      {resolveAdminActionIcon(action.key)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
-                      {action.label}
-                    </span>
-                  </Link>
-                ))}
-              </nav>
+            <nav className="grid gap-0.5 py-0.5">
+              {adminActions.map((action) => (
+                <Link
+                  key={action.key}
+                  href={action.href ?? "/"}
+                  onClick={() => setOpenMenu(null)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl px-3 py-1.5 transition",
+                    menuItemStyles(),
+                  )}
+                >
+                  <span className="grid size-[26px] shrink-0 place-items-center rounded-lg text-app-muted-strong">
+                    {resolveAdminActionIcon(action.key)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                    {action.label}
+                  </span>
+                </Link>
+              ))}
+            </nav>
           </PopoverContent>
 
           <PopoverTrigger asChild>
@@ -126,11 +123,11 @@ export function WorkspacesHeaderActions({
               type="button"
               aria-expanded={openMenu === "admin"}
               aria-controls={adminMenuId}
-            aria-label={openMenu === "admin" ? "收起管理菜单" : "展开管理菜单"}
-            className={headerMenuTriggerStyles(openMenu === "admin")}
-          >
-              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-app-surface-strong text-app-accent">
-                <SlidersIcon className="size-[14px]" />
+              aria-label={openMenu === "admin" ? "收起管理菜单" : "展开管理菜单"}
+              className={headerMenuTriggerStyles(openMenu === "admin")}
+            >
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-app-surface-strong text-app-accent">
+                <SlidersIcon className="size-[13px]" />
               </span>
               <span className="text-[12px] font-medium text-app-text">管理</span>
               <ChevronDownIcon
@@ -157,16 +154,16 @@ export function WorkspacesHeaderActions({
           id={accountMenuId}
           className="z-30 w-[min(264px,calc(100vw-24px))]"
         >
-            <WorkspaceUserMenuContent
-              displayName={displayName}
-              username={username}
-              avatarLabel={avatarLabel}
-              actions={accountActions}
-              logoutLabel={logoutAction?.label}
-              isSigningOut={isSigningOut}
-              onNavigate={() => setOpenMenu(null)}
-              onSignOut={onSignOut}
-            />
+          <WorkspaceUserMenuContent
+            displayName={displayName}
+            username={username}
+            avatarLabel={avatarLabel}
+            actions={accountActions}
+            logoutLabel={logoutAction?.label}
+            isSigningOut={isSigningOut}
+            onNavigate={() => setOpenMenu(null)}
+            onSignOut={onSignOut}
+          />
         </PopoverContent>
 
         <PopoverTrigger asChild>
@@ -177,7 +174,7 @@ export function WorkspacesHeaderActions({
             aria-label={openMenu === "account" ? "收起账号菜单" : "展开账号菜单"}
             className={headerMenuTriggerStyles(openMenu === "account")}
           >
-            <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-app-surface-strong text-[12px] font-semibold text-app-accent">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[11px] font-semibold text-app-accent">
               {avatarLabel}
             </span>
             <span className="max-w-[8rem] truncate text-[12px] font-medium text-app-text">
@@ -199,7 +196,7 @@ export function WorkspacesHeaderActions({
 function headerMenuTriggerStyles(open: boolean) {
   return cn(
     buttonStyles({ variant: "secondary", size: "sm", shape: "pill" }),
-    "gap-1.5 border-app-border/80 bg-white/78 pl-1.5 pr-2 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
+    "gap-1.5 border-app-border/80 bg-white/78 pl-1 pr-2 shadow-soft backdrop-blur-sm hover:border-app-border-strong hover:bg-white",
     open && "border-app-border-strong bg-white text-app-text",
   );
 }

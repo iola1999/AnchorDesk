@@ -117,7 +117,11 @@ export function GlobalLibraryCreateForm() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2.5">
-        <button className={buttonStyles()} disabled={submitting} type="submit">
+        <button
+          className={buttonStyles({ size: "sm" })}
+          disabled={submitting}
+          type="submit"
+        >
           {submitting ? "创建中..." : "创建并进入管理"}
         </button>
       </div>

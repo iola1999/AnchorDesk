@@ -185,11 +185,14 @@ export function ModelProfilesAdmin({
                     </span>
                     <button
                       type="button"
-                      className={buttonStyles({
-                        variant: "secondary",
-                        size: "xs",
-                        shape: "pill",
-                      })}
+                      className={cn(
+                        buttonStyles({
+                          variant: "secondary",
+                          size: "sm",
+                          shape: "pill",
+                        }),
+                        "shadow-soft",
+                      )}
                       onClick={() => handleSelectProfile(null)}
                     >
                       新建模型
@@ -376,7 +379,11 @@ export function ModelProfilesAdmin({
                     还原
                   </button>
                 ) : null}
-                <button className={buttonStyles()} disabled={isPending} type="submit">
+                <button
+                  className={buttonStyles({ size: "sm" })}
+                  disabled={isPending}
+                  type="submit"
+                >
                   {isPending ? "刷新中..." : selectedProfile ? "保存模型" : "创建模型"}
                 </button>
               </div>

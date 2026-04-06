@@ -1114,7 +1114,7 @@ export function KnowledgeBaseExplorer({
   }
 
   const toolbarButtonClass = cn(
-    buttonStyles({ variant: "secondary" }),
+    buttonStyles({ variant: "secondary", size: "sm" }),
     "shrink-0 whitespace-nowrap",
   );
   const headerFieldClass =
