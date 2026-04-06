@@ -214,7 +214,7 @@ export function WorkspaceShellFrame({
         </aside>
       </div>
 
-      <aside className="hidden min-[720px]:flex min-[720px]:min-h-0 min-[720px]:h-[100dvh] min-[720px]:overflow-hidden min-[720px]:border-r min-[720px]:border-app-border min-[720px]:bg-app-sidebar">
+      <aside className="hidden min-[720px]:flex min-[720px]:h-[100dvh] min-[720px]:bg-app-surface-low">
         <WorkspaceSidebarContent
           workspace={workspace}
           conversations={conversations}
@@ -225,10 +225,10 @@ export function WorkspaceShellFrame({
         />
       </aside>
 
-      <section className="grid min-h-[100dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 px-3 py-3 min-[720px]:min-h-0 min-[720px]:px-5 min-[720px]:py-4 min-[720px]:overflow-hidden md:px-6">
-        <header className="border-b border-app-border px-0.5 pb-2.5">
-          <div className="grid gap-2.5 min-[720px]:hidden">
-            <div className="flex items-center gap-3">
+      <section className="grid min-h-[100dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 px-3 py-3 min-[720px]:min-h-0 min-[720px]:overflow-hidden min-[720px]:px-5 min-[720px]:py-4 md:px-6">
+        <header className="sticky top-0 z-20 border-b border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/72 px-0.5 py-3 backdrop-blur-xl">
+          <div className="flex min-w-0 items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <button
                 type="button"
                 aria-controls={drawerId}
@@ -236,33 +236,13 @@ export function WorkspaceShellFrame({
                 aria-label={isDrawerOpen ? "收起导航面板" : "展开导航面板"}
                 className={cn(
                   buttonStyles({ variant: "secondary", size: "sm", shape: "icon" }),
-                  "size-9 rounded-[18px] border-app-border bg-white/88 shadow-soft",
+                  "size-9 rounded-[18px] border-transparent bg-app-surface-lowest shadow-none hover:bg-app-surface-high min-[720px]:hidden",
                 )}
                 onClick={() => setIsDrawerOpen((current) => !current)}
               >
                 <MenuIcon />
               </button>
 
-              <Link
-                href="/workspaces"
-                className="flex min-w-0 items-center gap-2.5"
-                onClick={() => setIsDrawerOpen(false)}
-              >
-                <span className="grid size-[36px] shrink-0 place-items-center rounded-xl bg-app-primary shadow-sm">
-                  <AnchorDeskLogo className="size-[17px] text-app-primary-contrast" />
-                </span>
-                <span className="grid min-w-0 gap-0.5">
-                  <strong className="truncate font-serif text-[14px] leading-tight text-app-text">
-                    {workspaceBranding.productName}
-                  </strong>
-                  <span className="truncate text-[11px] text-app-muted-strong">
-                    {workspace.title}
-                  </span>
-                </span>
-              </Link>
-            </div>
-
-            <div className="flex min-w-0 items-center justify-between gap-2.5">
               <div className="min-w-0 flex-1">
                 <BreadcrumbTrail
                   workspace={workspace}
@@ -273,28 +253,9 @@ export function WorkspaceShellFrame({
                   currentConversation={currentConversation}
                 />
               </div>
-
-              {topActions ? (
-                <div className="flex shrink-0 items-center justify-end gap-1">
-                  {topActions}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="hidden min-[720px]:flex min-[720px]:min-w-0 min-[720px]:items-center min-[720px]:justify-between min-[720px]:gap-3">
-            <div className="min-w-0 flex-1">
-              <BreadcrumbTrail
-                workspace={workspace}
-                workspaces={workspaces}
-                conversations={conversations}
-                breadcrumbs={breadcrumbs}
-                activeView={activeView}
-                currentConversation={currentConversation}
-              />
             </div>
 
-            {topActions ? <div className="flex shrink-0 items-center gap-1.5">{topActions}</div> : null}
+            {topActions ? <div className="flex shrink-0 items-center gap-2">{topActions}</div> : null}
           </div>
         </header>
 
@@ -398,6 +359,7 @@ function WorkspaceSidebarContent({
           <Link
             href={`/workspaces/${workspace.id}/settings`}
             onClick={onNavigate}
+            aria-current={activeView === "settings" ? "page" : undefined}
             className={workspaceNavLink(activeView === "settings")}
           >
             <SlidersIcon className="size-4 shrink-0 opacity-70 group-hover:opacity-100" />
@@ -406,6 +368,7 @@ function WorkspaceSidebarContent({
           <Link
             href={`/workspaces/${workspace.id}/knowledge-base`}
             onClick={onNavigate}
+            aria-current={activeView === "knowledge-base" ? "page" : undefined}
             className={workspaceNavLink(activeView === "knowledge-base")}
           >
             <SourceIcon className="size-4 shrink-0 opacity-70 group-hover:opacity-100" />

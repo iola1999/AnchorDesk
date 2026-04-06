@@ -31,6 +31,10 @@ describe("workspace shell responsive helpers", () => {
     expect(classes).toContain("pr-1");
   });
 
+  test("keeps shell scrolling available after the redesign", () => {
+    expect(resolveWorkspaceShellContentClass("shell")).toContain("overflow-y-auto");
+  });
+
   test("keeps contained mode available for feature-local scroll regions", () => {
     const classes = resolveWorkspaceShellContentClass("contained");
 

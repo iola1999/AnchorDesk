@@ -173,10 +173,10 @@ export function WorkspaceConversationSidebarItem({
           href={`/workspaces/${workspaceId}?conversationId=${conversation.id}`}
           onClick={onNavigate}
           className={cn(
-            "block rounded-[18px] px-3.5 py-2.5 text-[13px] transition",
+            "group relative grid gap-1 rounded-[12px] px-4 py-3 text-[13px] transition",
             isActive
-              ? "bg-white text-app-text shadow-soft"
-              : "text-app-muted-strong hover:bg-white/72 hover:text-app-text",
+              ? "bg-transparent text-app-text before:absolute before:bottom-2 before:left-0 before:top-2 before:w-[2px] before:rounded-full before:bg-app-primary"
+              : "text-app-secondary hover:bg-white/50 hover:text-app-text",
           )}
         >
           <strong className="block min-w-0 truncate pr-[3.5rem] text-[12px] leading-5 font-medium">

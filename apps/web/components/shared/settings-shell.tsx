@@ -12,9 +12,9 @@ export function SettingsShell({
   mainClassName?: string;
 }) {
   return (
-    <div className="min-h-screen">
-      <div className="grid min-h-screen w-full grid-cols-1 xl:grid-cols-[252px_minmax(0,1fr)]">
-        <aside className="border-b border-app-border/80 bg-white/45 xl:border-b-0 xl:border-r">
+    <div className="min-h-[100dvh] bg-app-bg">
+      <div className="grid min-h-[100dvh] w-full grid-cols-1 xl:grid-cols-[264px_minmax(0,1fr)]">
+        <aside className="border-b border-[color:color-mix(in_srgb,var(--outline-variant)_18%,transparent)] bg-app-surface-low xl:border-b-0 xl:border-r xl:border-[color:color-mix(in_srgb,var(--outline-variant)_20%,transparent)]">
           {sidebar}
         </aside>
 
@@ -33,7 +33,7 @@ export function SettingsShell({
 
 export function SettingsShellSidebar({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full flex-col gap-3 px-3 py-3 md:px-4 md:py-4 xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto">
+    <div className="flex h-full flex-col gap-3 px-3 py-3 md:px-4 md:py-4 xl:sticky xl:top-0 xl:h-[100dvh] xl:overflow-y-auto">
       {children}
     </div>
   );

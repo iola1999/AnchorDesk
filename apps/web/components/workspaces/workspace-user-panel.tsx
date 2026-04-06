@@ -100,16 +100,19 @@ export function WorkspaceUserPanel({
             aria-expanded={isOpen}
             aria-controls={menuId}
             aria-label={isOpen ? "收起账号菜单" : "展开账号菜单"}
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition hover:bg-white/80"
+            className={cn(
+              "flex w-full cursor-pointer items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left transition",
+              isOpen ? "bg-app-surface-high" : "hover:bg-app-surface-high/70",
+            )}
           >
-            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-app-surface-strong text-[13px] font-semibold text-app-accent">
+            <div className="grid size-8 shrink-0 place-items-center rounded-full bg-app-surface-lowest text-[13px] font-semibold text-app-secondary">
               {avatarLabel}
             </div>
             <span className="min-w-0 flex-1">
               <strong className="block truncate text-[13.5px] font-medium text-app-text">
                 {displayName}
               </strong>
-              <span className="block truncate text-[12px] text-app-muted">@{username}</span>
+              <span className="block truncate text-[12px] text-app-secondary">@{username}</span>
             </span>
             <span
               className={cn(
