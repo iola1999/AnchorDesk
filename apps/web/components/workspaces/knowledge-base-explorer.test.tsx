@@ -66,6 +66,25 @@ describe("KnowledgeBaseExplorer", () => {
     ).toContain("返回我的资料");
   });
 
+  test("keeps the page header terse instead of repeating a long explainer", () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "/",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [],
+          documentsEndpoint: "/api/workspaces/workspace-1/documents",
+          downloadEndpoint: "/api/workspaces/workspace-1/knowledge-base/download",
+          presignEndpoint: "/api/workspaces/workspace-1/uploads/presign",
+        }),
+      );
+    });
+
+    expect(container.textContent).toContain("资料库");
+    expect(container.textContent).not.toContain("组织研究资料、技术文档和上传内容，供检索与引用使用。");
+  });
+
   test("can hide the page-level header when embedded inside a management detail page", () => {
     act(() => {
       root.render(

@@ -293,36 +293,26 @@ export function SystemRuntimeOverviewPanel({
 
   return (
     <SettingsShell sidebar={<SystemManagementSidebar activeSection="runtime" />}>
-      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
         <EditorialPageHeader
-          eyebrow="系统管理"
           title="运行概览"
-          description="面向超管的实时运营面板，集中查看使用活跃度、回答链路、资料入库和配置就绪度。"
           actions={
-            <div className="grid justify-items-end gap-2">
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {SYSTEM_RUNTIME_WINDOWS.map((window) => (
-                  <button
-                    key={window.id}
-                    type="button"
-                    className={chipButtonStyles({
-                      active: activeWindowId === window.id,
-                    })}
-                    onClick={() => setActiveWindowId(window.id)}
-                  >
-                    {window.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2 text-[12px] text-app-muted">
-                <span className={ui.chipSoft}>
-                  刷新于 {timestampFormatter.format(generatedAt)}
-                </span>
-                <span className={ui.chip}>
-                  当前查看{" "}
-                  {SYSTEM_RUNTIME_WINDOWS.find((item) => item.id === activeWindowId)?.label}
-                </span>
-              </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="text-[12px] text-app-muted">
+                更新 {timestampFormatter.format(generatedAt)}
+              </span>
+              {SYSTEM_RUNTIME_WINDOWS.map((window) => (
+                <button
+                  key={window.id}
+                  type="button"
+                  className={chipButtonStyles({
+                    active: activeWindowId === window.id,
+                  })}
+                  onClick={() => setActiveWindowId(window.id)}
+                >
+                  {window.label}
+                </button>
+              ))}
             </div>
           }
         />
@@ -398,13 +388,7 @@ export function SystemRuntimeOverviewPanel({
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
           <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="grid gap-0.5">
-                <h2 className="text-[1rem] font-semibold text-app-text">时间窗对照</h2>
-                <p className="text-[13px] leading-5 text-app-muted-strong">
-                  所有关键运营指标按 24 小时、7 天、30 天并排对照，便于判断近期波动。
-                </p>
-              </div>
-              <span className={ui.chipSoft}>当前高亮 {activeWindowId}</span>
+              <h2 className="text-[1rem] font-semibold text-app-text">时间窗对照</h2>
             </div>
 
             <div className="overflow-x-auto">
@@ -455,12 +439,7 @@ export function SystemRuntimeOverviewPanel({
           </section>
 
           <section className={cn(ui.panelLarge, "grid gap-4")}>
-            <div className="grid gap-0.5">
-              <h2 className="text-[1rem] font-semibold text-app-text">系统账本</h2>
-              <p className="text-[13px] leading-5 text-app-muted-strong">
-                当前数据库快照和配置就绪度，用于判断系统是否可持续处理请求。
-              </p>
-            </div>
+            <h2 className="text-[1rem] font-semibold text-app-text">系统账本</h2>
 
             <div className="grid gap-2">
               <RuntimeKeyValueRow label="总用户" value={formatCount(overview.snapshot.totalUsers)} />
@@ -540,12 +519,7 @@ export function SystemRuntimeOverviewPanel({
         <div className="grid gap-4 xl:grid-cols-2">
           <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="grid gap-0.5">
-                <h2 className="text-[1rem] font-semibold text-app-text">问答与引用</h2>
-                <p className="text-[13px] leading-5 text-app-muted-strong">
-                  当前时间窗内的回答终态、工具回执和引用来源拆分。
-                </p>
-              </div>
+              <h2 className="text-[1rem] font-semibold text-app-text">问答与引用</h2>
               <span className={resolveRateTone(activeWindow.assistantSuccessRate).badgeClass}>
                 成功率 {formatRate(activeWindow.assistantSuccessRate)}
               </span>
@@ -600,12 +574,7 @@ export function SystemRuntimeOverviewPanel({
 
           <section className={cn(ui.panelLarge, "grid gap-4")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="grid gap-0.5">
-                <h2 className="text-[1rem] font-semibold text-app-text">资料链路</h2>
-                <p className="text-[13px] leading-5 text-app-muted-strong">
-                  聚焦文档新增、入库终态和当前队列积压，方便判断解析与任务进程是否顺畅。
-                </p>
-              </div>
+              <h2 className="text-[1rem] font-semibold text-app-text">资料链路</h2>
               <span className={resolveRateTone(activeWindow.ingestSuccessRate).badgeClass}>
                 成功率 {formatRate(activeWindow.ingestSuccessRate)}
               </span>

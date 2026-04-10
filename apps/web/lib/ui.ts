@@ -58,11 +58,11 @@ export const ui = {
   panelLarge:
     "rounded-2xl border border-transparent bg-app-surface-lowest/70 p-5 shadow-soft backdrop-blur-sm",
   sectionPanel:
-    "rounded-[18px] border border-app-outline-variant/80 bg-app-surface-lowest/86 p-4 shadow-soft md:p-5",
+    "rounded-[18px] border border-app-outline-variant/30 bg-app-surface-lowest/82 p-4 shadow-soft md:p-5",
   subpanel:
-    "rounded-[16px] border border-app-outline-variant/80 bg-app-surface-low/92 p-4 shadow-soft",
+    "rounded-[16px] border border-app-outline-variant/24 bg-app-surface-low/88 p-4 shadow-soft",
   subcard:
-    "rounded-[14px] border border-app-outline-variant/75 bg-app-surface-lowest/88 p-3.5 shadow-soft",
+    "rounded-[14px] border border-app-outline-variant/22 bg-app-surface-lowest/88 p-3.5 shadow-soft",
   popover:
     "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
   menu: "rounded-2xl border border-app-outline-variant/55 bg-[color:color-mix(in_srgb,var(--surface-lowest)_72%,transparent)] p-1.5 shadow-soft backdrop-blur-xl",
@@ -213,9 +213,9 @@ export function workspaceTileStyles({
 } = {}) {
   return cn(
     ui.panel,
-    "grid min-h-[200px] rounded-[20px] p-5 transition hover:-translate-y-px",
+    "grid min-h-[188px] rounded-[20px] p-5 transition hover:-translate-y-px hover:bg-app-surface-lowest/78",
     variant === "create"
-      ? "place-content-center justify-items-center gap-5 border-dashed border-app-outline-variant/70 text-center"
-      : "grid-rows-[auto_1fr_auto] gap-4",
+      ? "place-content-center justify-items-center gap-5 border-dashed border-app-outline-variant/42 text-center"
+      : "grid-rows-[auto_1fr_auto] gap-3.5",
   );
 }

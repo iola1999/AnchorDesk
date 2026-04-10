@@ -67,7 +67,7 @@ export const conversationDensityClassNames = {
   composerShell:
     "sticky bottom-0 z-10 bg-linear-to-t from-app-bg via-app-bg/92 to-transparent px-0 pb-1 pt-8 backdrop-blur-xl",
   composerCard:
-    "rounded-[16px] border border-[color:color-mix(in_srgb,var(--outline-variant)_14%,transparent)] bg-white/78 px-4 py-3 shadow-[0_28px_60px_rgba(25,28,30,0.06)] backdrop-blur-xl",
+    "rounded-[18px] border border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/82 px-4 py-3 shadow-[0_20px_44px_rgba(25,28,30,0.05)] backdrop-blur-xl",
   composerText:
     "w-full resize-none bg-transparent px-0 py-0 text-[13px] leading-6 text-app-text outline-none placeholder:text-app-muted md:text-[14px]",
   composerAttachments: "flex flex-wrap items-center gap-1 px-0",

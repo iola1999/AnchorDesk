@@ -1,26 +1,27 @@
 import Link from "next/link";
 
+import { EditorialPageHeader } from "@/components/shared/editorial-page-header";
 import { CreateWorkspaceForm } from "@/components/workspaces/create-workspace-form";
 import { buttonStyles, cn, ui } from "@/lib/ui";
 
 export default function NewWorkspacePage() {
   return (
-    <div className={cn(ui.pageNarrow, "min-h-screen max-w-[920px] gap-5 py-8")}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-[64ch] space-y-2">
-          <p className={ui.eyebrow}>Create Space</p>
-          <h1>新建工作空间</h1>
-          <p className={ui.muted}>
-            每个空间对应一组资料、会话和生成结果。预置提示词用于统一约束后续回答方式。
-          </p>
-        </div>
-        <Link
-          href="/workspaces"
-          className={buttonStyles({ variant: "secondary", size: "sm" })}
-        >
-          返回空间列表
-        </Link>
-      </div>
+    <div className={cn(ui.pageNarrow, "min-h-screen max-w-[920px] gap-4 py-6")}>
+      <EditorialPageHeader
+        title="新建工作空间"
+        description="创建空间并设置统一回答约束"
+        actions={
+          <Link
+            href="/workspaces"
+            className={cn(
+              buttonStyles({ variant: "secondary", size: "sm" }),
+              "border border-[color:color-mix(in_srgb,var(--outline-variant)_18%,transparent)] bg-app-surface-low/92 shadow-none hover:bg-app-surface",
+            )}
+          >
+            返回空间列表
+          </Link>
+        }
+      />
       <CreateWorkspaceForm />
     </div>
   );

@@ -7,7 +7,6 @@ import { WorkspaceLifecyclePanel } from "@/components/workspaces/workspace-lifec
 import { WorkspaceShell } from "@/components/workspaces/workspace-shell";
 import { listWorkspaceGlobalLibraryCatalog } from "@/lib/api/workspace-library-subscriptions";
 import { loadWorkspaceShellData } from "@/lib/api/workspace-shell-data";
-import { ui } from "@/lib/ui";
 
 export default async function WorkspaceSettingsPage({
   params,
@@ -41,17 +40,7 @@ export default async function WorkspaceSettingsPage({
     >
       <div className="flex w-full min-w-0 flex-col gap-4">
         <EditorialPageHeader
-          eyebrow="空间"
           title="空间设置"
-          description="调整空间名称、资料订阅和生命周期设置。"
-          actions={
-            <div className="flex items-center gap-2">
-              <span className={ui.chip}>
-                {workspace.workspacePrompt ? "已设预置提示词" : "无预置提示词"}
-              </span>
-              <span className={ui.chip}>{libraryCatalog.length} 个可见资料库</span>
-            </div>
-          }
         />
 
         <WorkspaceSettingsForm

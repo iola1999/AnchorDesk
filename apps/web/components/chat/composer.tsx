@@ -357,7 +357,7 @@ export function Composer({
   const isSubmitDisabled = isSubmitBusy || primaryAction.disabled;
   const isPrimaryActionDisabled = canStopStreaming ? isStopping : isSubmitDisabled;
   const stageActionButtonBase =
-    "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:border-app-border disabled:bg-app-surface-strong/72 disabled:text-app-muted disabled:shadow-none";
+    "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:border-app-border disabled:bg-app-surface-strong/72 disabled:text-app-muted disabled:shadow-none";
 
   useEffect(() => {
     setAttachments((current) => mergeAttachments(current, initialAttachments));

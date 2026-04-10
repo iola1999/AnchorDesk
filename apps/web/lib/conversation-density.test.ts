@@ -50,19 +50,19 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.composerShell).toContain("sticky");
     expect(conversationDensityClassNames.composerShell).toContain("bottom-0");
     expect(conversationDensityClassNames.composerShell).toContain("backdrop-blur-xl");
-    expect(conversationDensityClassNames.composerCard).toContain("rounded-[16px]");
+    expect(conversationDensityClassNames.composerCard).toContain("rounded-[18px]");
     expect(conversationDensityClassNames.composerCard).toContain("border");
     expect(conversationDensityClassNames.composerCard).toContain("px-4");
     expect(conversationDensityClassNames.composerCard).toContain("py-3");
-    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_28px_60px");
+    expect(conversationDensityClassNames.composerCard).toContain("shadow-[0_20px_44px");
     expect(conversationDensityClassNames.composerText).toContain("text-[13px]");
     expect(conversationDensityClassNames.composerAttachments).toContain("gap-1");
   });
 
   it("uses an editorial glass composer shell instead of the old bordered card", () => {
     expect(conversationDensityClassNames.composerShell).toContain("backdrop-blur-xl");
-    expect(conversationDensityClassNames.composerCard).toContain("rounded-[16px]");
-    expect(conversationDensityClassNames.composerCard).toContain("bg-white/78");
+    expect(conversationDensityClassNames.composerCard).toContain("rounded-[18px]");
+    expect(conversationDensityClassNames.composerCard).toContain("bg-white/82");
     expect(conversationDensityClassNames.composerCard).not.toContain("rounded-[20px]");
   });
 

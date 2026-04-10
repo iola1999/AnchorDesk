@@ -85,14 +85,13 @@ export function WorkspaceLibrarySubscriptions({
 
   return (
     <section className={cn(ui.sectionPanel, "grid gap-3.5")}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-border pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-secondary">
             全局资料
           </span>
           <h2 className="text-[1rem] font-semibold text-app-text">全局资料库订阅</h2>
         </div>
-        <span className={ui.chip}>{libraries.length} 个可见资料库</span>
       </div>
 
       <div className="grid gap-3">
@@ -105,7 +104,7 @@ export function WorkspaceLibrarySubscriptions({
             return (
               <article
                 key={library.id}
-                className="grid gap-3 rounded-[16px] bg-app-surface-lowest px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                className="grid gap-3 rounded-[16px] border border-app-outline-variant/22 bg-app-surface-lowest/76 px-4 py-3.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
               >
                 <div className="grid gap-3">
                   <div className="grid gap-1.5">

@@ -98,11 +98,10 @@ export default async function WorkspacesPage() {
   }
 
   return (
-    <div className={cn(ui.page, "gap-8")}>
+    <div className={cn(ui.page, "gap-6")}>
       <EditorialPageHeader
-        eyebrow="工作空间"
         title="工作空间"
-        description="围绕项目、客户或研究主题组织资料与对话。"
+        description="围绕项目、客户或研究主题组织资料与对话"
         actions={(
           <WorkspacesHeaderActions
             initialUser={{
@@ -138,7 +137,7 @@ export default async function WorkspacesPage() {
               <div className="space-y-2">
                 <strong>{workspace.title}</strong>
               </div>
-              <div className="grid gap-2 border-t border-app-border pt-3 text-[13px] text-app-muted">
+              <div className="grid gap-2 rounded-[14px] bg-app-surface-low/78 px-3 py-2.5 text-[13px] text-app-muted">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span>{conversationCount} 条会话</span>
                   <span>{documentCount} 份资料</span>

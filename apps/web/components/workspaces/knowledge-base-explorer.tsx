@@ -1125,9 +1125,7 @@ export function KnowledgeBaseExplorer({
       <div className={cn("grid", showPageHeader ? "gap-8" : "gap-4")}>
         {showPageHeader ? (
           <EditorialPageHeader
-            eyebrow="资料"
             title="资料库"
-            description="组织研究资料、技术文档和上传内容，供检索与引用使用。"
           />
         ) : null}
 
@@ -1171,7 +1169,7 @@ export function KnowledgeBaseExplorer({
             ))}
           </div>
 
-          <div className={ui.toolbar}>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               {editable ? (
                 <>
@@ -1200,21 +1198,6 @@ export function KnowledgeBaseExplorer({
                   </button>
                 </>
               ) : null}
-            </div>
-            <label className="w-full sm:w-[320px]">
-              <span className="sr-only">搜索资料</span>
-              <input
-                className={inputStyles({ size: "compact" })}
-                type="search"
-                placeholder="搜索目录、文件名或类型"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 className={toolbarButtonClass}
@@ -1247,7 +1230,21 @@ export function KnowledgeBaseExplorer({
                 </>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+              <label className="min-w-[220px] flex-1 xl:max-w-[320px]">
+                <span className="sr-only">搜索资料</span>
+                <input
+                  className={cn(
+                    inputStyles({ size: "compact" }),
+                    "bg-app-surface-lowest/92 focus:bg-app-surface-lowest",
+                  )}
+                  type="search"
+                  placeholder="搜索目录、文件名或类型"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </label>
               {canManageTasks ? (
                 <button
                   type="button"

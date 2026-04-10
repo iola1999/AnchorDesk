@@ -37,11 +37,6 @@ export function SystemManagementSidebar({
       </Link>
 
       <div className="grid gap-2">
-        <div className="px-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-secondary">
-            系统管理
-          </span>
-        </div>
         <nav className="grid gap-1 rounded-2xl bg-app-surface-lowest/60 p-1 shadow-soft backdrop-blur-sm" aria-label="系统管理导航">
           {navItems.map((item) => (
             <Link

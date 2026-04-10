@@ -279,24 +279,24 @@ describe("resolveComposerStageTextareaSizing", () => {
   it("keeps the stage composer compact by default", () => {
     expect(resolveComposerStageTextareaSizing()).toEqual({
       minRows: 1,
-      minHeight: 28,
-      maxHeight: 224,
+      minHeight: 26,
+      maxHeight: 156,
     });
   });
 
   it("allows a slightly taller starting point when the page requests more rows", () => {
     expect(resolveComposerStageTextareaSizing(2)).toEqual({
       minRows: 2,
-      minHeight: 56,
-      maxHeight: 224,
+      minHeight: 52,
+      maxHeight: 156,
     });
   });
 
   it("clamps oversized initial rows so the composer does not become bloated again", () => {
     expect(resolveComposerStageTextareaSizing(9)).toEqual({
-      minRows: 3,
-      minHeight: 84,
-      maxHeight: 224,
+      minRows: 2,
+      minHeight: 52,
+      maxHeight: 156,
     });
   });
 });

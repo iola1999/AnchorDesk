@@ -24,16 +24,20 @@ export function SettingsShell({
         </aside>
 
         <section className="min-w-0">
-          <header
-            data-slot="settings-shell-top"
-            className="sticky top-0 z-20 border-b border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/72 px-6 py-3 backdrop-blur-xl md:px-8"
-          >
-            {top ? <div className="mx-auto flex w-full max-w-[1120px] items-center justify-between gap-3">{top}</div> : null}
-          </header>
+          {top ? (
+            <header
+              data-slot="settings-shell-top"
+              className="sticky top-0 z-20 border-b border-[color:color-mix(in_srgb,var(--outline-variant)_12%,transparent)] bg-white/72 px-6 py-3 backdrop-blur-xl md:px-8"
+            >
+              <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between gap-3">
+                {top}
+              </div>
+            </header>
+          ) : null}
 
           <main
             className={cn(
-              "min-w-0 bg-app-bg px-6 py-8 md:px-8 md:py-10",
+              "min-w-0 bg-app-bg px-6 py-6 md:px-8 md:py-7",
               mainClassName,
             )}
           >

@@ -196,8 +196,8 @@ export function WorkspacesHeaderActions({
 function headerMenuTriggerStyles(open: boolean) {
   return cn(
     buttonStyles({ variant: "secondary", size: "sm", shape: "pill" }),
-    "gap-1.5 border-transparent bg-app-surface-lowest px-2.5 shadow-none hover:bg-app-surface-high",
-    open && "bg-app-surface-high text-app-text",
+    "min-h-9 gap-1.5 border border-[color:color-mix(in_srgb,var(--outline-variant)_18%,transparent)] bg-app-surface-low/92 pl-2 pr-2.5 shadow-none hover:bg-app-surface",
+    open && "bg-app-surface text-app-text",
   );
 }
 

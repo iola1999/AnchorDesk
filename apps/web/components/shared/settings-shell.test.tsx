@@ -40,10 +40,37 @@ describe("SettingsShell", () => {
     const frame = container.querySelector('[data-slot="settings-shell-frame"]');
     expect(frame).toBeTruthy();
     expect(frame?.className).toContain("xl:grid-cols-[264px_minmax(0,1fr)]");
+  });
+
+  test("does not reserve an empty sticky top bar when the page does not provide top content", () => {
+    act(() => {
+      root.render(
+        createElement(SettingsShell, {
+          sidebar: createElement("div", null, "sidebar"),
+          children: createElement("div", null, "content"),
+        }),
+      );
+    });
+
+    const topRegion = container.querySelector('[data-slot="settings-shell-top"]');
+    expect(topRegion).toBeNull();
+  });
+
+  test("renders a sticky frosted top bar when the page explicitly provides top content", () => {
+    act(() => {
+      root.render(
+        createElement(SettingsShell, {
+          sidebar: createElement("div", null, "sidebar"),
+          top: createElement("div", null, "top-actions"),
+          children: createElement("div", null, "content"),
+        }),
+      );
+    });
 
     const topRegion = container.querySelector('[data-slot="settings-shell-top"]');
     expect(topRegion).toBeTruthy();
     expect(topRegion?.className).toContain("sticky");
     expect(topRegion?.className).toContain("backdrop-blur");
+    expect(container.textContent).toContain("top-actions");
   });
 });

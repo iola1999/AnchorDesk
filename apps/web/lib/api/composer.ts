@@ -77,12 +77,12 @@ export function resolveComposerEnterKeyAction(input: {
   return COMPOSER_ENTER_ACTION.SUBMIT;
 }
 
-const STAGE_COMPOSER_LINE_HEIGHT = 28;
-const STAGE_COMPOSER_MAX_HEIGHT = STAGE_COMPOSER_LINE_HEIGHT * 8;
+const STAGE_COMPOSER_LINE_HEIGHT = 26;
+const STAGE_COMPOSER_MAX_HEIGHT = STAGE_COMPOSER_LINE_HEIGHT * 6;
 
 export function resolveComposerStageTextareaSizing(rows?: number | null) {
   const requestedRows = Number.isFinite(rows) ? Math.trunc(rows ?? 1) : 1;
-  const minRows = Math.max(1, Math.min(requestedRows, 3));
+  const minRows = Math.max(1, Math.min(requestedRows, 2));
 
   return {
     minRows,

@@ -140,4 +140,68 @@ describe("SystemRuntimeOverviewPanel", () => {
     expect(bar).toBeTruthy();
     expect(bar?.style.width).toBe("0%");
   });
+
+  test("keeps the window switcher compact without repeating a current-view status chip", async () => {
+    await act(async () => {
+      root.render(
+        createElement(SystemRuntimeOverviewPanel, {
+          overview: {
+            generatedAt: "2026-04-07T00:00:00.000Z",
+            windows: {
+              "24h": buildWindowSummary(),
+              "7d": buildWindowSummary(),
+              "30d": buildWindowSummary(),
+            },
+            snapshot: {
+              totalUsers: 0,
+              activeSessions: 0,
+              totalWorkspaces: 0,
+              archivedWorkspaces: 0,
+              totalConversations: 0,
+              archivedConversations: 0,
+              totalLibraries: 0,
+              globalLibraries: 0,
+              activeGlobalLibraries: 0,
+              totalDocuments: 0,
+              readyDocuments: 0,
+              processingDocuments: 0,
+              failedDocuments: 0,
+              archivedDocuments: 0,
+              totalConversationAttachments: 0,
+              queuedDocumentJobs: 0,
+              runningDocumentJobs: 0,
+            },
+            readiness: {
+              registrationOpen: false,
+              totalModels: 0,
+              enabledModels: 0,
+              hasDefaultModel: false,
+              runningUpgrades: 0,
+              failedUpgrades: 0,
+              configuredCriticalSettings: 0,
+              totalCriticalSettings: 0,
+              criticalSettings: [],
+            },
+            freshness: {
+              lastLoginAt: null,
+              lastUserMessageAt: null,
+              lastAssistantCompletedAt: null,
+              lastAssistantFailedAt: null,
+              lastDocumentJobCompletedAt: null,
+              lastDocumentJobFailedAt: null,
+              lastRetrievalRunAt: null,
+            },
+            documentStageBacklog: [],
+            assistantFailures: { "24h": [], "7d": [], "30d": [] },
+            ingestFailures: { "24h": [], "7d": [], "30d": [] },
+          },
+        }),
+      );
+    });
+
+    expect(container.textContent).not.toContain("当前查看");
+    expect(container.textContent).toContain("24 小时");
+    expect(container.textContent).toContain("7 天");
+    expect(container.textContent).toContain("30 天");
+  });
 });

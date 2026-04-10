@@ -204,7 +204,7 @@ describe("workspaceTileStyles", () => {
     const classes = workspaceTileStyles();
 
     expect(classes).toContain("grid-rows-[auto_1fr_auto]");
-    expect(classes).toContain("min-h-[200px]");
+    expect(classes).toContain("min-h-[188px]");
   });
 
   it("centers the create-workspace card content within the tile", () => {
@@ -214,7 +214,7 @@ describe("workspaceTileStyles", () => {
     expect(classes).toContain("justify-items-center");
     expect(classes).toContain("text-center");
     expect(classes).toContain("border-dashed");
-    expect(classes).toContain("border-app-outline-variant/70");
+    expect(classes).toContain("border-app-outline-variant/42");
   });
 });
 

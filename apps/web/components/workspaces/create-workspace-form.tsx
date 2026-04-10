@@ -66,9 +66,6 @@ export function CreateWorkspaceForm() {
           onChange={(e) => setWorkspacePrompt(e.target.value)}
           placeholder="例如：默认使用简体中文；先给结论，再列依据；结论必须标注资料出处。"
         />
-        <span className={cn(ui.muted, "text-[13px] leading-5")}>
-          用来约束当前空间内所有会话的回答方式，比如语气、结构、优先关注点或证据要求。
-        </span>
       </label>
       {error ? <p className={ui.error}>{error}</p> : null}
       <div className="flex flex-wrap items-center gap-2.5">

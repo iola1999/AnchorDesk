@@ -57,7 +57,7 @@ export function WorkspaceSettingsForm({
 
   return (
     <form id={sectionId} onSubmit={onSubmit} className={cn(ui.sectionPanel, "grid gap-4")}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-app-border pb-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-0.5">
           <h2 className="text-[1rem] font-semibold text-app-text">基础设置</h2>
         </div>
@@ -94,7 +94,7 @@ export function WorkspaceSettingsForm({
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[14px] font-semibold text-app-text">预置提示词</span>
-              <span className={ui.chip}>
+              <span className="text-[12px] font-medium text-app-muted">
                 {workspacePrompt.length}/{WORKSPACE_PROMPT_MAX_LENGTH}
               </span>
             </div>

@@ -80,20 +80,18 @@ export function WorkspaceEmptyConversationStage({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-156px)] gap-6 px-1 py-5 min-[720px]:min-h-[calc(100vh-180px)] min-[720px]:px-5 min-[720px]:py-6">
-      <div className="mx-auto grid w-full max-w-[920px] gap-5">
+    <div className="grid min-h-[calc(100dvh-140px)] gap-4 px-1 py-4 min-[720px]:min-h-[calc(100vh-164px)] min-[720px]:px-5 min-[720px]:py-5">
+      <div className="mx-auto grid w-full max-w-[860px] gap-4">
         <EditorialPageHeader
-          eyebrow="工作空间"
           title={workspaceTitle}
-          description="围绕一个主题组织资料、问答和结论。"
         />
         <Composer
           workspaceId={workspaceId}
           variant="stage"
-          rows={2}
+          rows={1}
           placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
           submitLabel="开始对话"
-          className="mx-auto w-full max-w-[920px] text-left"
+          className="mx-auto w-full max-w-[860px] text-left"
           textareaClassName="bg-transparent"
           availableModelProfiles={availableModelProfiles}
           initialAttachments={[]}

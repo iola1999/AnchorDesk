@@ -138,12 +138,37 @@ describe("ModelProfilesAdmin", () => {
     });
 
     expect(messageApi.success).toHaveBeenCalledWith("模型已创建");
-    expect(container.textContent).toContain("已配置 2 个模型");
+    expect(container.textContent).toContain("新模型");
+    expect(container.textContent).toContain("claude-new");
 
     const selected = Array.from(container.querySelectorAll('button[aria-current="page"]')).find((button) =>
       button.textContent?.includes("新模型"),
     );
     expect(selected).toBeTruthy();
+  });
+
+  test("uses switch controls for boolean settings instead of true-false selects", async () => {
+    await act(async () => {
+      root.render(
+        createElement(ModelProfilesAdmin, {
+          profiles: [
+            {
+              id: "model-1",
+              apiType: "anthropic",
+              displayName: "默认模型",
+              modelName: "claude-3",
+              baseUrl: "https://api.anthropic.com",
+              apiKey: "sk-1",
+              enabled: true,
+              isDefault: true,
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(container.querySelectorAll("select")).toHaveLength(0);
+    expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
   });
 
   test("locks the submit button while the create request is in-flight", async () => {
@@ -176,4 +201,3 @@ describe("ModelProfilesAdmin", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
-
