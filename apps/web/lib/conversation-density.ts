@@ -17,7 +17,7 @@ export const conversationDensityClassNames = {
   resultPanel: "grid min-w-0 gap-2 min-[720px]:gap-2.5",
   resultHeader:
     "flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-app-border/60 pb-1",
-  answerText: "text-[14px] leading-7 text-app-text",
+  answerText: "min-w-0 max-w-full text-[14px] leading-7 text-app-text",
   thinkingPanel:
     "group/thinking min-w-0 max-w-full rounded-[20px] border border-app-border/60 bg-app-surface-soft/68 px-3 py-2.5 shadow-[0_6px_16px_rgba(23,22,18,0.018)]",
   thinkingSummary:
@@ -65,7 +65,7 @@ export const conversationDensityClassNames = {
   payloadPre:
     "min-w-0 max-w-full max-h-[180px] overflow-auto whitespace-pre-wrap break-all [overflow-wrap:anywhere] select-text rounded-[8px] bg-app-surface-soft/62 px-2 py-1.5 text-[9.5px] leading-4 text-app-muted-strong",
   composerShell:
-    "sticky bottom-0 z-10 border-app-border/45 bg-app-bg/96 px-0 pb-1 pt-3",
+    "sticky bottom-0 z-10 bg-app-bg/96 px-0 pb-0 pt-0",
   composerCard:
     "rounded-[16px] border border-app-border/70 bg-app-surface-lowest px-3.5 py-2.5 shadow-[0_1px_2px_rgba(23,22,18,0.04)]",
   composerText:

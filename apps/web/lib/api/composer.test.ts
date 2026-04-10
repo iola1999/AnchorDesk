@@ -292,10 +292,18 @@ describe("resolveComposerStageTextareaSizing", () => {
     });
   });
 
+  it("supports a more comfortable four-line starting height for the empty stage", () => {
+    expect(resolveComposerStageTextareaSizing(4)).toEqual({
+      minRows: 4,
+      minHeight: 104,
+      maxHeight: 156,
+    });
+  });
+
   it("clamps oversized initial rows so the composer does not become bloated again", () => {
     expect(resolveComposerStageTextareaSizing(9)).toEqual({
-      minRows: 2,
-      minHeight: 52,
+      minRows: 4,
+      minHeight: 104,
       maxHeight: 156,
     });
   });

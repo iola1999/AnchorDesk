@@ -3,7 +3,7 @@
 import { createElement } from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { MarkdownContent } from "../components/shared/markdown-content";
 
@@ -185,5 +185,26 @@ describe("MarkdownContent", () => {
     expect(wrapper).toBeTruthy();
     expect(table).toBeTruthy();
     expect(wrapper?.classList.contains("app-markdown-table-wrapper")).toBe(true);
+  });
+
+  test("does not forward XMarkdown internal props onto native table elements", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    act(() => {
+      root.render(
+        createElement(MarkdownContent, {
+          content: "| A | B |\n| --- | --- |\n| 1 | 2 |",
+          streaming: true,
+        }),
+      );
+    });
+
+    const table = container.querySelector("table");
+
+    expect(table).toBeTruthy();
+    expect(table?.getAttribute("streamStatus")).toBeNull();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 });

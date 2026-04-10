@@ -19,6 +19,8 @@ describe("conversationDensityClassNames", () => {
     expect(conversationDensityClassNames.userAttachmentList).toContain("justify-end");
     expect(conversationDensityClassNames.userAttachmentChip).toContain("rounded-full");
     expect(conversationDensityClassNames.resultPanel).toContain("min-w-0");
+    expect(conversationDensityClassNames.answerText).toContain("min-w-0");
+    expect(conversationDensityClassNames.answerText).toContain("max-w-full");
     expect(conversationDensityClassNames.answerText).toContain("text-[14px]");
     expect(conversationDensityClassNames.answerText).toContain("leading-7");
   });
@@ -49,8 +51,9 @@ describe("conversationDensityClassNames", () => {
   it("keeps the stage composer sticky while preserving attachment visibility", () => {
     expect(conversationDensityClassNames.composerShell).toContain("sticky");
     expect(conversationDensityClassNames.composerShell).toContain("bottom-0");
-    expect(conversationDensityClassNames.composerShell).toContain("border-t");
+    expect(conversationDensityClassNames.composerShell).not.toContain("border-t");
     expect(conversationDensityClassNames.composerShell).not.toContain("backdrop-blur");
+    expect(conversationDensityClassNames.composerShell).not.toContain("pt-3");
     expect(conversationDensityClassNames.composerCard).toContain("rounded-[16px]");
     expect(conversationDensityClassNames.composerCard).toContain("border");
     expect(conversationDensityClassNames.composerCard).toContain("px-3.5");

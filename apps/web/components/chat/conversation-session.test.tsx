@@ -80,6 +80,38 @@ describe("ConversationSession", () => {
     expect(excerpt?.textContent).toContain("部署手册");
   });
 
+  test("keeps markdown tables inside a constrained answer container so wide tables can scroll", () => {
+    act(() => {
+      root.render(
+        createElement(ConversationSession, {
+          conversationId: "conversation-1",
+          workspaceId: "workspace-1",
+          assistantMessageId: "assistant-1",
+          assistantStatus: MESSAGE_STATUS.COMPLETED,
+          streamEnabled: false,
+          initialMessages: [
+            {
+              id: "assistant-1",
+              role: MESSAGE_ROLE.ASSISTANT,
+              status: MESSAGE_STATUS.COMPLETED,
+              contentMarkdown:
+                "| 列 A | 列 B |\n| --- | --- |\n| 超长内容超长内容超长内容超长内容 | 更多更多更多更多更多更多 |",
+              structuredJson: null,
+            },
+          ],
+        }),
+      );
+    });
+
+    const answerContainer = container.querySelector('[data-follow-up-anchor="assistant-1"]');
+    const markdownRoot = container.querySelector(".app-markdown");
+    const tableWrapper = container.querySelector(".app-markdown-table-wrapper");
+
+    expect(answerContainer?.className).toContain("min-w-0");
+    expect(markdownRoot?.className).toContain("max-w-full");
+    expect(tableWrapper).toBeTruthy();
+  });
+
   test("renders streamed thinking inside the unified process timeline", () => {
     act(() => {
       root.render(

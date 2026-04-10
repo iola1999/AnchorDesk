@@ -79,9 +79,9 @@ export function WorkspaceEmptyConversationStage({
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-168px)] content-start gap-3 px-1 py-3 min-[720px]:min-h-[calc(100vh-196px)] min-[720px]:px-5 min-[720px]:py-4">
-      <div className="mx-auto grid w-full max-w-[820px] gap-3">
-        <div className="grid gap-1 px-1">
+    <div className="grid min-h-[560px] place-items-center px-1 py-6 min-[720px]:min-h-[calc(100dvh-220px)] min-[720px]:px-5 min-[720px]:py-10">
+      <div className="mx-auto grid w-full max-w-[960px] gap-5 self-center">
+        <div className="grid gap-1.5 px-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-app-accent">
             新建会话
           </p>
@@ -92,10 +92,10 @@ export function WorkspaceEmptyConversationStage({
         <Composer
           workspaceId={workspaceId}
           variant="stage"
-          rows={1}
+          rows={4}
           placeholder="例如：请基于本空间资料，总结新版发布流程的关键变化，并列出仍需补充的信息"
           submitLabel="开始对话"
-          className="mx-auto w-full max-w-[820px] text-left"
+          className="mx-auto w-full max-w-[960px] text-left"
           textareaClassName="bg-transparent"
           availableModelProfiles={availableModelProfiles}
           initialAttachments={[]}

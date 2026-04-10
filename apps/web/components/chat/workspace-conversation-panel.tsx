@@ -193,7 +193,7 @@ export function WorkspaceConversationPanel({
       ref={panelRef}
       className="mx-auto flex min-h-full w-full max-w-[1080px] min-w-0 flex-col overflow-visible"
     >
-      <div className="min-w-0 flex-1 py-2 pr-1 min-[720px]:py-3">
+      <div className="min-w-0 flex-1 pt-2 pb-0 pr-1 min-[720px]:pt-3 min-[720px]:pb-0">
         <ConversationSession
           conversationId={conversationId}
           workspaceId={workspaceId}

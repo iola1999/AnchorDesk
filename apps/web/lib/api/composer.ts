@@ -82,7 +82,7 @@ const STAGE_COMPOSER_MAX_HEIGHT = STAGE_COMPOSER_LINE_HEIGHT * 6;
 
 export function resolveComposerStageTextareaSizing(rows?: number | null) {
   const requestedRows = Number.isFinite(rows) ? Math.trunc(rows ?? 1) : 1;
-  const minRows = Math.max(1, Math.min(requestedRows, 2));
+  const minRows = Math.max(1, Math.min(requestedRows, 4));
 
   return {
     minRows,

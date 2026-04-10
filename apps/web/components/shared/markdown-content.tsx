@@ -180,14 +180,13 @@ function InlineCitationMarker({
   );
 }
 
-function MarkdownTable(props: XMarkdownComponentProps) {
-  const { children, domNode: _domNode, ...domProps } = props as XMarkdownComponentProps & {
-    domNode?: unknown;
-  };
-
+function MarkdownTable({
+  children,
+  className,
+}: XMarkdownComponentProps) {
   return (
     <div className="app-markdown-table-wrapper">
-      <table {...domProps}>{children}</table>
+      <table className={className}>{children}</table>
     </div>
   );
 }
@@ -210,7 +209,11 @@ export function MarkdownContent({
   const renderedContent = renderInlineCitationMarkers(content);
   return createElement(XMarkdown, {
     content: renderedContent,
-    className: cn("x-markdown-light app-markdown", textSelectionStyles.content, className),
+    className: cn(
+      "x-markdown-light app-markdown min-w-0 max-w-full",
+      textSelectionStyles.content,
+      className,
+    ),
     openLinksInNewTab: true,
     dompurifyConfig: {
       ADD_TAGS: ["citation-group"],

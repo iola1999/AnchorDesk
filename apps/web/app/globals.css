@@ -225,14 +225,19 @@
   }
 
   .app-markdown-table-wrapper {
+    display: block;
     margin: var(--table-margin);
     border-radius: var(--border-radius-middle, 16px);
+    min-width: 0;
+    width: 100%;
     max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
   }
 
   .app-markdown-table-wrapper table {
+    table-layout: auto;
     margin: 0;
     width: max-content;
     min-width: 100%;

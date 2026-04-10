@@ -1069,7 +1069,7 @@ export function ConversationSession({
                   ) : (
                     <div
                       data-follow-up-anchor={message.id}
-                      className="grid gap-3"
+                      className="grid min-w-0 gap-3"
                       onMouseUp={(event) => handleAnswerMouseUp(message.id, event)}
                     >
                       <MarkdownContent
