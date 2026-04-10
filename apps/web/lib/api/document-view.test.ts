@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { buildDocumentViewerPages } from "./document-view";
+import {
+  buildDocumentViewerPages,
+  resolveDocumentViewerPageScope,
+} from "./document-view";
 
 describe("buildDocumentViewerPages", () => {
   test("groups blocks by page and sorts them by page then order", () => {
@@ -74,6 +77,47 @@ describe("buildDocumentViewerPages", () => {
       id: "block-a",
       isHighlighted: true,
       anchorCount: 1,
+    });
+  });
+});
+
+describe("resolveDocumentViewerPageScope", () => {
+  test("prefers the highlighted anchor page over the requested page", () => {
+    expect(
+      resolveDocumentViewerPageScope({
+        highlightedAnchorPage: 12,
+        requestedPage: 3,
+      }),
+    ).toEqual({
+      focusPage: 12,
+      pageStart: 12,
+      pageEnd: 12,
+    });
+  });
+
+  test("clamps invalid requests to the first page and can expand around the focus page", () => {
+    expect(
+      resolveDocumentViewerPageScope({
+        requestedPage: 0,
+        radius: 1,
+      }),
+    ).toEqual({
+      focusPage: 1,
+      pageStart: 1,
+      pageEnd: 2,
+    });
+  });
+
+  test("treats non-finite requested pages as the first page", () => {
+    expect(
+      resolveDocumentViewerPageScope({
+        requestedPage: Number.NaN,
+        radius: 2,
+      }),
+    ).toEqual({
+      focusPage: 1,
+      pageStart: 1,
+      pageEnd: 3,
     });
   });
 });

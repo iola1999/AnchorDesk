@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatCitationLocator, PARSE_STATUS } from "@anchordesk/contracts";
 
@@ -22,7 +22,10 @@ import { DocumentMetadataForm } from "@/components/documents/document-metadata-f
 import { PdfViewer } from "@/components/documents/pdf-viewer";
 import { readCitationLocator } from "@/lib/api/document-metadata";
 import { resolveDocumentPreviewBackTarget } from "@/lib/api/document-page-navigation";
-import { buildDocumentViewerPages } from "@/lib/api/document-view";
+import {
+  buildDocumentViewerPages,
+  resolveDocumentViewerPageScope,
+} from "@/lib/api/document-view";
 import { buttonStyles, cn, textSelectionStyles, ui } from "@/lib/ui";
 
 export default async function DocumentPage({
@@ -117,8 +120,13 @@ export default async function DocumentPage({
     anchorLabel: string;
   }> = [];
 
+  const requestedPage = Number.parseInt(page ?? "", 10);
+  let viewerPageScope = resolveDocumentViewerPageScope({
+    requestedPage,
+  });
+
   if (latestVersion) {
-    [anchor, blocks, pageAnchors] = await Promise.all([
+    anchor = await (
       anchorId
         ? db
             .select({
@@ -136,7 +144,15 @@ export default async function DocumentPage({
             )
             .limit(1)
             .then((rows) => rows[0] ?? null)
-        : Promise.resolve(null),
+        : Promise.resolve(null)
+    );
+
+    viewerPageScope = resolveDocumentViewerPageScope({
+      highlightedAnchorPage: anchor?.pageNo,
+      requestedPage,
+    });
+
+    [blocks, pageAnchors] = await Promise.all([
       db
         .select({
           id: documentBlocks.id,
@@ -149,7 +165,13 @@ export default async function DocumentPage({
           metadataJson: documentBlocks.metadataJson,
         })
         .from(documentBlocks)
-        .where(eq(documentBlocks.documentVersionId, latestVersion.id)),
+        .where(
+          and(
+            eq(documentBlocks.documentVersionId, latestVersion.id),
+            gte(documentBlocks.pageNo, viewerPageScope.pageStart),
+            lte(documentBlocks.pageNo, viewerPageScope.pageEnd),
+          ),
+        ),
       db
         .select({
           id: citationAnchors.id,
@@ -159,7 +181,13 @@ export default async function DocumentPage({
           anchorLabel: citationAnchors.anchorLabel,
         })
         .from(citationAnchors)
-        .where(eq(citationAnchors.documentVersionId, latestVersion.id)),
+        .where(
+          and(
+            eq(citationAnchors.documentVersionId, latestVersion.id),
+            gte(citationAnchors.pageNo, viewerPageScope.pageStart),
+            lte(citationAnchors.pageNo, viewerPageScope.pageEnd),
+          ),
+        ),
     ]);
   }
 
@@ -169,7 +197,6 @@ export default async function DocumentPage({
     highlightedAnchorId: anchorId,
   });
   const backTarget = resolveDocumentPreviewBackTarget(workspaceId);
-  const requestedPage = Number.parseInt(page ?? "", 10);
   const tags = doc.tagsJson ?? [];
   const canRenderPdf = doc.mimeType.includes("pdf") && Boolean(latestVersion);
   const metadataPanel = isWorkspaceOwnedDocument ? (
@@ -272,7 +299,7 @@ export default async function DocumentPage({
           <h3 className="text-[14px] font-semibold text-app-text">解析内容区块</h3>
           <span className="text-[13px] text-app-muted">
             {viewerPages.length > 0
-              ? `共 ${viewerPages.length} 页`
+              ? `当前加载第 ${viewerPageScope.focusPage} 页`
               : latestVersion?.parseStatus === PARSE_STATUS.READY
                 ? "暂无解析内容"
                 : "等待解析完成"}
@@ -381,7 +408,7 @@ export default async function DocumentPage({
     <PdfViewer
       fileUrl={`/api/workspaces/${workspaceId}/documents/${documentId}/content`}
       title={doc.title}
-      initialPage={anchor?.pageNo ?? (Number.isFinite(requestedPage) ? requestedPage : 1)}
+      initialPage={viewerPageScope.focusPage}
       highlightedText={anchor?.anchorText ?? ""}
     >
       {contentBlocks}

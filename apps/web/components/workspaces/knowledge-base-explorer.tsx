@@ -125,6 +125,8 @@ type MountedLibraryRecord = {
   updatedAt: string;
 };
 
+const KNOWLEDGE_BASE_DND_CONTEXT_ID = "knowledge-base-dnd";
+
 function formatFileSize(value: number | null) {
   if (!value || value <= 0) {
     return "—";
@@ -302,6 +304,7 @@ function TableRow({
                     <Link
                       href={`${documentHrefBase}/${entry.id}`}
                       className="truncate font-medium text-app-text hover:text-app-accent"
+                      prefetch={false}
                       target="_blank"
                     >
                       {entry.name}
@@ -1124,7 +1127,11 @@ export function KnowledgeBaseExplorer({
     "h-9 rounded-[16px] border border-app-border bg-app-surface-soft/72 px-3 text-[13px]";
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      id={KNOWLEDGE_BASE_DND_CONTEXT_ID}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className={cn("grid", showPageHeader ? "gap-8" : "gap-4")}>
         {showPageHeader ? (
           <EditorialPageHeader
@@ -1626,6 +1633,7 @@ export function KnowledgeBaseExplorer({
                       <Link
                         href={`${documentHrefBase}/${document.id}`}
                         className="font-medium text-app-text hover:text-app-accent"
+                        prefetch={false}
                         target="_blank"
                       >
                         {document.sourceFilename}

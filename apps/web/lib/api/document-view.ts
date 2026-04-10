@@ -23,6 +23,33 @@ type DocumentViewerPageInput = {
   highlightedAnchorId?: string;
 };
 
+export function resolveDocumentViewerPageScope(input: {
+  highlightedAnchorPage?: number;
+  requestedPage?: number;
+  radius?: number;
+}) {
+  const normalizePage = (value?: number) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return undefined;
+    }
+
+    return Math.max(1, Math.trunc(value));
+  };
+
+  const focusPage =
+    normalizePage(input.highlightedAnchorPage) ?? normalizePage(input.requestedPage) ?? 1;
+  const radius =
+    typeof input.radius === "number" && Number.isFinite(input.radius)
+      ? Math.max(0, Math.trunc(input.radius))
+      : 0;
+
+  return {
+    focusPage,
+    pageStart: Math.max(1, focusPage - radius),
+    pageEnd: focusPage + radius,
+  };
+}
+
 export type DocumentViewerPage = {
   pageNo: number;
   blocks: Array<

@@ -7,6 +7,26 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { KnowledgeBaseExplorer } from "./knowledge-base-explorer";
 
+vi.mock("@dnd-kit/core", () => ({
+  DndContext: ({
+    id,
+    children,
+  }: {
+    id?: string;
+    children: React.ReactNode;
+  }) => createElement("div", { "data-dnd-context-id": id }, children),
+  useDraggable: () => ({
+    attributes: {},
+    listeners: {},
+    isDragging: false,
+    setNodeRef: () => undefined,
+  }),
+  useDroppable: () => ({
+    isOver: false,
+    setNodeRef: () => undefined,
+  }),
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workspaces/workspace-1/knowledge-base",
   useRouter: () => ({
@@ -19,11 +39,13 @@ vi.mock("next/link", () => ({
   default: ({
     href,
     children,
+    prefetch,
     ...props
   }: {
     href: string;
     children: React.ReactNode;
-  }) => createElement("a", { href, ...props }, children),
+    prefetch?: boolean;
+  }) => createElement("a", { href, ...props, "data-prefetch": String(prefetch) }, children),
 }));
 
 describe("KnowledgeBaseExplorer", () => {
@@ -229,5 +251,68 @@ describe("KnowledgeBaseExplorer", () => {
     expect(container.textContent).not.toContain("上传资料");
     expect(container.textContent).not.toContain("新建目录");
     expect(container.textContent).not.toContain("处理中任务");
+  });
+
+  test("uses a stable dnd context id to avoid hydration drift", () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "/",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [],
+          documentsEndpoint: "/api/workspaces/workspace-1/documents",
+          downloadEndpoint: "/api/workspaces/workspace-1/knowledge-base/download",
+          presignEndpoint: "/api/workspaces/workspace-1/uploads/presign",
+        }),
+      );
+    });
+
+    expect(
+      container.querySelector('[data-dnd-context-id="knowledge-base-dnd"]'),
+    ).toBeTruthy();
+  });
+
+  test("disables document detail prefetch in the knowledge base list", () => {
+    act(() => {
+      root.render(
+        createElement(KnowledgeBaseExplorer, {
+          initialCurrentPath: "/",
+          currentDirectoryId: null,
+          directories: [],
+          documents: [
+            {
+              id: "doc-1",
+              title: "问题文档",
+              sourceFilename: "问题文档.pdf",
+              logicalPath: "/问题文档.pdf",
+              directoryPath: "/",
+              mimeType: "application/pdf",
+              docType: "PDF",
+              tags: [],
+              status: "ready",
+              createdAt: "2026-04-07T00:00:00.000Z",
+              updatedAt: "2026-04-07T00:00:00.000Z",
+              latestVersion: {
+                id: "version-1",
+                parseStatus: "ready",
+                fileSizeBytes: 1200,
+              },
+              latestJob: null,
+            },
+          ],
+          documentHrefBase: "/workspaces/workspace-1/documents",
+          documentsEndpoint: "/api/workspaces/workspace-1/documents",
+          downloadEndpoint: "/api/workspaces/workspace-1/knowledge-base/download",
+          presignEndpoint: "/api/workspaces/workspace-1/uploads/presign",
+        }),
+      );
+    });
+
+    expect(
+      container.querySelector('a[href="/workspaces/workspace-1/documents/doc-1"]')?.getAttribute(
+        "data-prefetch",
+      ),
+    ).toBe("false");
   });
 });
